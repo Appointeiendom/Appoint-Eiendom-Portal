@@ -94,11 +94,6 @@ export default function IssueDetails() {
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <div className="flex items-start justify-between gap-3 mb-4">
                 <h1 className="text-xl font-bold text-gray-800">{issue.title}</h1>
-                {isAdmin && (
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${priorityStyles[issue.priority]}`}>
-                    {issue.priority}
-                  </span>
-                )}
               </div>
 
               <p className="text-gray-600 text-sm mb-4 leading-relaxed">{issue.description}</p>

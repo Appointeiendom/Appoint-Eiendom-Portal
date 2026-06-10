@@ -25,11 +25,6 @@ export default function IssueCard({ issue }) {
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <h3 className="font-semibold text-gray-800 text-sm leading-snug">{issue.title}</h3>
-        {user?.role === 'admin' && (
-          <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${priorityStyles[issue.priority]}`}>
-            {issue.priority}
-          </span>
-        )}
       </div>
       <p className="text-xs text-gray-500 mb-3 line-clamp-2">{issue.description}</p>
       <div className="flex items-center justify-between flex-wrap gap-2">

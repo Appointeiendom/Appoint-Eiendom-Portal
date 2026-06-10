@@ -2,7 +2,7 @@ const { Resend } = require('resend');
 
 const getResend = () => new Resend(process.env.RESEND_API_KEY);
 
-const FROM = process.env.EMAIL_FROM || 'SuperStay Portal <onboarding@resend.dev>';
+const FROM = process.env.EMAIL_FROM || `SuperStay Portal <sameer@superstay.no>`;
 
 const priorityColor = (priority) => {
   const colors = { high: '#EF4444', medium: '#F59E0B', low: '#10B981' };

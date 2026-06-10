@@ -7,8 +7,13 @@ export default function AdminTenants() {
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', unit: '', building: '', phone: '' });
+  const [form, setForm] = useState({ name: '', email: '', unit: '', building: '', phone: '', password: '' });
   const [saving, setSaving] = useState(false);
+
+  // Reset password modal state
+  const [resetTarget, setResetTarget] = useState(null); // { _id, name, email }
+  const [newPassword, setNewPassword] = useState('');
+  const [resetting, setResetting] = useState(false);
 
   const fetchTenants = () => {
     api.get('/users')
@@ -21,20 +26,35 @@ export default function AdminTenants() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.unit) {
-      return toast.error('Name, email and unit are required');
-    }
+    if (!form.name || !form.email || !form.unit) return toast.error('Name, email and unit are required');
+    if (form.password && form.password.length < 6) return toast.error('Password must be at least 6 characters');
     setSaving(true);
     try {
       await api.post('/users', form);
       toast.success(`Account created — login details sent to ${form.email}`);
-      setForm({ name: '', email: '', unit: '', building: '', phone: '' });
+      setForm({ name: '', email: '', unit: '', building: '', phone: '', password: '' });
       setShowForm(false);
       fetchTenants();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to create tenant');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (newPassword.length < 6) return toast.error('Password must be at least 6 characters');
+    setResetting(true);
+    try {
+      await api.put(`/users/${resetTarget._id}/reset-password`, { password: newPassword });
+      toast.success(`Password updated and emailed to ${resetTarget.email}`);
+      setResetTarget(null);
+      setNewPassword('');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to reset password');
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -69,7 +89,7 @@ export default function AdminTenants() {
         {showForm && (
           <form onSubmit={handleCreate} className="bg-white rounded-xl border border-emerald-200 p-6 mb-6 space-y-4">
             <h2 className="font-semibold text-gray-700">New Tenant Account</h2>
-            <p className="text-xs text-gray-500">A password will be auto-generated and emailed to the tenant.</p>
+            <p className="text-xs text-gray-500">Leave password blank to auto-generate one. Credentials are emailed to the tenant.</p>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 sm:col-span-1">
@@ -98,11 +118,19 @@ export default function AdminTenants() {
                 <input type="tel" value={form.phone} onChange={update('phone')}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
               </div>
+              <div className="col-span-2 sm:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Password <span className="text-gray-400 font-normal">(optional — leave blank to auto-generate)</span>
+                </label>
+                <input type="text" value={form.password} onChange={update('password')}
+                  placeholder="Min 6 characters"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+              </div>
             </div>
 
             <button type="submit" disabled={saving}
               className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60">
-              {saving ? 'Creating & sending email...' : 'Create Account & Send Credentials'}
+              {saving ? 'Creating...' : 'Create Account & Send Credentials'}
             </button>
           </form>
         )}
@@ -136,10 +164,16 @@ export default function AdminTenants() {
                     <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{t.unit}</td>
                     <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{t.phone || '—'}</td>
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => handleDelete(t._id, t.name)}
-                        className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors">
-                        Remove
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => { setResetTarget(t); setNewPassword(''); }}
+                          className="text-xs text-blue-500 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded transition-colors">
+                          Reset Password
+                        </button>
+                        <button onClick={() => handleDelete(t._id, t.name)}
+                          className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors">
+                          Remove
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -148,6 +182,41 @@ export default function AdminTenants() {
           </div>
         )}
       </div>
+
+      {/* Reset Password Modal */}
+      {resetTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+            <h2 className="font-semibold text-gray-800 mb-1">Reset Password</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Set a new password for <strong>{resetTarget.name}</strong>. It will be emailed to {resetTarget.email}.
+            </p>
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Password *</label>
+                <input
+                  type="text"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Min 6 characters"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setResetTarget(null)}
+                  className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                  Cancel
+                </button>
+                <button type="submit" disabled={resetting}
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60">
+                  {resetting ? 'Saving...' : 'Update & Email'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

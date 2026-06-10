@@ -26,7 +26,7 @@ router.put('/profile', protect, async (req, res) => {
 // POST /api/users  — admin creates a tenant account
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
-    const { name, email, unit, building, phone } = req.body;
+    const { name, email, unit, building, phone, password: customPassword } = req.body;
     if (!name || !email || !unit) {
       return res.status(400).json({ message: 'Name, email and unit are required' });
     }
@@ -34,8 +34,10 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: 'Email already registered' });
 
-    // Auto-generate a password
-    const rawPassword = Math.random().toString(36).slice(-8) + 'A1!';
+    // Use custom password if provided, otherwise auto-generate
+    const rawPassword = customPassword && customPassword.length >= 6
+      ? customPassword
+      : Math.random().toString(36).slice(-8) + 'A1!';
 
     const user = await User.create({
       name, email, password: rawPassword, role: 'tenant', unit, building, phone,
@@ -48,6 +50,31 @@ router.post('/', protect, adminOnly, async (req, res) => {
       _id: user._id, name: user.name, email: user.email,
       role: user.role, unit: user.unit, building: user.building, phone: user.phone,
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PUT /api/users/:id/reset-password (admin only)
+router.put('/:id/reset-password', protect, adminOnly, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.password = password; // pre-save hook will hash it
+    await user.save();
+
+    // Email tenant their new password
+    const { sendWelcomeEmail } = require('../services/emailService');
+    sendWelcomeEmail(
+      { name: user.name, email: user.email, unit: user.unit },
+      password
+    ).catch(console.error);
+
+    res.json({ message: 'Password updated and emailed to tenant' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -1,16 +1,8 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT),
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-};
+const getResend = () => new Resend(process.env.RESEND_API_KEY);
+
+const FROM = process.env.EMAIL_FROM || 'SuperStay Portal <onboarding@resend.dev>';
 
 const priorityColor = (priority) => {
   const colors = { high: '#EF4444', medium: '#F59E0B', low: '#10B981' };
@@ -25,7 +17,7 @@ const statusColor = (status) => {
 // Email sent to admin when a new issue is created
 const sendNewIssueEmail = async (issue, tenant) => {
   try {
-    const transporter = createTransporter();
+
     const issueUrl = `${process.env.FRONTEND_URL}/admin/issues/${issue._id}`;
 
     const html = `
@@ -74,8 +66,8 @@ const sendNewIssueEmail = async (issue, tenant) => {
       </div>
     `;
 
-    await transporter.sendMail({
-      from: `"SuperStay Portal" <${process.env.EMAIL_FROM}>`,
+    await getResend().emails.send({
+      from: FROM,
       to: process.env.ADMIN_EMAIL,
       subject: `[${issue.priority.toUpperCase()}] New Issue: ${issue.title} — ${tenant.name} (${issue.unit})`,
       html,
@@ -90,7 +82,7 @@ const sendNewIssueEmail = async (issue, tenant) => {
 // Email sent when issue status changes
 const sendStatusChangeEmail = async (issue, tenant, updatedBy) => {
   try {
-    const transporter = createTransporter();
+
     const issueUrl = `${process.env.FRONTEND_URL}/admin/issues/${issue._id}`;
 
     const html = `
@@ -130,8 +122,8 @@ const sendStatusChangeEmail = async (issue, tenant, updatedBy) => {
       </div>
     `;
 
-    await transporter.sendMail({
-      from: `"SuperStay Portal" <${process.env.EMAIL_FROM}>`,
+    await getResend().emails.send({
+      from: FROM,
       to: process.env.ADMIN_EMAIL,
       subject: `Issue Status Update: "${issue.title}" → ${issue.status.replace('-', ' ').toUpperCase()}`,
       html,
@@ -146,7 +138,7 @@ const sendStatusChangeEmail = async (issue, tenant, updatedBy) => {
 // Confirmation email sent to the tenant when they report an issue
 const sendTenantConfirmationEmail = async (issue, tenant) => {
   try {
-    const transporter = createTransporter();
+
     const issueUrl = `${process.env.FRONTEND_URL}/tenant/issues/${issue._id}`;
 
     const html = `
@@ -192,8 +184,8 @@ const sendTenantConfirmationEmail = async (issue, tenant) => {
       </div>
     `;
 
-    await transporter.sendMail({
-      from: `"SuperStay Portal" <${process.env.EMAIL_FROM}>`,
+    await getResend().emails.send({
+      from: FROM,
       to: tenant.email,
       subject: `Issue Received: ${issue.title}`,
       html,
@@ -208,7 +200,7 @@ const sendTenantConfirmationEmail = async (issue, tenant) => {
 // Email sent to the TENANT when their issue status changes
 const sendTenantStatusEmail = async (issue, tenant) => {
   try {
-    const transporter = createTransporter();
+
     const issueUrl = `${process.env.FRONTEND_URL}/tenant/issues/${issue._id}`;
 
     const statusMessages = {
@@ -247,8 +239,8 @@ const sendTenantStatusEmail = async (issue, tenant) => {
       </div>
     `;
 
-    await transporter.sendMail({
-      from: `"SuperStay Portal" <${process.env.EMAIL_FROM}>`,
+    await getResend().emails.send({
+      from: FROM,
       to: tenant.email,
       subject: `Issue Update: "${issue.title}" is now ${issue.status.replace('-', ' ')}`,
       html,
@@ -265,7 +257,7 @@ module.exports = { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmat
 // Welcome email sent to tenant when admin creates their account
 async function sendWelcomeEmail(tenant, rawPassword) {
   try {
-    const transporter = createTransporter();
+
     const loginUrl = `${process.env.FRONTEND_URL}/login`;
 
     const html = `
@@ -305,8 +297,8 @@ async function sendWelcomeEmail(tenant, rawPassword) {
       </div>
     `;
 
-    await transporter.sendMail({
-      from: `"SuperStay Portal" <${process.env.EMAIL_FROM}>`,
+    await getResend().emails.send({
+      from: FROM,
       to: tenant.email,
       subject: `Welcome to SuperStay Portal — Your Login Details`,
       html,

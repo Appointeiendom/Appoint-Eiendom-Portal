@@ -18,7 +18,9 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: function (origin, callback) {
+      callback(null, true); // allow all for socket
+    },
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -28,7 +30,22 @@ const io = new Server(server, {
 connectDB();
 
 // Middleware
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow all origins in development, specific ones in production
+    const allowed = [
+      'http://localhost:5173',
+      'https://appoint-eiendom-portal-rho.vercel.app',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean);
+    if (!origin || allowed.some(o => origin.startsWith(o.replace(/\/$/, '')))) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

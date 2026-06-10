@@ -10,11 +10,12 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: {
+  params: async (req, file) => ({
     folder: 'tenant-portal',
     allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-    transformation: [{ width: 1200, crop: 'limit' }], // resize large images
-  },
+    transformation: [{ width: 1200, crop: 'limit' }],
+    resource_type: 'image',
+  }),
 });
 
 const upload = multer({

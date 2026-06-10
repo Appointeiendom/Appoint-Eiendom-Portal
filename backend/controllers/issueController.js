@@ -44,7 +44,8 @@ const createIssue = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    const images = req.files ? req.files.map((f) => f.path) : []; // f.path is the Cloudinary URL
+    const images = req.files ? req.files.map((f) => f.path) : [];
+    console.log('Uploaded images:', images);
 
     const issue = await Issue.create({
       tenantId: req.user._id,

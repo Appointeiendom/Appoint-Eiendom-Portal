@@ -30,7 +30,7 @@ export default function ChatBox({ issueId }) {
     };
 
     const onTyping = (data) => {
-      if (data.userId !== user._id) setTyping(data.name);
+      if (String(data.userId) !== String(user._id)) setTyping(data.name);
     };
 
     const onStopTyping = () => setTyping(null);
@@ -86,7 +86,8 @@ export default function ChatBox({ issueId }) {
           <p className="text-center text-gray-400 text-sm py-8">No messages yet. Start the conversation.</p>
         )}
         {messages.map((msg) => {
-          const isOwn = msg.senderId === user._id || msg.senderId?._id === user._id;
+          const senderId = msg.senderId?._id || msg.senderId;
+          const isOwn = String(senderId) === String(user._id);
           return (
             <div key={msg._id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-xs lg:max-w-md ${isOwn ? 'items-end' : 'items-start'} flex flex-col`}>

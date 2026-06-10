@@ -13,6 +13,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminIssues from './pages/AdminIssues';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminTenants from './pages/AdminTenants';
+import Profile from './pages/Profile';
 
 export default function App() {
   return (

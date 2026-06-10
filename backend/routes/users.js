@@ -41,8 +41,8 @@ router.post('/', protect, adminOnly, async (req, res) => {
       name, email, password: rawPassword, role: 'tenant', unit, building, phone,
     });
 
-    // Send welcome email with credentials
-    await sendWelcomeEmail({ name, email, unit, building, phone }, rawPassword);
+    // Send welcome email in background (non-blocking)
+    sendWelcomeEmail({ name, email, unit, building, phone }, rawPassword).catch(console.error);
 
     res.status(201).json({
       _id: user._id, name: user.name, email: user.email,

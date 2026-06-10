@@ -12,7 +12,7 @@ import IssueDetails from './pages/IssueDetails';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminIssues from './pages/AdminIssues';
 import AdminAnalytics from './pages/AdminAnalytics';
-import Profile from './pages/Profile';
+import AdminTenants from './pages/AdminTenants';
 
 export default function App() {
   return (
@@ -22,7 +22,6 @@ export default function App() {
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
 
           {/* Tenant */}
@@ -36,6 +35,7 @@ export default function App() {
           <Route path="/admin/dashboard" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/issues" element={<ProtectedRoute role="admin"><AdminIssues /></ProtectedRoute>} />
           <Route path="/admin/issues/:id" element={<ProtectedRoute role="admin"><IssueDetails /></ProtectedRoute>} />
+          <Route path="/admin/tenants" element={<ProtectedRoute role="admin"><AdminTenants /></ProtectedRoute>} />
           <Route path="/admin/analytics" element={<ProtectedRoute role="admin"><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute role="admin"><Profile /></ProtectedRoute>} />
 

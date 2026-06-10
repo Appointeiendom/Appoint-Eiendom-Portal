@@ -260,4 +260,60 @@ const sendTenantStatusEmail = async (issue, tenant) => {
   }
 };
 
-module.exports = { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail };
+module.exports = { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail, sendWelcomeEmail };
+
+// Welcome email sent to tenant when admin creates their account
+async function sendWelcomeEmail(tenant, rawPassword) {
+  try {
+    const transporter = createTransporter();
+    const loginUrl = `${process.env.FRONTEND_URL}/login`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
+        <div style="background: #10B981; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to SuperStay Portal 🏠</h1>
+        </div>
+        <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <p style="color: #4B5563; margin-top: 0;">Hi <strong>${tenant.name}</strong>,</p>
+          <p style="color: #4B5563;">Your tenant account has been created. You can now log in and report maintenance issues directly through the portal.</p>
+
+          <div style="background: #F0FDF4; border: 2px solid #10B981; border-radius: 8px; padding: 20px; margin: 24px 0;">
+            <p style="color: #065F46; font-weight: bold; margin: 0 0 12px 0; font-size: 15px;">Your Login Credentials</p>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #6B7280; font-size: 14px; width: 35%;">Email</td>
+                <td style="padding: 8px 0; color: #1F2937; font-weight: bold; font-size: 14px;">${tenant.email}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Password</td>
+                <td style="padding: 8px 0; color: #1F2937; font-weight: bold; font-size: 14px; letter-spacing: 1px;">${rawPassword}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Unit</td>
+                <td style="padding: 8px 0; color: #1F2937; font-size: 14px;">${tenant.unit}</td>
+              </tr>
+            </table>
+          </div>
+
+          <p style="color: #EF4444; font-size: 13px;">Please change your password after your first login.</p>
+
+          <div style="text-align: center; margin-top: 24px;">
+            <a href="${loginUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Login to Portal</a>
+          </div>
+        </div>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Tenant Issue Reporting Portal — SuperStay</p>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: `"SuperStay Portal" <${process.env.EMAIL_FROM}>`,
+      to: tenant.email,
+      subject: `Welcome to SuperStay Portal — Your Login Details`,
+      html,
+    });
+
+    console.log(`Welcome email sent to: ${tenant.email}`);
+  } catch (error) {
+    console.error('Email error (welcome):', error.message);
+  }
+}

@@ -6,12 +6,11 @@ import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
 
 const categories = ['Electrical', 'Plumbing', 'HVAC', 'General', 'Appliances'];
-const priorities = ['low', 'medium', 'high'];
 
 export default function ReportIssue() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ title: '', description: '', category: '', priority: '' });
+  const [form, setForm] = useState({ title: '', description: '', category: '', priority: 'medium' });
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -21,7 +20,6 @@ export default function ReportIssue() {
     if (!form.title.trim()) e.title = 'Title is required';
     if (!form.description.trim()) e.description = 'Description is required';
     if (!form.category) e.category = 'Category is required';
-    if (!form.priority) e.priority = 'Priority is required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -75,8 +73,7 @@ export default function ReportIssue() {
             {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
               <select value={form.category} onChange={update('category')}
                 className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white ${errors.category ? 'border-red-400' : 'border-gray-300'}`}>
@@ -85,16 +82,6 @@ export default function ReportIssue() {
               </select>
               {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Priority *</label>
-              <select value={form.priority} onChange={update('priority')}
-                className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white ${errors.priority ? 'border-red-400' : 'border-gray-300'}`}>
-                <option value="">Select priority</option>
-                {priorities.map((p) => <option key={p} value={p} className="capitalize">{p}</option>)}
-              </select>
-              {errors.priority && <p className="text-red-500 text-xs mt-1">{errors.priority}</p>}
-            </div>
-          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Photos (optional)</label>

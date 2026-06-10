@@ -103,10 +103,7 @@ export default function Login() {
 
         {role === 'tenant' && (
           <p className="text-center text-sm text-gray-500 mt-6">
-            New tenant?{' '}
-            <Link to="/register" className="text-emerald-600 font-medium hover:underline">
-              Create account
-            </Link>
+            Contact your administrator to get an account.
           </p>
         )}
       </div>

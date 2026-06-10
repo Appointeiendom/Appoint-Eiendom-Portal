@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect, adminOnly } = require('../middleware/auth');
 const User = require('../models/User');
+const { sendWelcomeEmail } = require('../services/emailService');
 
 // GET /api/users/profile
 router.get('/profile', protect, (req, res) => res.json(req.user));
@@ -17,6 +18,46 @@ router.put('/profile', protect, async (req, res) => {
     if (building !== undefined) user.building = building;
     await user.save();
     res.json({ _id: user._id, name: user.name, email: user.email, role: user.role, unit: user.unit, building: user.building, phone: user.phone });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/users  — admin creates a tenant account
+router.post('/', protect, adminOnly, async (req, res) => {
+  try {
+    const { name, email, unit, building, phone } = req.body;
+    if (!name || !email || !unit) {
+      return res.status(400).json({ message: 'Name, email and unit are required' });
+    }
+
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ message: 'Email already registered' });
+
+    // Auto-generate a password
+    const rawPassword = Math.random().toString(36).slice(-8) + 'A1!';
+
+    const user = await User.create({
+      name, email, password: rawPassword, role: 'tenant', unit, building, phone,
+    });
+
+    // Send welcome email with credentials
+    await sendWelcomeEmail({ name, email, unit, building, phone }, rawPassword);
+
+    res.status(201).json({
+      _id: user._id, name: user.name, email: user.email,
+      role: user.role, unit: user.unit, building: user.building, phone: user.phone,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE /api/users/:id (admin only)
+router.delete('/:id', protect, adminOnly, async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: 'User deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

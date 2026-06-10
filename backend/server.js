@@ -63,7 +63,11 @@ app.use('/api/messages', require('./routes/messages'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/users', require('./routes/users'));
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/api/health', (req, res) => res.json({ 
+  status: 'ok',
+  emailConfigured: !!(process.env.EMAIL_USER && process.env.EMAIL_PASS),
+  emailUser: process.env.EMAIL_USER || 'NOT SET',
+}));
 
 // Socket.io
 initSocket(io);

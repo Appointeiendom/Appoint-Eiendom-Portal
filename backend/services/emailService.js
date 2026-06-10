@@ -74,6 +74,7 @@ const sendNewIssueEmail = async (issue, tenant) => {
     console.log('New issue email sent to admin');
   } catch (error) {
     console.error('Email error (new issue):', error.message);
+    console.error('SendGrid error details:', JSON.stringify(error.response?.body || error, null, 2));
   }
 };
 

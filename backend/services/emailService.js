@@ -1,6 +1,6 @@
-const { Resend } = require('resend');
-const getResend = () => new Resend(process.env.RESEND_API_KEY);
-const FROM = `SuperStay Portal <onboarding@resend.dev>`;
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const FROM = process.env.EMAIL_FROM || 'Sameer.karki63@gmail.com';
 
 const priorityColor = (priority) => {
   const colors = { high: '#EF4444', medium: '#F59E0B', low: '#10B981' };
@@ -64,7 +64,7 @@ const sendNewIssueEmail = async (issue, tenant) => {
       </div>
     `;
 
-    await getResend().emails.send({
+    await sgMail.send({
       from: FROM,
       to: process.env.ADMIN_EMAIL,
       subject: `[${issue.priority.toUpperCase()}] New Issue: ${issue.title} — ${tenant.name} (${issue.unit})`,
@@ -120,7 +120,7 @@ const sendStatusChangeEmail = async (issue, tenant, updatedBy) => {
       </div>
     `;
 
-    await getResend().emails.send({
+    await sgMail.send({
       from: FROM,
       to: process.env.ADMIN_EMAIL,
       subject: `Issue Status Update: "${issue.title}" → ${issue.status.replace('-', ' ').toUpperCase()}`,
@@ -182,7 +182,7 @@ const sendTenantConfirmationEmail = async (issue, tenant) => {
       </div>
     `;
 
-    await getResend().emails.send({
+    await sgMail.send({
       from: FROM,
       to: tenant.email,
       subject: `Issue Received: ${issue.title}`,
@@ -237,7 +237,7 @@ const sendTenantStatusEmail = async (issue, tenant) => {
       </div>
     `;
 
-    await getResend().emails.send({
+    await sgMail.send({
       from: FROM,
       to: tenant.email,
       subject: `Issue Update: "${issue.title}" is now ${issue.status.replace('-', ' ')}`,
@@ -295,7 +295,7 @@ async function sendWelcomeEmail(tenant, rawPassword) {
       </div>
     `;
 
-    await getResend().emails.send({
+    await sgMail.send({
       from: FROM,
       to: tenant.email,
       subject: `Welcome to SuperStay Portal — Your Login Details`,
@@ -307,5 +307,6 @@ async function sendWelcomeEmail(tenant, rawPassword) {
     console.error('Email error (welcome):', error.message);
   }
 }
+
 
 

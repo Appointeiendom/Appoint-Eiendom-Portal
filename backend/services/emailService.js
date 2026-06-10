@@ -305,6 +305,7 @@ async function sendWelcomeEmail(tenant, rawPassword) {
     console.log(`Welcome email sent to: ${tenant.email}`);
   } catch (error) {
     console.error('Email error (welcome):', error.message);
+    console.error('SendGrid error details:', JSON.stringify(error.response?.body || error, null, 2));
   }
 }
 

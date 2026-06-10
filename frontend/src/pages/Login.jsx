@@ -38,7 +38,7 @@ export default function Login() {
           <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="text-white font-bold text-xl">SS</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">SuperStay Portal</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Appoint Eiendom AS</h1>
           <p className="text-gray-500 text-sm mt-1">Sign in to your account</p>
         </div>
 

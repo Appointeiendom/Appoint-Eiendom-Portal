@@ -18,7 +18,7 @@ export default function Navbar() {
         <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
           <span className="text-white font-bold text-sm">SS</span>
         </div>
-        <span className="font-semibold text-gray-800 text-lg">SuperStay Portal</span>
+        <span className="font-semibold text-gray-800 text-lg">Appoint Eiendom AS</span>
       </Link>
 
       <div className="flex items-center gap-4">

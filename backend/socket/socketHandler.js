@@ -87,13 +87,11 @@ const initSocket = (io) => {
           const issue = await Issue.findById(issueId).populate('tenantId', '_id');
           if (issue) {
             if (socket.user.role === 'tenant') {
-              // Notify all admins via personal room (find all admin sockets)
-              const adminSockets = await io.fetchSockets();
-              adminSockets.forEach(s => {
-                if (s.user?.role === 'admin') s.emit('new_message_notification', msgPayload);
-              });
-            } else if (socket.user.role === 'admin' || socket.user.role === 'maintenance') {
-              // Notify the tenant
+              // Tenant sent → notify all admins via their personal rooms
+              const admins = await User.find({ role: 'admin' }, '_id');
+              admins.forEach(a => io.to(`user:${a._id}`).emit('new_message_notification', msgPayload));
+            } else {
+              // Admin or maintenance sent → notify the tenant
               const tenantId = issue.tenantId?._id;
               if (tenantId) io.to(`user:${tenantId}`).emit('new_message_notification', msgPayload);
             }

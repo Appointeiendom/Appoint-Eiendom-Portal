@@ -74,28 +74,40 @@ const getUnreadCount = async (req, res) => {
   }
 };
 
-// GET /api/messages/maintenance/threads  — all threads for logged-in maintenance worker
+// GET /api/messages/maintenance/threads
+// maintenance worker: returns all their threads across all issues
+// admin: requires ?issueId=xxx, returns all maintenance threads for that issue
 const getMaintenanceThreads = async (req, res) => {
   try {
-    // Find distinct issueIds where this maintenance worker has messages
-    const issueIds = await Message.distinct('issueId', { maintenanceId: req.user._id });
+    const { issueId: filterIssueId } = req.query;
+    const isAdmin = req.user.role === 'admin';
 
-    const threads = await Promise.all(issueIds.map(async (issueId) => {
-      const issue = await Issue.findById(issueId)
-        .populate('tenantId', 'name email unit building');
+    if (isAdmin && !filterIssueId) return res.json([]);
+
+    const matchFilter = isAdmin
+      ? { issueId: require('mongoose').Types.ObjectId.createFromHexString(filterIssueId), maintenanceId: { $ne: null } }
+      : { maintenanceId: req.user._id };
+
+    // Get distinct (issueId, maintenanceId) pairs
+    const pairs = await Message.aggregate([
+      { $match: matchFilter },
+      { $group: { _id: { issueId: '$issueId', maintenanceId: '$maintenanceId' } } },
+    ]);
+
+    const threads = await Promise.all(pairs.map(async ({ _id: { issueId, maintenanceId } }) => {
+      const issue = await Issue.findById(issueId).populate('tenantId', 'name email unit building');
       if (!issue) return null;
 
-      const lastMsg = await Message.findOne({ issueId, maintenanceId: req.user._id })
-        .sort({ createdAt: -1 });
+      const lastMsg = await Message.findOne({ issueId, maintenanceId }).sort({ createdAt: -1 });
 
       const unread = await Message.countDocuments({
         issueId,
-        maintenanceId: req.user._id,
+        maintenanceId,
         senderRole: 'tenant',
         isRead: false,
       });
 
-      return { issue, lastMessage: lastMsg, unreadCount: unread };
+      return { issue, maintenanceId, lastMessage: lastMsg, unreadCount: unread };
     }));
 
     res.json(threads.filter(Boolean));

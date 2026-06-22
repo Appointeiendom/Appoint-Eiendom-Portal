@@ -6,6 +6,7 @@ import { getSocket } from '../services/socketService';
 import api from '../services/api';
 import Layout from '../components/Layout';
 import ChatBox from '../components/ChatBox';
+import MaintenanceChatBox from '../components/MaintenanceChatBox';
 import MaintenanceDirectory from '../components/MaintenanceDirectory';
 import toast from 'react-hot-toast';
 
@@ -21,6 +22,8 @@ export default function IssueDetails() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [notes, setNotes] = useState('');
+  const [maintThreads, setMaintThreads] = useState([]);
+  const [openMaintId, setOpenMaintId] = useState(null);
   const isAdmin = user?.role === 'admin';
 
   const fetchIssue = async () => {
@@ -36,8 +39,20 @@ export default function IssueDetails() {
     }
   };
 
+  // Fetch maintenance threads for this issue (admin only)
+  const fetchMaintThreads = async () => {
+    if (!isAdmin) return;
+    try {
+      const res = await api.get(`/messages/maintenance/threads?issueId=${id}`);
+      setMaintThreads(res.data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     fetchIssue();
+    fetchMaintThreads();
     const socket = getSocket();
     if (socket) {
       socket.on('issue_updated', (updated) => { if (updated._id === id) setIssue(updated); });
@@ -209,6 +224,57 @@ export default function IssueDetails() {
                     className="mt-2 bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-60">
                     {t('issues.saveNotes')}
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Admin: maintenance conversations on this issue */}
+            {isAdmin && maintThreads.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 className="font-semibold text-gray-700 mb-3">
+                  {t('maintenance.conversations') || 'Samtaler med håndverkere'}
+                  <span className="ml-2 text-xs text-gray-400 font-normal">({maintThreads.length})</span>
+                </h2>
+                <div className="space-y-3">
+                  {maintThreads.map(({ maintenanceId, lastMessage, unreadCount }) => {
+                    const maintId = maintenanceId;
+                    const maintName = lastMessage?.senderRole === 'maintenance' ? lastMessage.senderName : (lastMessage?.senderName || 'Håndverker');
+                    const isOpen = openMaintId === String(maintId);
+                    return (
+                      <div key={String(maintId)} className="border border-gray-100 rounded-xl overflow-hidden">
+                        <button
+                          onClick={() => setOpenMaintId(isOpen ? null : String(maintId))}
+                          className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-sm">👷</div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-800">{maintName || 'Håndverker'}</p>
+                              {lastMessage && (
+                                <p className="text-xs text-gray-400 truncate max-w-xs">{lastMessage.message}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {unreadCount > 0 && (
+                              <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{unreadCount}</span>
+                            )}
+                            <span className="text-gray-400 text-sm">{isOpen ? '▲' : '▼'}</span>
+                          </div>
+                        </button>
+                        {isOpen && maintId && (
+                          <div className="border-t border-gray-100">
+                            <MaintenanceChatBox
+                              key={String(maintId)}
+                              issueId={id}
+                              maintenanceId={String(maintId)}
+                              maintenanceName={maintName || 'Håndverker'}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

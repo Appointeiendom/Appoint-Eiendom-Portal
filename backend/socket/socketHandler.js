@@ -85,39 +85,39 @@ const initSocket = (io) => {
         // Broadcast notification to all other connected sockets for popup
         socket.broadcast.emit('new_message_notification', msgPayload);
 
-        // Send email notification to the other party
-        try {
-          const issue = await Issue.findById(issueId).populate('tenantId', 'name email');
-          if (issue) {
-            if (socket.user.role === 'tenant') {
-              // Tenant sent → notify admin
-              await sendChatNotificationEmail({
-                toEmail: process.env.ADMIN_EMAIL,
-                toName: 'Admin',
-                fromName: socket.user.name,
-                fromRole: 'tenant',
-                issueTitle: issue.title,
-                issueId,
-                messageText: newMsg.message,
-              });
-            } else {
-              // Admin sent → notify tenant
-              const tenant = issue.tenantId;
-              if (tenant?.email) {
+        // Send email only for admin-tenant chat (not maintenance threads)
+        if (!maintenanceId) {
+          try {
+            const issue = await Issue.findById(issueId).populate('tenantId', 'name email');
+            if (issue) {
+              if (socket.user.role === 'tenant') {
                 await sendChatNotificationEmail({
-                  toEmail: tenant.email,
-                  toName: tenant.name,
+                  toEmail: process.env.ADMIN_EMAIL,
+                  toName: 'Admin',
                   fromName: socket.user.name,
-                  fromRole: 'admin',
+                  fromRole: 'tenant',
                   issueTitle: issue.title,
                   issueId,
                   messageText: newMsg.message,
                 });
+              } else {
+                const tenant = issue.tenantId;
+                if (tenant?.email) {
+                  await sendChatNotificationEmail({
+                    toEmail: tenant.email,
+                    toName: tenant.name,
+                    fromName: socket.user.name,
+                    fromRole: 'admin',
+                    issueTitle: issue.title,
+                    issueId,
+                    messageText: newMsg.message,
+                  });
+                }
               }
             }
+          } catch (emailErr) {
+            console.error('Chat email notification error:', emailErr.message);
           }
-        } catch (emailErr) {
-          console.error('Chat email notification error:', emailErr.message);
         }
       } catch (error) {
         console.error('Socket send_message error:', error.message);

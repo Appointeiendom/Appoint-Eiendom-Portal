@@ -16,28 +16,54 @@ const tenantLinks = [
   { to: '/tenant/profile', label: 'Profile', icon: '👤' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ open, onClose }) {
   const { user } = useAuth();
   const links = user?.role === 'admin' ? adminLinks : tenantLinks;
 
   return (
-    <aside className="w-56 min-h-screen bg-gray-900 text-white flex flex-col pt-6">
-      {links.map((link) => (
-        <NavLink
-          key={link.to}
-          to={link.to}
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
-              isActive
-                ? 'bg-emerald-600 text-white'
-                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-            }`
-          }
+    <>
+      {/* Mobile backdrop */}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/50 z-20 md:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside
+        className={`
+          fixed top-0 left-0 h-full w-56 bg-gray-900 text-white flex flex-col pt-16 z-30 transition-transform duration-300
+          md:static md:translate-x-0 md:z-auto md:min-h-screen md:pt-6
+          ${open ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        {/* Close button (mobile only) */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-white md:hidden"
+          aria-label="Close menu"
         >
-          <span>{link.icon}</span>
-          {link.label}
-        </NavLink>
-      ))}
-    </aside>
+          ✕
+        </button>
+
+        {links.map((link) => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-emerald-600 text-white'
+                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+              }`
+            }
+          >
+            <span>{link.icon}</span>
+            {link.label}
+          </NavLink>
+        ))}
+      </aside>
+    </>
   );
 }

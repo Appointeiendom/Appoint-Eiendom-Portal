@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-export default function Navbar() {
+export default function Navbar({ onMenuClick }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -14,12 +14,27 @@ export default function Navbar() {
 
   return (
     <nav className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
-      <Link to={dashboardPath} className="flex items-center gap-2">
-        <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-          <span className="text-white font-bold text-sm">SS</span>
-        </div>
-        <span className="font-semibold text-gray-800 text-lg">Appoint Eiendom AS</span>
-      </Link>
+      <div className="flex items-center gap-3">
+        {/* Hamburger button — mobile only */}
+        <button
+          onClick={onMenuClick}
+          className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+          aria-label="Open menu"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <rect y="3" width="20" height="2" rx="1" />
+            <rect y="9" width="20" height="2" rx="1" />
+            <rect y="15" width="20" height="2" rx="1" />
+          </svg>
+        </button>
+
+        <Link to={dashboardPath} className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">AE</span>
+          </div>
+          <span className="font-semibold text-gray-800 text-lg">Appoint Eiendom AS</span>
+        </Link>
+      </div>
 
       <div className="flex items-center gap-4">
         <div className="text-right hidden sm:block">

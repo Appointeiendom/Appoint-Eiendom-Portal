@@ -24,6 +24,7 @@ export default function IssueDetails() {
   const [notes, setNotes] = useState('');
   const [maintThreads, setMaintThreads] = useState([]);
   const [openMaintId, setOpenMaintId] = useState(null);
+  const [lightbox, setLightbox] = useState(null); // url of enlarged image
   const isAdmin = user?.role === 'admin';
 
   const fetchIssue = async () => {
@@ -157,7 +158,12 @@ export default function IssueDetails() {
                   <p className="text-sm font-medium text-gray-700 mb-2">{t('issues.attachments')}</p>
                   <div className="flex gap-2 flex-wrap">
                     {issue.images.map((img, i) => (
-                      <img key={i} src={img} alt="attachment" className="w-24 h-24 object-cover rounded-lg border border-gray-200" />
+                      <button key={i} onClick={() => setLightbox(img)} className="group relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 hover:border-emerald-400 transition-colors">
+                        <img src={img} alt="attachment" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                          <span className="text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity">🔍</span>
+                        </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -286,6 +292,25 @@ export default function IssueDetails() {
           </div>
         </div>
       </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 right-4 text-white text-3xl leading-none hover:text-gray-300 transition-colors"
+          >✕</button>
+          <img
+            src={lightbox}
+            alt="full size"
+            className="max-w-full max-h-full rounded-xl shadow-2xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </Layout>
   );
 }

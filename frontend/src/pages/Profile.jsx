@@ -1,24 +1,26 @@
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import Layout from '../components/Layout';
 
 export default function Profile() {
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   const fields = [
-    { label: 'Full Name', value: user?.name },
-    { label: 'Email', value: user?.email },
-    { label: 'Phone', value: user?.phone || '—' },
+    { label: t('profile.fullName'), value: user?.name },
+    { label: t('profile.email'), value: user?.email },
+    { label: t('profile.phone'), value: user?.phone || '—' },
     ...(user?.role === 'tenant' ? [
-      { label: 'Unit / Address', value: user?.unit },
-      { label: 'Building', value: user?.building || '—' },
+      { label: t('profile.unitAddress'), value: user?.unit },
+      { label: t('profile.building'), value: user?.building || '—' },
     ] : []),
-    { label: 'Role', value: user?.role },
+    { label: t('profile.role'), value: user?.role },
   ];
 
   return (
     <Layout>
       <div className="max-w-lg">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">Profile</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">{t('profile.title')}</h1>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
             <div className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center">
@@ -30,7 +32,6 @@ export default function Profile() {
               <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full capitalize">{user?.role}</span>
             </div>
           </div>
-
           <div className="space-y-3">
             {fields.map((f) => (
               <div key={f.label} className="flex justify-between py-2 border-b border-gray-100 last:border-0">
@@ -39,10 +40,7 @@ export default function Profile() {
               </div>
             ))}
           </div>
-
-          <p className="text-xs text-gray-400 mt-4 text-center">
-            Contact your administrator to update your profile information.
-          </p>
+          <p className="text-xs text-gray-400 mt-4 text-center">{t('profile.contactAdmin')}</p>
         </div>
       </div>
     </Layout>

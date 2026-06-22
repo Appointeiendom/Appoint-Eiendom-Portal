@@ -24,6 +24,8 @@ const initSocket = (io) => {
   });
 
   io.on('connection', (socket) => {
+    // Each user joins their own personal room for notifications
+    socket.join(`user:${socket.user._id}`);
     console.log(`Socket connected: ${socket.user.name} (${socket.user.role})`);
 
     // Join issue room (admin-tenant chat)
@@ -63,8 +65,7 @@ const initSocket = (io) => {
 
         const roomKey = maintenanceId ? `issue:${issueId}:maint:${maintenanceId}` : `issue:${issueId}`;
 
-        // Broadcast to everyone in the room
-        io.to(roomKey).emit('new_message', {
+        const msgPayload = {
           _id: newMsg._id,
           issueId,
           senderId: socket.user._id,
@@ -76,7 +77,30 @@ const initSocket = (io) => {
           quoteAmount: newMsg.quoteAmount,
           isRead: false,
           createdAt: newMsg.createdAt,
-        });
+        };
+
+        // Broadcast to everyone in the issue room
+        io.to(roomKey).emit('new_message', msgPayload);
+
+        // Also send to recipient's personal room for popup notifications
+        try {
+          const issue = await Issue.findById(issueId).populate('tenantId', '_id');
+          if (issue) {
+            if (socket.user.role === 'tenant') {
+              // Notify all admins via personal room (find all admin sockets)
+              const adminSockets = await io.fetchSockets();
+              adminSockets.forEach(s => {
+                if (s.user?.role === 'admin') s.emit('new_message_notification', msgPayload);
+              });
+            } else if (socket.user.role === 'admin' || socket.user.role === 'maintenance') {
+              // Notify the tenant
+              const tenantId = issue.tenantId?._id;
+              if (tenantId) io.to(`user:${tenantId}`).emit('new_message_notification', msgPayload);
+            }
+          }
+        } catch (notifErr) {
+          console.error('Notification emit error:', notifErr.message);
+        }
 
         // Send email notification to the other party
         try {

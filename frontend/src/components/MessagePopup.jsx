@@ -16,23 +16,13 @@ export default function MessagePopup() {
     const socket = getSocket();
     if (!socket || !user) return;
 
-    const onMessage = (msg) => {
-      // Only show popup if sender is not ourselves
-      const senderId = msg.senderId?._id || msg.senderId;
-      if (String(senderId) === String(user._id)) return;
-
-      // Don't show if we're already on this issue's page
-      const issuePath = `/${user.role}/issues/${msg.issueId}`;
-      if (location.pathname === issuePath) return;
-
-      // Skip maintenance thread messages for non-relevant users
-      if (msg.maintenanceId && user.role === 'admin') return;
-
+    const onNotification = (msg) => {
       const path = user.role === 'admin'
         ? `/admin/issues/${msg.issueId}`
-        : user.role === 'maintenance'
-          ? `/maintenance/issues/${msg.issueId}`
-          : `/tenant/issues/${msg.issueId}`;
+        : `/tenant/issues/${msg.issueId}`;
+
+      // Don't show if already on that issue page
+      if (location.pathname === path) return;
 
       const preview = msg.messageType === 'quote'
         ? `💰 ${msg.quoteAmount?.toLocaleString()} kr`
@@ -44,8 +34,8 @@ export default function MessagePopup() {
       timerRef.current = setTimeout(() => setPopup(null), DISMISS_MS);
     };
 
-    socket.on('new_message', onMessage);
-    return () => socket.off('new_message', onMessage);
+    socket.on('new_message_notification', onNotification);
+    return () => socket.off('new_message_notification', onNotification);
   }, [user, location.pathname]);
 
   // Also dismiss when navigating to the issue

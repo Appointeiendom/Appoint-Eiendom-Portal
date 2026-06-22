@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Issue = require('../models/Issue');
 const Message = require('../models/Message');
+const { sendChatNotificationEmail } = require('../services/emailService');
 
 // Map of issueId -> Set of socket IDs in that room
 const issueRooms = new Map();
@@ -59,6 +61,41 @@ const initSocket = (io) => {
           isRead: false,
           createdAt: newMsg.createdAt,
         });
+
+        // Send email notification to the other party
+        try {
+          const issue = await Issue.findById(issueId).populate('tenantId', 'name email');
+          if (issue) {
+            if (socket.user.role === 'tenant') {
+              // Tenant sent → notify admin
+              await sendChatNotificationEmail({
+                toEmail: process.env.ADMIN_EMAIL,
+                toName: 'Admin',
+                fromName: socket.user.name,
+                fromRole: 'tenant',
+                issueTitle: issue.title,
+                issueId,
+                messageText: newMsg.message,
+              });
+            } else {
+              // Admin sent → notify tenant
+              const tenant = issue.tenantId;
+              if (tenant?.email) {
+                await sendChatNotificationEmail({
+                  toEmail: tenant.email,
+                  toName: tenant.name,
+                  fromName: socket.user.name,
+                  fromRole: 'admin',
+                  issueTitle: issue.title,
+                  issueId,
+                  messageText: newMsg.message,
+                });
+              }
+            }
+          }
+        } catch (emailErr) {
+          console.error('Chat email notification error:', emailErr.message);
+        }
       } catch (error) {
         console.error('Socket send_message error:', error.message);
         socket.emit('error', { message: 'Failed to send message' });

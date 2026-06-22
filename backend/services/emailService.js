@@ -251,7 +251,53 @@ const sendTenantStatusEmail = async (issue, tenant) => {
   }
 };
 
-module.exports = { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail, sendWelcomeEmail };
+// Email notification when a new chat message is received
+const sendChatNotificationEmail = async ({ toEmail, toName, fromName, fromRole, issueTitle, issueId, messageText }) => {
+  try {
+    const portalPath = fromRole === 'tenant' ? 'admin' : 'tenant';
+    const issueUrl = `${process.env.FRONTEND_URL}/${portalPath}/issues/${issueId}`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
+        <div style="background: #10B981; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 22px;">💬 New Message</h1>
+        </div>
+        <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <p style="color: #4B5563; margin-top: 0;">Hi <strong>${toName}</strong>,</p>
+          <p style="color: #4B5563;"><strong>${fromName}</strong> sent you a message regarding:</p>
+
+          <div style="background: #F0FDF4; border-left: 4px solid #10B981; padding: 12px 16px; border-radius: 4px; margin: 16px 0;">
+            <p style="color: #6B7280; font-size: 12px; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px;">Issue</p>
+            <p style="color: #1F2937; font-weight: bold; margin: 0;">${issueTitle}</p>
+          </div>
+
+          <div style="background: #F9FAFB; border-radius: 8px; padding: 16px; margin: 16px 0;">
+            <p style="color: #6B7280; font-size: 12px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">Message</p>
+            <p style="color: #1F2937; margin: 0; font-size: 15px; line-height: 1.6;">${messageText}</p>
+          </div>
+
+          <div style="text-align: center; margin-top: 24px;">
+            <a href="${issueUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Reply in Portal</a>
+          </div>
+        </div>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Appoint Eiendom AS — Tenant Portal</p>
+      </div>
+    `;
+
+    await sgMail.send({
+      from: FROM,
+      to: toEmail,
+      subject: `New message from ${fromName}: "${issueTitle}"`,
+      html,
+    });
+
+    console.log(`Chat notification email sent to ${toEmail}`);
+  } catch (error) {
+    console.error('Email error (chat notification):', error.message);
+  }
+};
+
+module.exports = { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail, sendWelcomeEmail, sendChatNotificationEmail };
 
 // Welcome email sent to tenant when admin creates their account
 async function sendWelcomeEmail(tenant, rawPassword) {

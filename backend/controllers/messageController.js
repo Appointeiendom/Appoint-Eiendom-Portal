@@ -14,9 +14,8 @@ const getMessages = async (req, res) => {
     const maintenanceId = req.params.maintenanceId || null;
     const filter = {
       issueId: req.params.issueId,
-      maintenanceId: maintenanceId || { $exists: false },
+      maintenanceId: maintenanceId || null,
     };
-    if (maintenanceId) filter.maintenanceId = maintenanceId;
 
     const messages = await Message.find(filter).sort({ createdAt: 1 });
 

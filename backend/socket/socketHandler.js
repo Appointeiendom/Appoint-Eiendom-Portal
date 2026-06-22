@@ -26,20 +26,28 @@ const initSocket = (io) => {
   io.on('connection', (socket) => {
     console.log(`Socket connected: ${socket.user.name} (${socket.user.role})`);
 
-    // Join issue-specific room
+    // Join issue room (admin-tenant chat)
     socket.on('join_issue', (issueId) => {
       socket.join(`issue:${issueId}`);
-      console.log(`${socket.user.name} joined room issue:${issueId}`);
     });
 
     socket.on('leave_issue', (issueId) => {
       socket.leave(`issue:${issueId}`);
     });
 
-    // Handle new chat message
+    // Join maintenance-specific chat room
+    socket.on('join_maintenance_chat', ({ issueId, maintenanceId }) => {
+      socket.join(`issue:${issueId}:maint:${maintenanceId}`);
+    });
+
+    socket.on('leave_maintenance_chat', ({ issueId, maintenanceId }) => {
+      socket.leave(`issue:${issueId}:maint:${maintenanceId}`);
+    });
+
+    // Handle new chat message (admin-tenant or tenant-maintenance)
     socket.on('send_message', async (data) => {
       try {
-        const { issueId, message } = data;
+        const { issueId, message, maintenanceId, messageType, quoteAmount } = data;
         if (!issueId || !message?.trim()) return;
 
         const newMsg = await Message.create({
@@ -48,16 +56,24 @@ const initSocket = (io) => {
           senderRole: socket.user.role,
           senderName: socket.user.name,
           message: message.trim(),
+          maintenanceId: maintenanceId || null,
+          messageType: messageType || 'text',
+          quoteAmount: quoteAmount || null,
         });
 
-        // Broadcast to everyone in the issue room
-        io.to(`issue:${issueId}`).emit('new_message', {
+        const roomKey = maintenanceId ? `issue:${issueId}:maint:${maintenanceId}` : `issue:${issueId}`;
+
+        // Broadcast to everyone in the room
+        io.to(roomKey).emit('new_message', {
           _id: newMsg._id,
           issueId,
           senderId: socket.user._id,
           senderRole: socket.user.role,
           senderName: socket.user.name,
           message: newMsg.message,
+          maintenanceId: newMsg.maintenanceId,
+          messageType: newMsg.messageType,
+          quoteAmount: newMsg.quoteAmount,
           isRead: false,
           createdAt: newMsg.createdAt,
         });

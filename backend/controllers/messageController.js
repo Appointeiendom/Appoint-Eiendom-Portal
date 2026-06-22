@@ -1,22 +1,27 @@
 const Message = require('../models/Message');
 const Issue = require('../models/Issue');
 
-// GET /api/messages/:issueId
+// GET /api/messages/:issueId  OR  /api/messages/:issueId/maintenance/:maintenanceId
 const getMessages = async (req, res) => {
   try {
     const issue = await Issue.findById(req.params.issueId);
     if (!issue) return res.status(404).json({ message: 'Issue not found' });
 
-    // Access check: tenant can only see their own issue messages
     if (req.user.role === 'tenant' && issue.tenantId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const messages = await Message.find({ issueId: req.params.issueId }).sort({ createdAt: 1 });
+    const maintenanceId = req.params.maintenanceId || null;
+    const filter = {
+      issueId: req.params.issueId,
+      maintenanceId: maintenanceId || { $exists: false },
+    };
+    if (maintenanceId) filter.maintenanceId = maintenanceId;
 
-    // Mark messages as read for the current user's role
+    const messages = await Message.find(filter).sort({ createdAt: 1 });
+
     await Message.updateMany(
-      { issueId: req.params.issueId, senderRole: { $ne: req.user.role }, isRead: false },
+      { ...filter, senderRole: { $ne: req.user.role }, isRead: false },
       { isRead: true }
     );
 

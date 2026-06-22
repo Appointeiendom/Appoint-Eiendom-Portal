@@ -6,11 +6,16 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, minlength: 6 },
-    role: { type: String, enum: ['tenant', 'admin'], required: true, default: 'tenant' },
-    unit: { type: String, trim: true }, // required for tenants
+    role: { type: String, enum: ['tenant', 'admin', 'maintenance'], required: true, default: 'tenant' },
+    unit: { type: String, trim: true },
     building: { type: String, trim: true },
     phone: { type: String, trim: true },
     isActive: { type: Boolean, default: true },
+    // Maintenance worker fields
+    trade: { type: String, enum: ['Electrical', 'Plumbing', 'HVAC', 'General', 'Appliances'], default: null },
+    bio: { type: String, trim: true },
+    photo: { type: String },
+    availability: [{ type: String }], // ISO date strings marked as available
   },
   { timestamps: true }
 );

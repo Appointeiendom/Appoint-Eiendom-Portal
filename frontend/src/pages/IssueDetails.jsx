@@ -5,6 +5,7 @@ import { getSocket } from '../services/socketService';
 import api from '../services/api';
 import Layout from '../components/Layout';
 import ChatBox from '../components/ChatBox';
+import MaintenanceDirectory from '../components/MaintenanceDirectory';
 import toast from 'react-hot-toast';
 
 const priorityStyles = { high: 'bg-red-100 text-red-700', medium: 'bg-yellow-100 text-yellow-700', low: 'bg-green-100 text-green-700' };
@@ -50,6 +51,19 @@ export default function IssueDetails() {
       const res = await api.put(`/issues/${id}`, { status, internalNotes: notes });
       setIssue(res.data);
       toast.success(`Status updated to "${status}"`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Update failed');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const setResponsibility = async (responsibility) => {
+    setUpdating(true);
+    try {
+      const res = await api.put(`/issues/${id}/responsibility`, { responsibility });
+      setIssue(res.data);
+      toast.success(`Responsibility set to "${responsibility}"`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Update failed');
     } finally {
@@ -138,9 +152,46 @@ export default function IssueDetails() {
               )}
             </div>
 
+            {/* Tenant: maintenance directory when flagged as their responsibility */}
+            {!isAdmin && issue.responsibility === 'tenant' && (
+              <div className="bg-white rounded-xl border border-amber-200 p-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-amber-500 text-lg">⚠️</span>
+                  <h2 className="font-semibold text-gray-800">Your Responsibility</h2>
+                </div>
+                <p className="text-sm text-gray-500 mb-5">
+                  This maintenance issue has been reviewed and falls under your responsibility as the tenant.
+                  Please contact one of the professionals below to arrange repairs.
+                </p>
+                <MaintenanceDirectory issue={issue} />
+              </div>
+            )}
+
             {/* Admin Controls */}
             {isAdmin && (
               <div className="bg-white rounded-xl border border-gray-200 p-6">
+                {/* Responsibility flag */}
+                <h2 className="font-semibold text-gray-700 mb-3">Responsibility</h2>
+                <div className="flex gap-2 mb-6">
+                  {['landlord', 'tenant'].map((r) => (
+                    <button key={r} onClick={() => setResponsibility(r)} disabled={updating || issue.responsibility === r}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
+                        issue.responsibility === r
+                          ? r === 'tenant' ? 'bg-amber-500 text-white' : 'bg-blue-500 text-white'
+                          : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}>
+                      {r === 'tenant' ? '⚠️' : '🏠'} {r}
+                    </button>
+                  ))}
+                  {issue.responsibility && (
+                    <span className={`ml-auto self-center text-xs px-2 py-1 rounded-full font-medium ${
+                      issue.responsibility === 'tenant' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {issue.responsibility === 'tenant' ? 'Tenant notified' : 'Handled internally'}
+                    </span>
+                  )}
+                </div>
+
                 <h2 className="font-semibold text-gray-700 mb-4">Update Status</h2>
                 <div className="flex gap-2 flex-wrap mb-5">
                   {['open', 'in-progress', 'resolved'].map((s) => (

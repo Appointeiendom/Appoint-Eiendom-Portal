@@ -37,4 +37,14 @@ const tenantOnly = (req, res, next) => {
   return res.status(403).json({ message: 'Tenant access required' });
 };
 
-module.exports = { protect, adminOnly, tenantOnly };
+const maintenanceOnly = (req, res, next) => {
+  if (req.user && req.user.role === 'maintenance') return next();
+  return res.status(403).json({ message: 'Maintenance access required' });
+};
+
+const adminOrMaintenance = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'maintenance')) return next();
+  return res.status(403).json({ message: 'Access required' });
+};
+
+module.exports = { protect, adminOnly, tenantOnly, maintenanceOnly, adminOrMaintenance };

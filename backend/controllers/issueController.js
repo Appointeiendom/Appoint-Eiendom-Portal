@@ -1,6 +1,6 @@
 const Issue = require('../models/Issue');
 const User = require('../models/User');
-const { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail } = require('../services/emailService');
+const { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail, sendResponsibilityEmail } = require('../services/emailService');
 
 // GET /api/issues
 const getIssues = async (req, res) => {
@@ -147,4 +147,34 @@ const deleteIssue = async (req, res) => {
   }
 };
 
-module.exports = { getIssues, createIssue, getIssue, updateIssue, deleteIssue };
+// PUT /api/issues/:id/responsibility (admin only)
+const setResponsibility = async (req, res) => {
+  try {
+    const { responsibility } = req.body;
+    if (!['landlord', 'tenant'].includes(responsibility)) {
+      return res.status(400).json({ message: 'responsibility must be "landlord" or "tenant"' });
+    }
+
+    const issue = await Issue.findById(req.params.id);
+    if (!issue) return res.status(404).json({ message: 'Issue not found' });
+
+    issue.responsibility = responsibility;
+    await issue.save();
+
+    const updated = await Issue.findById(issue._id)
+      .populate('tenantId', 'name email unit building phone')
+      .populate('resolvedBy', 'name');
+
+    // Notify tenant if responsibility is theirs
+    if (responsibility === 'tenant') {
+      sendResponsibilityEmail(updated, updated.tenantId).catch(console.error);
+      if (req.io) req.io.to(`issue:${issue._id}`).emit('issue_updated', updated);
+    }
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getIssues, createIssue, getIssue, updateIssue, deleteIssue, setResponsibility };

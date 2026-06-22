@@ -5,6 +5,7 @@ const adminLinks = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: '🏠' },
   { to: '/admin/issues', label: 'All Issues', icon: '📋' },
   { to: '/admin/tenants', label: 'Tenants', icon: '👥' },
+  { to: '/admin/maintenance', label: 'Maintenance', icon: '🔧' },
   { to: '/admin/analytics', label: 'Analytics', icon: '📊' },
   { to: '/admin/profile', label: 'Profile', icon: '👤' },
 ];
@@ -16,9 +17,16 @@ const tenantLinks = [
   { to: '/tenant/profile', label: 'Profile', icon: '👤' },
 ];
 
+const maintenanceLinks = [
+  { to: '/maintenance/dashboard', label: 'Dashboard', icon: '🏠' },
+  { to: '/maintenance/availability', label: 'My Availability', icon: '📅' },
+];
+
 export default function Sidebar({ open, onClose }) {
   const { user } = useAuth();
-  const links = user?.role === 'admin' ? adminLinks : tenantLinks;
+  const links = user?.role === 'admin' ? adminLinks
+    : user?.role === 'maintenance' ? maintenanceLinks
+    : tenantLinks;
 
   return (
     <>

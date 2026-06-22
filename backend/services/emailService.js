@@ -251,6 +251,48 @@ const sendTenantStatusEmail = async (issue, tenant) => {
   }
 };
 
+// Email sent to tenant when admin flags issue as their responsibility
+const sendResponsibilityEmail = async (issue, tenant) => {
+  try {
+    const portalUrl = `${process.env.FRONTEND_URL}/tenant/issues/${issue._id}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
+        <div style="background: #F59E0B; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 22px;">⚠️ Action Required: Maintenance Responsibility</h1>
+        </div>
+        <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <p style="color: #4B5563; margin-top: 0;">Hi <strong>${tenant.name}</strong>,</p>
+          <p style="color: #4B5563;">After reviewing your issue, we have determined that this maintenance request falls under <strong>your responsibility as the tenant</strong>.</p>
+
+          <div style="background: #FFFBEB; border-left: 4px solid #F59E0B; padding: 16px; border-radius: 4px; margin: 20px 0;">
+            <p style="color: #6B7280; font-size: 13px; margin: 0 0 4px 0;">Issue</p>
+            <p style="color: #1F2937; font-weight: bold; margin: 0;">${issue.title}</p>
+          </div>
+
+          <p style="color: #4B5563;">You can view a list of recommended maintenance professionals in the portal. You are free to contact them, compare quotes, and arrange the work directly.</p>
+          <p style="color: #4B5563; font-size: 14px;">If you have questions about this decision, please use the chat on your issue page.</p>
+
+          <div style="text-align: center; margin-top: 24px;">
+            <a href="${portalUrl}" style="background: #F59E0B; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View Issue &amp; Find Maintenance</a>
+          </div>
+        </div>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Appoint Eiendom AS — Tenant Portal</p>
+      </div>
+    `;
+
+    await sgMail.send({
+      from: FROM,
+      to: tenant.email,
+      subject: `Action Required: "${issue.title}" is your responsibility`,
+      html,
+    });
+
+    console.log(`Responsibility email sent to tenant: ${tenant.email}`);
+  } catch (error) {
+    console.error('Email error (responsibility):', error.message);
+  }
+};
+
 // Email notification when a new chat message is received
 const sendChatNotificationEmail = async ({ toEmail, toName, fromName, fromRole, issueTitle, issueId, messageText }) => {
   try {
@@ -297,7 +339,7 @@ const sendChatNotificationEmail = async ({ toEmail, toName, fromName, fromRole, 
   }
 };
 
-module.exports = { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail, sendWelcomeEmail, sendChatNotificationEmail };
+module.exports = { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail, sendWelcomeEmail, sendChatNotificationEmail, sendResponsibilityEmail };
 
 // Welcome email sent to tenant when admin creates their account
 async function sendWelcomeEmail(tenant, rawPassword) {

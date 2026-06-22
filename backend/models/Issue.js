@@ -18,6 +18,7 @@ const issueSchema = new mongoose.Schema(
     internalNotes: { type: String },
     resolvedAt: { type: Date, default: null },
     resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    responsibility: { type: String, enum: ['landlord', 'tenant', null], default: null },
   },
   { timestamps: true }
 );

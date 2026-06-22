@@ -13,6 +13,9 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminIssues from './pages/AdminIssues';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminTenants from './pages/AdminTenants';
+import AdminMaintenance from './pages/AdminMaintenance';
+import MaintenanceDashboard from './pages/MaintenanceDashboard';
+import MaintenanceAvailability from './pages/MaintenanceAvailability';
 import Profile from './pages/Profile';
 
 export default function App() {
@@ -37,8 +40,13 @@ export default function App() {
           <Route path="/admin/issues" element={<ProtectedRoute role="admin"><AdminIssues /></ProtectedRoute>} />
           <Route path="/admin/issues/:id" element={<ProtectedRoute role="admin"><IssueDetails /></ProtectedRoute>} />
           <Route path="/admin/tenants" element={<ProtectedRoute role="admin"><AdminTenants /></ProtectedRoute>} />
+          <Route path="/admin/maintenance" element={<ProtectedRoute role="admin"><AdminMaintenance /></ProtectedRoute>} />
           <Route path="/admin/analytics" element={<ProtectedRoute role="admin"><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute role="admin"><Profile /></ProtectedRoute>} />
+
+          {/* Maintenance */}
+          <Route path="/maintenance/dashboard" element={<ProtectedRoute role="maintenance"><MaintenanceDashboard /></ProtectedRoute>} />
+          <Route path="/maintenance/availability" element={<ProtectedRoute role="maintenance"><MaintenanceAvailability /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

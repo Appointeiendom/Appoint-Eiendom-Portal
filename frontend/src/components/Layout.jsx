@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
+import MessagePopup from './MessagePopup';
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -12,6 +13,7 @@ export default function Layout({ children }) {
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <main className="flex-1 p-6 overflow-auto">{children}</main>
       </div>
+      <MessagePopup />
     </div>
   );
 }

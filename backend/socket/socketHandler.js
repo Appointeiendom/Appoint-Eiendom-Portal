@@ -82,23 +82,8 @@ const initSocket = (io) => {
         // Broadcast to everyone in the issue room
         io.to(roomKey).emit('new_message', msgPayload);
 
-        // Also send to recipient's personal room for popup notifications
-        try {
-          const issue = await Issue.findById(issueId).populate('tenantId', '_id');
-          if (issue) {
-            if (socket.user.role === 'tenant') {
-              // Tenant sent → notify all admins via their personal rooms
-              const admins = await User.find({ role: 'admin' }, '_id');
-              admins.forEach(a => io.to(`user:${a._id}`).emit('new_message_notification', msgPayload));
-            } else {
-              // Admin or maintenance sent → notify the tenant
-              const tenantId = issue.tenantId?._id;
-              if (tenantId) io.to(`user:${tenantId}`).emit('new_message_notification', msgPayload);
-            }
-          }
-        } catch (notifErr) {
-          console.error('Notification emit error:', notifErr.message);
-        }
+        // Broadcast notification to all other connected sockets for popup
+        socket.broadcast.emit('new_message_notification', msgPayload);
 
         // Send email notification to the other party
         try {

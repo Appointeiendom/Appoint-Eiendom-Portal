@@ -25,7 +25,16 @@ export default function ChatBox({ issueId }) {
     if (!socket) return;
     socket.emit('join_issue', issueId);
 
-    const onMessage = (msg) => { if (!msg.maintenanceId) setMessages((prev) => [...prev, msg]); };
+    const onMessage = (msg) => {
+      if (msg.maintenanceId) return;
+      setMessages((prev) => {
+        const withoutTemp = prev.filter(
+          m => !(String(m._id).startsWith('temp-') && m.message === msg.message && String(m.senderId) === String(msg.senderId))
+        );
+        if (withoutTemp.some(m => String(m._id) === String(msg._id))) return withoutTemp;
+        return [...withoutTemp, msg];
+      });
+    };
     const onTyping = (data) => { if (String(data.userId) !== String(user._id)) setTyping(data.name); };
     const onStopTyping = () => setTyping(null);
 
@@ -56,6 +65,15 @@ export default function ChatBox({ issueId }) {
     e.preventDefault();
     if (!input.trim()) return;
     const socket = getSocket();
+    const optimistic = {
+      _id: `temp-${Date.now()}`,
+      senderId: user._id,
+      senderName: user.name,
+      senderRole: user.role,
+      message: input.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, optimistic]);
     if (socket) {
       socket.emit('send_message', { issueId, message: input.trim() });
       socket.emit('typing_stop', { issueId });

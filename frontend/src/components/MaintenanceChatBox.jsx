@@ -28,7 +28,15 @@ export default function MaintenanceChatBox({ issueId, maintenanceId, maintenance
     socket.emit('join_maintenance_chat', { issueId, maintenanceId });
 
     const onMessage = (msg) => {
-      if (String(msg.maintenanceId) === String(maintenanceId)) setMessages((prev) => [...prev, msg]);
+      if (String(msg.maintenanceId) !== String(maintenanceId)) return;
+      setMessages((prev) => {
+        // Replace optimistic temp message with real one, or append if new
+        const withoutTemp = prev.filter(
+          m => !(String(m._id).startsWith('temp-') && m.message === msg.message && String(m.senderId) === String(msg.senderId))
+        );
+        if (withoutTemp.some(m => String(m._id) === String(msg._id))) return withoutTemp;
+        return [...withoutTemp, msg];
+      });
     };
     socket.on('new_message', onMessage);
     return () => {
@@ -43,6 +51,17 @@ export default function MaintenanceChatBox({ issueId, maintenanceId, maintenance
     e.preventDefault();
     if (!input.trim()) return;
     const socket = getSocket();
+    const optimistic = {
+      _id: `temp-${Date.now()}`,
+      senderId: user._id,
+      senderName: user.name,
+      senderRole: user.role,
+      message: input.trim(),
+      maintenanceId,
+      messageType: 'text',
+      createdAt: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, optimistic]);
     if (socket) socket.emit('send_message', { issueId, message: input.trim(), maintenanceId });
     setInput('');
   };

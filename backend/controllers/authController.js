@@ -66,4 +66,27 @@ const getMe = async (req, res) => {
   res.json(req.user);
 };
 
-module.exports = { register, login, getMe };
+// PUT /api/auth/update-email  (admin only)
+const updateEmail = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
+
+    const user = await User.findById(req.user._id);
+    if (!(await user.matchPassword(password))) {
+      return res.status(401).json({ message: 'Incorrect password' });
+    }
+
+    const taken = await User.findOne({ email, _id: { $ne: user._id } });
+    if (taken) return res.status(400).json({ message: 'Email already in use' });
+
+    user.email = email;
+    await user.save();
+
+    res.json({ message: 'Email updated', email: user.email });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { register, login, getMe, updateEmail };

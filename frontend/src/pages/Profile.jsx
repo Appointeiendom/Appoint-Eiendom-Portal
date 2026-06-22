@@ -1,10 +1,18 @@
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import Layout from '../components/Layout';
+import api from '../services/api';
+import toast from 'react-hot-toast';
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { t } = useLanguage();
+  const isAdmin = user?.role === 'admin';
+
+  const [emailForm, setEmailForm] = useState({ email: '', password: '' });
+  const [saving, setSaving] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
   const fields = [
     { label: t('profile.fullName'), value: user?.name },
@@ -16,6 +24,22 @@ export default function Profile() {
     ] : []),
     { label: t('profile.role'), value: user?.role },
   ];
+
+  const handleEmailChange = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const res = await api.put('/auth/update-email', emailForm);
+      updateUser({ email: res.data.email });
+      toast.success('E-post oppdatert');
+      setEmailForm({ email: '', password: '' });
+      setShowForm(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Noe gikk galt');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Layout>
@@ -32,6 +56,7 @@ export default function Profile() {
               <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full capitalize">{user?.role}</span>
             </div>
           </div>
+
           <div className="space-y-3">
             {fields.map((f) => (
               <div key={f.label} className="flex justify-between py-2 border-b border-gray-100 last:border-0">
@@ -40,7 +65,53 @@ export default function Profile() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-gray-400 mt-4 text-center">{t('profile.contactAdmin')}</p>
+
+          {isAdmin && (
+            <div className="mt-6 pt-5 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-gray-700">Endre e-post</p>
+                <button
+                  onClick={() => setShowForm(!showForm)}
+                  className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                >
+                  {showForm ? 'Avbryt' : 'Endre'}
+                </button>
+              </div>
+
+              {showForm && (
+                <form onSubmit={handleEmailChange} className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Ny e-post</label>
+                    <input
+                      type="email" required value={emailForm.email}
+                      onChange={(e) => setEmailForm({ ...emailForm, email: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                      placeholder="ny@epost.no"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Bekreft med passord</label>
+                    <input
+                      type="password" required value={emailForm.password}
+                      onChange={(e) => setEmailForm({ ...emailForm, password: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <button
+                    type="submit" disabled={saving}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold py-2 rounded-lg transition-colors disabled:opacity-60"
+                  >
+                    {saving ? 'Lagrer…' : 'Lagre ny e-post'}
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+
+          {!isAdmin && (
+            <p className="text-xs text-gray-400 mt-4 text-center">{t('profile.contactAdmin')}</p>
+          )}
         </div>
       </div>
     </Layout>

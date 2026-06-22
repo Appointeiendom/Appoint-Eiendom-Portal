@@ -16,7 +16,7 @@ const issueSchema = new mongoose.Schema(
     building: { type: String },
     images: [{ type: String }], // file paths
     internalNotes: { type: String },
-    resolvedAt: { type: Date, default: null },
+    resolvedAt: { type: Date, default: null, index: { expireAfterSeconds: 60 * 60 * 24 * 7 } }, // auto-delete 7 days after resolved
     resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     responsibility: { type: String, enum: ['landlord', 'tenant', null], default: null },
   },

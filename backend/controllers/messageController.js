@@ -74,4 +74,34 @@ const getUnreadCount = async (req, res) => {
   }
 };
 
-module.exports = { getMessages, sendMessage, getUnreadCount };
+// GET /api/messages/maintenance/threads  — all threads for logged-in maintenance worker
+const getMaintenanceThreads = async (req, res) => {
+  try {
+    // Find distinct issueIds where this maintenance worker has messages
+    const issueIds = await Message.distinct('issueId', { maintenanceId: req.user._id });
+
+    const threads = await Promise.all(issueIds.map(async (issueId) => {
+      const issue = await Issue.findById(issueId)
+        .populate('tenantId', 'name email unit building');
+      if (!issue) return null;
+
+      const lastMsg = await Message.findOne({ issueId, maintenanceId: req.user._id })
+        .sort({ createdAt: -1 });
+
+      const unread = await Message.countDocuments({
+        issueId,
+        maintenanceId: req.user._id,
+        senderRole: 'tenant',
+        isRead: false,
+      });
+
+      return { issue, lastMessage: lastMsg, unreadCount: unread };
+    }));
+
+    res.json(threads.filter(Boolean));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getMessages, sendMessage, getUnreadCount, getMaintenanceThreads };

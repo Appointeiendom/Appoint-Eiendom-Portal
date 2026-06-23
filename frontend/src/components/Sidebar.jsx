@@ -32,7 +32,6 @@ export default function Sidebar({ open, onClose }) {
 
   const maintenanceLinks = [
     { to: '/maintenance/dashboard', label: t('nav.dashboard'), icon: '🏠' },
-    { to: '/maintenance/availability', label: t('nav.availability'), icon: '📅' },
   ];
 
   const links = user?.role === 'admin' ? adminLinks

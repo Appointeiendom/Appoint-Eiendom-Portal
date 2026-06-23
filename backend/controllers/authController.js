@@ -73,6 +73,7 @@ const otpStore = new Map();
 const requestEmailChange = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log('request-email-change:', { email, userId: req.user?._id });
     if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
 
     const user = await User.findById(req.user._id);
@@ -85,31 +86,14 @@ const requestEmailChange = async (req, res) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore.set(String(user._id), { otp, newEmail: email, expiresAt: Date.now() + 10 * 60 * 1000 });
+    console.log('OTP generated for', email, ':', otp);
 
-    const sgMail = require('@sendgrid/mail');
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    await sgMail.send({
-      from: process.env.EMAIL_FROM || 'Sameer.karki63@gmail.com',
-      to: email,
-      subject: 'Bekreft ny e-postadresse — Appoint Eiendom',
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-          <div style="background:#10B981;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
-            <h1 style="color:white;margin:0;font-size:22px;">Bekreft e-postendring</h1>
-          </div>
-          <div style="background:white;padding:30px;border-radius:0 0 8px 8px;border:1px solid #E5E7EB;">
-            <p style="color:#4B5563;">Din bekreftelseskode er:</p>
-            <div style="text-align:center;margin:24px 0;">
-              <span style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#1F2937;">${otp}</span>
-            </div>
-            <p style="color:#6B7280;font-size:13px;">Koden er gyldig i 10 minutter. Del den ikke med andre.</p>
-          </div>
-        </div>
-      `,
-    });
+    const { sendOtpEmail } = require('../services/emailService');
+    await sendOtpEmail(email, otp);
 
     res.json({ message: 'OTP sent' });
   } catch (error) {
+    console.error('request-email-change error:', error.message, error.response?.body);
     res.status(500).json({ message: error.message });
   }
 };

@@ -18,6 +18,7 @@ const issueSchema = new mongoose.Schema(
     resolvedAt: { type: Date, default: null, index: { expireAfterSeconds: 60 * 60 * 24 * 7 } }, // auto-delete 7 days after resolved
     resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     responsibility: { type: String, enum: ['landlord', 'tenant'], default: null },
+    assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   },
   { timestamps: true }
 );

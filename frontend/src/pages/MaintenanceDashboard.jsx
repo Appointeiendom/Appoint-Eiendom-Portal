@@ -13,7 +13,8 @@ export default function MaintenanceDashboard() {
   const [activeThread, setActiveThread] = useState(null);
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [jobs, setJobs] = useState([]);
-  const [tab, setTab] = useState('inbox');
+  const [assignedIssues, setAssignedIssues] = useState([]);
+  const [tab, setTab] = useState('assigned');
 
   useEffect(() => {
     if (!user?._id) return;
@@ -23,6 +24,7 @@ export default function MaintenanceDashboard() {
       .catch(console.error)
       .finally(() => setLoadingThreads(false));
     api.get(`/maintenance/${user._id}/jobs`).then(r => setJobs(r.data)).catch(console.error);
+    api.get('/issues').then(r => setAssignedIssues(r.data)).catch(console.error);
   }, [user]);
 
   return (
@@ -66,7 +68,11 @@ export default function MaintenanceDashboard() {
 
           {/* Right column: inbox + job history */}
           <div className="md:col-span-2 space-y-4">
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={() => setTab('assigned')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'assigned' ? 'bg-emerald-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                🔧 Assigned ({assignedIssues.length})
+              </button>
               <button onClick={() => setTab('inbox')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'inbox' ? 'bg-emerald-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
                 💬 {t('chat.inbox') || 'Inbox'}
@@ -77,6 +83,46 @@ export default function MaintenanceDashboard() {
                 📋 Job History ({jobs.length})
               </button>
             </div>
+
+            {tab === 'assigned' && (
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                {assignedIssues.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400 text-sm">No issues assigned to you yet.</div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {assignedIssues.map(issue => (
+                      <div key={issue._id} className="px-5 py-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-medium text-gray-800 text-sm">{issue.title}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{issue.tenantId?.name} · {issue.unit}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{issue.category} · {new Date(issue.createdAt).toLocaleDateString()}</p>
+                            {issue.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{issue.description}</p>}
+                          </div>
+                          <span className={`shrink-0 text-xs px-2 py-1 rounded-full font-medium ${issue.status === 'resolved' ? 'bg-emerald-100 text-emerald-700' : issue.status === 'in-progress' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {t(`status.${issue.status}`)}
+                          </span>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          {['open', 'in-progress', 'resolved'].map(s => (
+                            <button key={s} disabled={issue.status === s}
+                              onClick={async () => {
+                                try {
+                                  const res = await import('../services/api').then(m => m.default.put(`/issues/${issue._id}`, { status: s }));
+                                  setAssignedIssues(prev => prev.map(i => i._id === issue._id ? res.data : i));
+                                } catch { }
+                              }}
+                              className={`text-xs px-2 py-1 rounded-lg transition-colors ${issue.status === s ? 'bg-emerald-500 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                              {t(`status.${s}`)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {tab === 'history' ? (
               <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">

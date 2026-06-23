@@ -1,6 +1,7 @@
 const Issue = require('../models/Issue');
 const User = require('../models/User');
 const { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail, sendResponsibilityEmail } = require('../services/emailService');
+const { sendIssueStatusSMS } = require('../services/smsService');
 
 // GET /api/issues
 const getIssues = async (req, res) => {
@@ -8,8 +9,8 @@ const getIssues = async (req, res) => {
     const { status, category, search, tenant } = req.query;
     const filter = {};
 
-    // Tenants only see their own issues
     if (req.user.role === 'tenant') filter.tenantId = req.user._id;
+    if (req.user.role === 'maintenance') filter.assignedTo = req.user._id;
 
     if (status) filter.status = status;
     if (category) filter.category = category;
@@ -27,6 +28,7 @@ const getIssues = async (req, res) => {
     const issues = await Issue.find(filter)
       .populate('tenantId', 'name email unit building phone')
       .populate('resolvedBy', 'name')
+      .populate('assignedTo', 'name trade')
       .sort({ createdAt: -1 });
 
     res.json(issues);
@@ -38,15 +40,12 @@ const getIssues = async (req, res) => {
 // POST /api/issues
 const createIssue = async (req, res) => {
   try {
-    console.log('createIssue body:', JSON.stringify(req.body));
-    console.log('createIssue content-type:', req.headers['content-type']);
     const { title, description, category } = req.body;
     if (!title || !description || !category) {
-      return res.status(400).json({ message: `All fields are required (got: title="${title}", desc="${description}", cat="${category}")` });
+      return res.status(400).json({ message: 'All fields are required' });
     }
 
     const images = req.files ? req.files.map((f) => f.path) : [];
-    console.log('Uploaded images:', images);
 
     const issue = await Issue.create({
       tenantId: req.user._id,
@@ -60,14 +59,10 @@ const createIssue = async (req, res) => {
 
     const populated = await issue.populate('tenantId', 'name email unit building');
 
-    // Send email notification (non-blocking)
     sendNewIssueEmail(populated, req.user);
     sendTenantConfirmationEmail(populated, req.user);
 
-    // Notify all admins via socket
-    if (req.io) {
-      req.io.emit('new_issue', populated);
-    }
+    if (req.io) req.io.emit('new_issue', populated);
 
     res.status(201).json(populated);
   } catch (error) {
@@ -80,12 +75,15 @@ const getIssue = async (req, res) => {
   try {
     const issue = await Issue.findById(req.params.id)
       .populate('tenantId', 'name email unit building phone')
-      .populate('resolvedBy', 'name');
+      .populate('resolvedBy', 'name')
+      .populate('assignedTo', 'name trade photo');
 
     if (!issue) return res.status(404).json({ message: 'Issue not found' });
 
-    // Tenants can only view their own issues
     if (req.user.role === 'tenant' && issue.tenantId._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    if (req.user.role === 'maintenance' && issue.assignedTo?._id.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -95,18 +93,28 @@ const getIssue = async (req, res) => {
   }
 };
 
-// PUT /api/issues/:id  (admin only)
+// PUT /api/issues/:id — admin or assigned maintenance worker
 const updateIssue = async (req, res) => {
   try {
     const issue = await Issue.findById(req.params.id);
     if (!issue) return res.status(404).json({ message: 'Issue not found' });
 
-    const { status, internalNotes, category } = req.body;
+    // Maintenance can only update status on their assigned issue
+    if (req.user.role === 'maintenance') {
+      if (issue.assignedTo?.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Not assigned to this issue' });
+      }
+    }
+
+    const { status, internalNotes, category, assignedTo } = req.body;
     const prevStatus = issue.status;
 
     if (status) issue.status = status;
     if (internalNotes !== undefined) issue.internalNotes = internalNotes;
-    if (category) issue.category = category;
+    if (category && req.user.role === 'admin') issue.category = category;
+    if (assignedTo !== undefined && req.user.role === 'admin') {
+      issue.assignedTo = assignedTo || null;
+    }
 
     if (status === 'resolved' && prevStatus !== 'resolved') {
       issue.resolvedAt = new Date();
@@ -116,16 +124,14 @@ const updateIssue = async (req, res) => {
     await issue.save();
     const updated = await Issue.findById(issue._id)
       .populate('tenantId', 'name email unit building phone')
-      .populate('resolvedBy', 'name');
+      .populate('resolvedBy', 'name')
+      .populate('assignedTo', 'name trade photo');
 
-    // Send email on status change
     if (status && status !== prevStatus) {
-      sendStatusChangeEmail(updated, updated.tenantId, req.user);  // notify admin
-      sendTenantStatusEmail(updated, updated.tenantId);             // notify tenant
-      // Notify specific tenant via socket
-      if (req.io) {
-        req.io.to(`issue:${issue._id}`).emit('issue_updated', updated);
-      }
+      sendStatusChangeEmail(updated, updated.tenantId, req.user);
+      sendTenantStatusEmail(updated, updated.tenantId);
+      sendIssueStatusSMS(updated.tenantId, updated).catch(console.error);
+      if (req.io) req.io.to(`issue:${issue._id}`).emit('issue_updated', updated);
     }
 
     res.json(updated);
@@ -162,9 +168,9 @@ const setResponsibility = async (req, res) => {
 
     const updated = await Issue.findById(issue._id)
       .populate('tenantId', 'name email unit building phone')
-      .populate('resolvedBy', 'name');
+      .populate('resolvedBy', 'name')
+      .populate('assignedTo', 'name trade photo');
 
-    // Notify tenant if responsibility is theirs
     if (responsibility === 'tenant') {
       sendResponsibilityEmail(updated, updated.tenantId).catch(console.error);
       if (req.io) req.io.to(`issue:${issue._id}`).emit('issue_updated', updated);

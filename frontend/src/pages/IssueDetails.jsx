@@ -23,8 +23,10 @@ export default function IssueDetails() {
   const [notes, setNotes] = useState('');
   const [maintThreads, setMaintThreads] = useState([]);
   const [openMaintId, setOpenMaintId] = useState(null);
-  const [lightbox, setLightbox] = useState(null); // url of enlarged image
+  const [lightbox, setLightbox] = useState(null);
+  const [workers, setWorkers] = useState([]);
   const isAdmin = user?.role === 'admin';
+  const isMaintenance = user?.role === 'maintenance';
 
   const fetchIssue = async () => {
     try {
@@ -57,6 +59,7 @@ export default function IssueDetails() {
     }
     fetchIssue();
     fetchMaintThreads();
+    if (isAdmin) api.get('/maintenance').then(r => setWorkers(r.data)).catch(console.error);
     const socket = getSocket();
     if (socket) {
       socket.on('issue_updated', (updated) => {
@@ -96,6 +99,19 @@ export default function IssueDetails() {
       toast.success(t('responsibility.setSuccess')(responsibility));
     } catch (err) {
       toast.error(err.response?.data?.message || t('responsibility.setFailed'));
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const assignWorker = async (workerId) => {
+    setUpdating(true);
+    try {
+      const res = await api.put(`/issues/${id}`, { assignedTo: workerId || null });
+      setIssue(res.data);
+      toast.success(workerId ? 'Worker assigned' : 'Assignment removed');
+    } catch (err) {
+      toast.error('Failed to assign');
     } finally {
       setUpdating(false);
     }
@@ -206,9 +222,46 @@ export default function IssueDetails() {
               </div>
             )}
 
+            {/* Maintenance worker: update status on assigned issue */}
+            {isMaintenance && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 className="font-semibold text-gray-700 mb-4">Update Status</h2>
+                <div className="flex gap-2 flex-wrap">
+                  {['open', 'in-progress', 'resolved'].map((s) => (
+                    <button key={s} onClick={() => updateStatus(s)} disabled={updating || issue.status === s}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        issue.status === s ? 'bg-emerald-500 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}>
+                      {t(`status.${s}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Admin controls */}
             {isAdmin && (
               <div className="bg-white rounded-xl border border-gray-200 p-6">
+                {/* Assign to maintenance worker */}
+                <h2 className="font-semibold text-gray-700 mb-3">Assign to Maintenance Worker</h2>
+                <div className="flex gap-2 mb-6 flex-wrap items-center">
+                  <select
+                    value={issue.assignedTo?._id || issue.assignedTo || ''}
+                    onChange={(e) => assignWorker(e.target.value)}
+                    disabled={updating}
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white min-w-48">
+                    <option value="">— Unassigned —</option>
+                    {workers.map(w => (
+                      <option key={w._id} value={w._id}>{w.name} ({w.trade})</option>
+                    ))}
+                  </select>
+                  {issue.assignedTo && (
+                    <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
+                      👷 {issue.assignedTo.name || 'Assigned'}
+                    </span>
+                  )}
+                </div>
+
                 {/* Responsibility */}
                 <h2 className="font-semibold text-gray-700 mb-3">{t('responsibility.label')}</h2>
                 <div className="flex gap-2 mb-6">

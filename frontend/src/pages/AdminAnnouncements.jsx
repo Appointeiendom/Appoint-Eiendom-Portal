@@ -5,12 +5,14 @@ import toast from 'react-hot-toast';
 
 export default function AdminAnnouncements() {
   const [announcements, setAnnouncements] = useState([]);
-  const [form, setForm] = useState({ title: '', body: '' });
+  const [form, setForm] = useState({ title: '', body: '', building: '' });
+  const [buildings, setBuildings] = useState([]);
   const [sending, setSending] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     api.get('/announcements').then(r => setAnnouncements(r.data)).catch(console.error);
+    api.get('/announcements/buildings').then(r => setBuildings(r.data)).catch(console.error);
   }, []);
 
   const handleSend = async (e) => {
@@ -20,7 +22,7 @@ export default function AdminAnnouncements() {
     try {
       const res = await api.post('/announcements', form);
       setAnnouncements(prev => [res.data, ...prev]);
-      setForm({ title: '', body: '' });
+      setForm({ title: '', body: '', building: '' });
       setShowForm(false);
       toast.success(`Announcement sent to ${res.data.sentToCount} tenant(s)`);
     } catch (err) {
@@ -70,12 +72,19 @@ export default function AdminAnnouncements() {
                 placeholder="Write your announcement here..."
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none" />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Send to</label>
+              <select value={form.building} onChange={e => setForm(f => ({ ...f, building: e.target.value }))}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                <option value="">All Tenants</option>
+                {buildings.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
             <div className="flex items-center gap-3">
               <button type="submit" disabled={sending}
                 className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60">
-                {sending ? 'Sending...' : '📢 Send to All Tenants'}
+                {sending ? 'Sending...' : `📢 Send to ${form.building || 'All Tenants'}`}
               </button>
-              <p className="text-xs text-gray-400">This will email all registered tenants.</p>
             </div>
           </form>
         )}
@@ -98,7 +107,7 @@ export default function AdminAnnouncements() {
                     <div className="flex items-center gap-3 mt-3">
                       <p className="text-xs text-gray-400">{new Date(a.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                       <span className="text-xs text-gray-300">·</span>
-                      <p className="text-xs text-emerald-600">Sent to {a.sentToCount} tenant(s)</p>
+                      <p className="text-xs text-emerald-600">Sent to {a.sentToCount} tenant(s){a.building ? ` in ${a.building}` : ''}</p>
                     </div>
                   </div>
                   <button onClick={() => handleDelete(a._id)}

@@ -3,6 +3,8 @@ const router = express.Router();
 const { protect, adminOnly } = require('../middleware/auth');
 const { upload } = require('../config/cloudinary');
 const Document = require('../models/Document');
+const User = require('../models/User');
+const { sendDocumentSMS } = require('../services/smsService');
 
 // GET /api/documents — admin sees all, tenant sees global + their own
 router.get('/', protect, async (req, res) => {
@@ -33,6 +35,17 @@ router.post('/', protect, adminOnly, upload.single('file'), async (req, res) => 
       uploadedBy: req.user._id,
       tenantId: tenantId || null,
     });
+
+    // SMS notification
+    if (tenantId) {
+      const tenant = await User.findById(tenantId).select('phone name');
+      if (tenant) sendDocumentSMS(tenant, title).catch(console.error);
+    } else {
+      // Notify all tenants
+      const tenants = await User.find({ role: 'tenant' }).select('phone');
+      for (const t of tenants) sendDocumentSMS(t, title).catch(console.error);
+    }
+
     res.status(201).json(doc);
   } catch (err) {
     res.status(500).json({ message: err.message });

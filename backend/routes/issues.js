@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { upload } = require('../config/cloudinary');
-const { protect, adminOnly } = require('../middleware/auth');
+const { protect, adminOnly, adminOrMaintenance } = require('../middleware/auth');
 const {
   getIssues,
   createIssue,
@@ -21,7 +21,7 @@ router.post('/', protect, (req, res, next) => {
   }
 }, createIssue);
 router.get('/:id', protect, getIssue);
-router.put('/:id', protect, adminOnly, updateIssue);
+router.put('/:id', protect, adminOrMaintenance, updateIssue);
 router.put('/:id/responsibility', protect, adminOnly, setResponsibility);
 router.delete('/:id', protect, adminOnly, deleteIssue);
 

@@ -6,6 +6,6 @@ const { protect, adminOnly } = require('../middleware/auth');
 router.post('/register', register);
 router.post('/login', login);
 router.get('/me', protect, getMe);
-router.put('/update-email', protect, adminOnly, updateEmail);
+router.put('/update-email', protect, updateEmail);
 
 module.exports = router;

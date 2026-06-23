@@ -66,9 +66,10 @@ const getMe = async (req, res) => {
   res.json(req.user);
 };
 
-// PUT /api/auth/update-email  (admin only)
+// PUT /api/auth/update-email
 const updateEmail = async (req, res) => {
   try {
+    console.log('update-email called by', req.user?.email, 'body:', req.body);
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
 

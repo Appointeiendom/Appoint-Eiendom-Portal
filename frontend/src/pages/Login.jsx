@@ -85,8 +85,8 @@ export default function Login() {
 
               <div>
                 <p className="font-semibold text-gray-600 mb-1">1. Behandlingsansvarlig / Data Controller</p>
-                <p>Appoint Eiendom AS er behandlingsansvarlig for personopplysningene som behandles i denne portalen, i samsvar med personopplysningsloven (2018) og EUs personvernforordning (GDPR).<br/>
-                <span className="text-gray-400">Appoint Eiendom AS is the data controller for personal data processed in this portal, in accordance with the Norwegian Personal Data Act and GDPR.</span></p>
+                <p>Appoint Eiendom AS er behandlingsansvarlig for personopplysningene som behandles i denne portalen, i samsvar med personopplysningsloven (2018) og EUs personvernforordning (GDPR). Portalen benyttes til administrasjon av flere eiendommer og selskaper som er eid og drevet av samme eier. Alle disse eiendommene faller inn under samme behandlingsansvarlige og samme personvernerklæring.</p>
+                <p className="mt-1 text-gray-400">Appoint Eiendom AS is the data controller for all properties and tenants managed through this portal. Multiple properties and company names may be administered here, but all are owned and operated by the same individual and fall under this single data controller and privacy policy.</p>
                 <p className="mt-1">Kontakt / Contact: <span className="text-emerald-600">sameer@superstay.no</span></p>
               </div>
 

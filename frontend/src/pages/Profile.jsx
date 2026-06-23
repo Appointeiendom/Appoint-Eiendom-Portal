@@ -23,7 +23,6 @@ export default function Profile() {
       { label: t('profile.unitAddress'), value: user?.unit },
       { label: t('profile.building'), value: user?.building || '—' },
     ] : []),
-    { label: t('profile.role'), value: user?.role },
   ];
 
   const handleRequestOtp = async (e) => {

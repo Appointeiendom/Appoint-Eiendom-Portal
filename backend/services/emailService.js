@@ -22,7 +22,7 @@ const sendNewIssueEmail = async (issue, tenant) => {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
         <div style="background: #10B981; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">New Maintenance Issue Reported</h1>
+          <h1 style="color: white; margin: 0; font-size: 24px;">New maintenance issue reported</h1>
         </div>
         <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
           <h2 style="color: #1F2937; margin-top: 0;">${issue.title}</h2>
@@ -37,7 +37,7 @@ const sendNewIssueEmail = async (issue, tenant) => {
               <td style="padding: 10px 0; color: #1F2937;">${issue.unit}</td>
             </tr>
             ${(issue.building || issue.tenantId?.building) ? `<tr style="border-bottom: 1px solid #E5E7EB;">
-              <td style="padding: 10px 0; color: #6B7280;">Apartment</td>
+              <td style="padding: 10px 0; color: #6B7280;">Rental Unit</td>
               <td style="padding: 10px 0; color: #1F2937;">${issue.building || issue.tenantId?.building}</td>
             </tr>` : ''}
             <tr style="border-bottom: 1px solid #E5E7EB;">
@@ -156,7 +156,7 @@ const sendTenantConfirmationEmail = async (issue, tenant) => {
                 <td style="padding: 6px 0; color: #1F2937; font-size: 14px;">${issue.unit}</td>
               </tr>
               ${issue.building ? `<tr>
-                <td style="padding: 6px 0; color: #6B7280; font-size: 14px;">Apartment</td>
+                <td style="padding: 6px 0; color: #6B7280; font-size: 14px;">Rental Unit</td>
                 <td style="padding: 6px 0; color: #1F2937; font-size: 14px;">${issue.building}</td>
               </tr>` : ''}
               <tr>

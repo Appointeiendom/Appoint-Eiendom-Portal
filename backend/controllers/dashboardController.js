@@ -24,20 +24,6 @@ const getStats = async (req, res) => {
   }
 };
 
-// GET /api/dashboard/issues-by-priority
-const getByPriority = async (req, res) => {
-  try {
-    const match = req.user.role === 'tenant' ? { tenantId: req.user._id } : {};
-    const data = await Issue.aggregate([
-      { $match: match },
-      { $group: { _id: '$priority', count: { $sum: 1 } } },
-    ]);
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
 // GET /api/dashboard/issues-by-status
 const getByStatus = async (req, res) => {
   try {
@@ -64,4 +50,4 @@ const getByCategory = async (req, res) => {
   }
 };
 
-module.exports = { getStats, getByPriority, getByStatus, getByCategory };
+module.exports = { getStats, getByStatus, getByCategory };

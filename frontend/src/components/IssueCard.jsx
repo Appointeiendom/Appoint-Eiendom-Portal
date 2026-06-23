@@ -1,12 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const priorityStyles = {
-  high: 'bg-red-100 text-red-700',
-  medium: 'bg-yellow-100 text-yellow-700',
-  low: 'bg-green-100 text-green-700',
-};
-
 const statusStyles = {
   open: 'bg-blue-100 text-blue-700',
   'in-progress': 'bg-yellow-100 text-yellow-700',

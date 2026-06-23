@@ -10,7 +10,6 @@ const issueSchema = new mongoose.Schema(
       enum: ['Electrical', 'Plumbing', 'HVAC', 'General', 'Appliances'],
       required: true,
     },
-    priority: { type: String, enum: ['low', 'medium', 'high'], required: true },
     status: { type: String, enum: ['open', 'in-progress', 'resolved'], default: 'open' },
     unit: { type: String, required: true },
     building: { type: String },
@@ -18,7 +17,7 @@ const issueSchema = new mongoose.Schema(
     internalNotes: { type: String },
     resolvedAt: { type: Date, default: null, index: { expireAfterSeconds: 60 * 60 * 24 * 7 } }, // auto-delete 7 days after resolved
     resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-    responsibility: { type: String, enum: ['landlord', 'tenant', null], default: null },
+    responsibility: { type: String, enum: ['landlord', 'tenant'], default: null },
   },
   { timestamps: true }
 );

@@ -256,7 +256,7 @@ export default {
     email: 'E-post',
     phone: 'Telefon',
     unitAddress: 'Enhet / Adresse',
-    building: 'Bygning',
+    building: 'Leilighet',
     role: 'Rolle',
     contactAdmin: 'Kontakt din administrator for å oppdatere profilinformasjonen din.',
     changeEmail: 'Endre e-post',

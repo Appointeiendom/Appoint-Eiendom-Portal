@@ -246,7 +246,7 @@ export default {
     email: 'Email',
     phone: 'Phone',
     unitAddress: 'Unit / Address',
-    building: 'Building',
+    building: 'Apartment',
     role: 'Role',
     contactAdmin: 'Contact your administrator to update your profile information.',
     changeEmail: 'Change Email',

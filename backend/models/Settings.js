@@ -7,6 +7,7 @@ Please change your password after your first login.`;
 const settingsSchema = new mongoose.Schema({
   key: { type: String, unique: true, default: 'global' },
   welcomeEmailBody: { type: String, default: DEFAULT_WELCOME_BODY },
+  digestReminderTime: { type: String, default: '08:00' }, // HH:MM in 24h, empty = disabled
 }, { timestamps: true });
 
 settingsSchema.statics.getGlobal = async function () {

@@ -27,7 +27,10 @@ const io = new Server(server, {
 });
 
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => {
+  const { initDigestReminder } = require('./jobs/digestReminder');
+  initDigestReminder();
+});
 
 // Middleware
 app.use(cors({

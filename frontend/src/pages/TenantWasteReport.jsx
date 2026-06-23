@@ -12,7 +12,7 @@ export default function TenantWasteReport() {
   const [reports, setReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ location: '', description: '', anonymous: false });
+  const [form, setForm] = useState({ location: '', description: '' });
   const [images, setImages] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -92,15 +92,7 @@ export default function TenantWasteReport() {
               {images.length > 0 && <p className="text-xs text-gray-400 mt-1">{images.length} photo(s) selected</p>}
             </div>
 
-            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-              <input type="checkbox" id="anon" checked={form.anonymous} onChange={e => setForm(f => ({ ...f, anonymous: e.target.checked }))}
-                className="w-4 h-4 accent-emerald-500" />
-              <label htmlFor="anon" className="text-sm text-amber-800 cursor-pointer">
-                Submit anonymously — your name will not be shown to anyone
-              </label>
-            </div>
-
-            <button type="submit" disabled={submitting}
+<button type="submit" disabled={submitting}
               className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60">
               {submitting ? 'Submitting...' : 'Submit Report'}
             </button>
@@ -124,7 +116,6 @@ export default function TenantWasteReport() {
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div>
                     <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded-full">{r.location}</span>
-                    {r.anonymous && <span className="ml-2 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">Anonymous</span>}
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${statusStyles[r.status]}`}>
                     {r.status}

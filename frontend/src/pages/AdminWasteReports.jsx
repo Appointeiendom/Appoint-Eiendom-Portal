@@ -87,10 +87,7 @@ export default function AdminWasteReports() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-medium bg-gray-100 text-gray-700 px-2 py-1 rounded-full">📍 {r.location}</span>
-                        {r.anonymous
-                          ? <span className="text-xs bg-amber-50 text-amber-600 px-2 py-1 rounded-full">Anonymous</span>
-                          : r.reportedBy && <span className="text-xs text-gray-500">{r.reportedBy.name} · {r.reportedBy.unit}</span>
-                        }
+                        {r.reportedBy && <span className="text-xs text-gray-500">{r.reportedBy.name} · {r.reportedBy.unit}</span>}
                         {r.building && <span className="text-xs text-gray-400">🏢 {r.building}</span>}
                       </div>
                       <p className="text-sm text-gray-600 mt-1 line-clamp-1">{r.description}</p>

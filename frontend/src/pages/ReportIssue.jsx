@@ -31,10 +31,15 @@ export default function ReportIssue() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const data = new FormData();
-      Object.entries(form).forEach(([k, v]) => data.append(k, v));
-      images.forEach((file) => data.append('images', file));
-      await api.post('/issues', data);
+      let res;
+      if (images.length > 0) {
+        const data = new FormData();
+        Object.entries(form).forEach(([k, v]) => data.append(k, v));
+        images.forEach((file) => data.append('images', file));
+        res = await api.post('/issues', data);
+      } else {
+        res = await api.post('/issues', form);
+      }
       toast.success(t('issues.reportSuccess'));
       navigate('/tenant/issues');
     } catch (err) {

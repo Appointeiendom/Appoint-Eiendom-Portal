@@ -104,7 +104,7 @@ export default function Login() {
               </div>
               <div>
                 <p className="font-semibold text-gray-600 mb-1">Kontakt / Contact</p>
-                <p>Appoint Eiendom AS — post@appointeiendom.no</p>
+                <p>Appoint Eiendom AS — sameer@superstay.no</p>
               </div>
             </div>
           </details>

@@ -127,7 +127,7 @@ export default {
     setSuccess: (r) => `Ansvar satt til "${r}"`,
     setFailed: 'Oppdatering mislyktes',
     tenantBanner: 'Ditt ansvar',
-    tenantBannerBody: 'Denne vedlikeholdssaken er vurdert og faller under ditt ansvar som leietaker. Kontakt en av fagpersonene nedenfor for å ordne reparasjoner.',
+    tenantBannerBody: 'Denne vedlikeholdssaken er vurdert og faller, i henhold til din leieavtale, under ditt ansvar å utbedre. Fagpersonene listet nedenfor er uavhengige forslag — de er ikke ansatt av eller tilknyttet oss, og vi påtar oss intet ansvar for deres arbeid eller eventuelle skader. Hvis du mener dette er feil tildelt, eller dersom dette er en nødsituasjon, ta kontakt med oss direkte.',
   },
 
   // Chat

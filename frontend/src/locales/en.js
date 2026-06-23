@@ -121,7 +121,7 @@ export default {
     setSuccess: (r) => `Responsibility set to "${r}"`,
     setFailed: 'Update failed',
     tenantBanner: 'Your Responsibility',
-    tenantBannerBody: 'This maintenance issue has been reviewed and falls under your responsibility as the tenant. Please contact one of the professionals below to arrange repairs.',
+    tenantBannerBody: 'This maintenance issue has been reviewed and, as per your tenancy agreement, falls under your responsibility to resolve. The professionals listed below are independent suggestions only — they are not employed by or affiliated with us, and we bear no liability for their work or any resulting damages. If you believe this has been assigned in error or if this is an emergency, please contact us directly.',
   },
 
   chat: {

@@ -5,14 +5,13 @@ const { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, s
 // GET /api/issues
 const getIssues = async (req, res) => {
   try {
-    const { status, priority, category, search, tenant } = req.query;
+    const { status, category, search, tenant } = req.query;
     const filter = {};
 
     // Tenants only see their own issues
     if (req.user.role === 'tenant') filter.tenantId = req.user._id;
 
     if (status) filter.status = status;
-    if (priority) filter.priority = priority;
     if (category) filter.category = category;
     if (tenant && req.user.role === 'admin') {
       const tenantUser = await User.findOne({ name: { $regex: tenant, $options: 'i' } });
@@ -39,9 +38,11 @@ const getIssues = async (req, res) => {
 // POST /api/issues
 const createIssue = async (req, res) => {
   try {
-    const { title, description, category, priority } = req.body;
-    if (!title || !description || !category || !priority) {
-      return res.status(400).json({ message: 'All fields are required' });
+    console.log('createIssue body:', JSON.stringify(req.body));
+    console.log('createIssue content-type:', req.headers['content-type']);
+    const { title, description, category } = req.body;
+    if (!title || !description || !category) {
+      return res.status(400).json({ message: `All fields are required (got: title="${title}", desc="${description}", cat="${category}")` });
     }
 
     const images = req.files ? req.files.map((f) => f.path) : [];
@@ -52,7 +53,6 @@ const createIssue = async (req, res) => {
       title,
       description,
       category,
-      priority,
       unit: req.user.unit,
       building: req.user.building,
       images,
@@ -101,12 +101,11 @@ const updateIssue = async (req, res) => {
     const issue = await Issue.findById(req.params.id);
     if (!issue) return res.status(404).json({ message: 'Issue not found' });
 
-    const { status, internalNotes, priority, category } = req.body;
+    const { status, internalNotes, category } = req.body;
     const prevStatus = issue.status;
 
     if (status) issue.status = status;
     if (internalNotes !== undefined) issue.internalNotes = internalNotes;
-    if (priority) issue.priority = priority;
     if (category) issue.category = category;
 
     if (status === 'resolved' && prevStatus !== 'resolved') {

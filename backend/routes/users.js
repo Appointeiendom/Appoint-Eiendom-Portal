@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, adminOnly } = require('../middleware/auth');
+const { upload } = require('../config/cloudinary');
 const User = require('../models/User');
 const { sendWelcomeEmail } = require('../services/emailService');
 
@@ -75,6 +76,20 @@ router.put('/:id/reset-password', protect, adminOnly, async (req, res) => {
     ).catch(console.error);
 
     res.json({ message: 'Password updated and emailed to tenant' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PUT /api/users/:id/photo (admin only — upload tenant profile photo)
+router.put('/:id/photo', protect, adminOnly, upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No photo uploaded' });
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.photo = req.file.path;
+    await user.save();
+    res.json({ photo: user.photo });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

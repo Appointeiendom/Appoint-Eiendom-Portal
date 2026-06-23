@@ -63,8 +63,13 @@ export default function Profile() {
         <h1 className="text-2xl font-bold text-gray-800 mb-6">{t('profile.title')}</h1>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
-            <div className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-xl">{user?.name?.[0]?.toUpperCase()}</span>
+            <div className="w-14 h-14 rounded-full overflow-hidden shrink-0">
+              {user?.photo
+                ? <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
+                : <div className="w-full h-full bg-emerald-500 flex items-center justify-center">
+                    <span className="text-white font-bold text-xl">{user?.name?.[0]?.toUpperCase()}</span>
+                  </div>
+              }
             </div>
             <div>
               <p className="font-semibold text-gray-800">{user?.name}</p>

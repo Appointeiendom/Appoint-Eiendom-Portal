@@ -9,6 +9,7 @@ export default function AdminTenants() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', unit: '', building: '', phone: '', password: '' });
   const [saving, setSaving] = useState(false);
+  const [uploadingId, setUploadingId] = useState(null);
 
   // Reset password modal state
   const [resetTarget, setResetTarget] = useState(null); // { _id, name, email }
@@ -66,6 +67,24 @@ export default function AdminTenants() {
       setTenants((prev) => prev.filter((t) => t._id !== id));
     } catch {
       toast.error('Failed to delete tenant');
+    }
+  };
+
+  const handlePhotoUpload = async (tenantId, file) => {
+    if (!file) return;
+    setUploadingId(tenantId);
+    try {
+      const fd = new FormData();
+      fd.append('photo', file);
+      const res = await api.put(`/users/${tenantId}/photo`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setTenants(prev => prev.map(t => t._id === tenantId ? { ...t, photo: res.data.photo } : t));
+      toast.success('Profilbilde oppdatert');
+    } catch {
+      toast.error('Kunne ikke laste opp bilde');
+    } finally {
+      setUploadingId(null);
     }
   };
 
@@ -149,6 +168,7 @@ export default function AdminTenants() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
+                  <th className="text-left px-4 py-3 text-gray-600 font-medium">Photo</th>
                   <th className="text-left px-4 py-3 text-gray-600 font-medium">Name</th>
                   <th className="text-left px-4 py-3 text-gray-600 font-medium">Email</th>
                   <th className="text-left px-4 py-3 text-gray-600 font-medium hidden sm:table-cell">Unit</th>
@@ -159,6 +179,23 @@ export default function AdminTenants() {
               <tbody className="divide-y divide-gray-100">
                 {tenants.map((t) => (
                   <tr key={t._id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <label className="cursor-pointer group relative block w-10 h-10">
+                        {t.photo
+                          ? <img src={t.photo} alt={t.name} className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 group-hover:border-emerald-400 transition-colors" />
+                          : <div className="w-10 h-10 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 group-hover:border-emerald-400 flex items-center justify-center transition-colors">
+                              <span className="text-gray-400 text-xs">+</span>
+                            </div>
+                        }
+                        {uploadingId === t._id && (
+                          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        )}
+                        <input type="file" accept="image/*" className="hidden"
+                          onChange={(e) => handlePhotoUpload(t._id, e.target.files[0])} />
+                      </label>
+                    </td>
                     <td className="px-4 py-3 font-medium text-gray-800">{t.name}</td>
                     <td className="px-4 py-3 text-gray-500">{t.email}</td>
                     <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{t.unit}</td>

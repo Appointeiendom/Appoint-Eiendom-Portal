@@ -147,8 +147,18 @@ export default function IssueDetails() {
                 {isAdmin && (
                   <div className="bg-gray-50 rounded-lg p-3 col-span-2">
                     <p className="text-gray-400 text-xs mb-1">{t('issues.tenant')}</p>
-                    <p className="font-medium text-gray-700">{issue.tenantId?.name}</p>
-                    <p className="text-gray-500 text-xs">{issue.tenantId?.email}{issue.tenantId?.phone ? ` · ${issue.tenantId.phone}` : ''}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      {issue.tenantId?.photo
+                        ? <img src={issue.tenantId.photo} alt={issue.tenantId.name} className="w-9 h-9 rounded-full object-cover border border-gray-200 shrink-0" />
+                        : <div className="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                            <span className="text-white text-sm font-bold">{issue.tenantId?.name?.[0]?.toUpperCase()}</span>
+                          </div>
+                      }
+                      <div>
+                        <p className="font-medium text-gray-700 text-sm">{issue.tenantId?.name}</p>
+                        <p className="text-gray-500 text-xs">{issue.tenantId?.email}{issue.tenantId?.phone ? ` · ${issue.tenantId.phone}` : ''}</p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

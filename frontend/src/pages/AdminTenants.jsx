@@ -46,7 +46,7 @@ function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-800">{tenant.name}</p>
         <p className="text-xs text-gray-500 truncate">{tenant.email}{tenant.phone ? ` · ${tenant.phone}` : ''}</p>
-        {tenant.building && <p className="text-xs text-gray-400">{tenant.building}</p>}
+        {tenant.building && <p className="text-xs text-gray-400">Apartment {tenant.building}</p>}
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <button onClick={() => onReset(tenant)}
@@ -75,7 +75,7 @@ function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, on
     a === noBuilding ? 1 : b === noBuilding ? -1 : a.localeCompare(b, 'no')
   );
 
-  const [open, setOpen] = useState(() => Object.fromEntries(sorted.map(k => [k, true])));
+  const [open, setOpen] = useState({});
   const toggle = (key) => setOpen(prev => ({ ...prev, [key]: !prev[key] }));
 
   return (

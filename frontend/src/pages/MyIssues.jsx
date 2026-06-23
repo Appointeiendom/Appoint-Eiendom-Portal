@@ -8,12 +8,11 @@ export default function MyIssues() {
   const navigate = useNavigate();
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ status: '', priority: '' });
+  const [filters, setFilters] = useState({ status: '' });
 
   useEffect(() => {
     const params = new URLSearchParams();
     if (filters.status) params.set('status', filters.status);
-    if (filters.priority) params.set('priority', filters.priority);
 
     api.get(`/issues?${params}`)
       .then((res) => setIssues(res.data))

@@ -273,13 +273,6 @@ export default {
     emailUpdated: 'E-post oppdatert',
   },
 
-  // Priority
-  priority: {
-    high: 'Høy',
-    medium: 'Medium',
-    low: 'Lav',
-  },
-
   // Status
   status: {
     open: 'Åpen',

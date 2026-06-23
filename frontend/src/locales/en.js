@@ -263,12 +263,6 @@ export default {
     emailUpdated: 'Email updated',
   },
 
-  priority: {
-    high: 'High',
-    medium: 'Medium',
-    low: 'Low',
-  },
-
   status: {
     open: 'Open',
     'in-progress': 'In Progress',

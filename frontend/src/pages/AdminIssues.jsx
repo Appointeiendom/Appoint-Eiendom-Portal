@@ -6,7 +6,6 @@ import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
 
 const statusStyles = { open: 'bg-blue-100 text-blue-700', 'in-progress': 'bg-yellow-100 text-yellow-700', resolved: 'bg-emerald-100 text-emerald-700' };
-const priorityStyles = { high: 'bg-red-100 text-red-700', medium: 'bg-yellow-100 text-yellow-700', low: 'bg-green-100 text-green-700' };
 const CATEGORIES = ['Electrical', 'Plumbing', 'HVAC', 'General', 'Appliances'];
 
 export default function AdminIssues() {
@@ -14,7 +13,7 @@ export default function AdminIssues() {
   const navigate = useNavigate();
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ status: '', priority: '', category: '', search: '' });
+  const [filters, setFilters] = useState({ status: '', category: '', search: '' });
   const [deleting, setDeleting] = useState(null);
 
   const fetchIssues = () => {
@@ -45,9 +44,9 @@ export default function AdminIssues() {
   };
 
   const exportCSV = () => {
-    const rows = [['Title', 'Category', 'Status', 'Priority', 'Tenant', 'Unit', 'Date']];
+    const rows = [['Title', 'Category', 'Status', 'Tenant', 'Unit', 'Date']];
     issues.forEach(i => rows.push([
-      `"${i.title}"`, i.category, i.status, i.priority,
+      `"${i.title}"`, i.category, i.status,
       `"${i.tenantId?.name || ''}"`, i.unit,
       new Date(i.createdAt).toLocaleDateString(),
     ]));
@@ -80,11 +79,6 @@ export default function AdminIssues() {
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
               <option value="">{t('issues.allStatuses')}</option>
               {['open', 'in-progress', 'resolved'].map(s => <option key={s} value={s}>{t(`status.${s}`)}</option>)}
-            </select>
-            <select value={filters.priority} onChange={update('priority')}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
-              <option value="">{t('issues.allPriorities')}</option>
-              {['high', 'medium', 'low'].map(p => <option key={p} value={p}>{t(`priority.${p}`)}</option>)}
             </select>
             <select value={filters.category} onChange={update('category')}
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">

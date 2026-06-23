@@ -8,11 +8,6 @@ const getAdminEmail = async () => {
   return admin?.email || process.env.ADMIN_EMAIL;
 };
 
-const priorityColor = (priority) => {
-  const colors = { high: '#EF4444', medium: '#F59E0B', low: '#10B981' };
-  return colors[priority] || '#6B7280';
-};
-
 const statusColor = (status) => {
   const colors = { open: '#3B82F6', 'in-progress': '#F59E0B', resolved: '#10B981' };
   return colors[status] || '#6B7280';
@@ -46,12 +41,6 @@ const sendNewIssueEmail = async (issue, tenant) => {
               <td style="padding: 10px 0; color: #1F2937;">${issue.category}</td>
             </tr>
             <tr style="border-bottom: 1px solid #E5E7EB;">
-              <td style="padding: 10px 0; color: #6B7280;">Priority</td>
-              <td style="padding: 10px 0;">
-                <span style="background: ${priorityColor(issue.priority)}; color: white; padding: 3px 10px; border-radius: 12px; font-size: 13px; text-transform: uppercase;">${issue.priority}</span>
-              </td>
-            </tr>
-            <tr style="border-bottom: 1px solid #E5E7EB;">
               <td style="padding: 10px 0; color: #6B7280;">Reported On</td>
               <td style="padding: 10px 0; color: #1F2937;">${new Date(issue.createdAt).toLocaleString()}</td>
             </tr>
@@ -73,7 +62,7 @@ const sendNewIssueEmail = async (issue, tenant) => {
     await sgMail.send({
       from: FROM,
       to: await getAdminEmail(),
-      subject: `[${issue.priority.toUpperCase()}] New Issue: ${issue.title} — ${tenant.name} (${issue.unit})`,
+      subject: `New Issue: ${issue.title} — ${tenant.name} (${issue.unit})`,
       html,
     });
 
@@ -165,12 +154,6 @@ const sendTenantConfirmationEmail = async (issue, tenant) => {
               <tr>
                 <td style="padding: 6px 0; color: #6B7280; font-size: 14px;">Category</td>
                 <td style="padding: 6px 0; color: #1F2937; font-size: 14px;">${issue.category}</td>
-              </tr>
-              <tr>
-                <td style="padding: 6px 0; color: #6B7280; font-size: 14px;">Priority</td>
-                <td style="padding: 6px 0; font-size: 14px;">
-                  <span style="background: ${priorityColor(issue.priority)}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; text-transform: uppercase;">${issue.priority}</span>
-                </td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #6B7280; font-size: 14px;">Submitted</td>

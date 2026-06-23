@@ -12,7 +12,7 @@ export default function ReportIssue() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ title: '', description: '', category: '', priority: 'medium' });
+  const [form, setForm] = useState({ title: '', description: '', category: '' });
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});

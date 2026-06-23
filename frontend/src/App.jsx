@@ -27,6 +27,7 @@ import TenantDocuments from './pages/TenantDocuments';
 import Profile from './pages/Profile';
 import TenantWasteReport from './pages/TenantWasteReport';
 import AdminWasteReports from './pages/AdminWasteReports';
+import AdminSettings from './pages/AdminSettings';
 
 // Syncs language based on logged-in user's role, runs once per role change
 function LangSync() {
@@ -77,6 +78,7 @@ export default function App() {
           <Route path="/admin/documents" element={<ProtectedRoute role="admin"><AdminDocuments /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute role="admin"><Profile /></ProtectedRoute>} />
           <Route path="/admin/waste" element={<ProtectedRoute role="admin"><AdminWasteReports /></ProtectedRoute>} />
+          <Route path="/admin/settings" element={<ProtectedRoute role="admin"><AdminSettings /></ProtectedRoute>} />
 
           {/* Maintenance */}
           <Route path="/maintenance/dashboard" element={<ProtectedRoute role="maintenance"><MaintenanceDashboard /></ProtectedRoute>} />

@@ -66,6 +66,7 @@ app.use('/api/maintenance', require('./routes/maintenance'));
 app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/documents', require('./routes/documents'));
 app.use('/api/waste', require('./routes/wasteReports'));
+app.use('/api/settings', require('./routes/settings'));
 
 app.get('/api/health', (req, res) => res.json({ 
   status: 'ok',

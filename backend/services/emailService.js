@@ -1,5 +1,6 @@
 const sgMail = require('@sendgrid/mail');
 const User = require('../models/User');
+const Settings = require('../models/Settings');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const FROM = process.env.EMAIL_FROM || 'Sameer.karki63@gmail.com';
 
@@ -371,7 +372,8 @@ module.exports = { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmat
 // Welcome email sent to tenant when admin creates their account
 async function sendWelcomeEmail(tenant, rawPassword) {
   try {
-
+    const settings = await Settings.getGlobal();
+    const customBody = settings.welcomeEmailBody.replace(/\n/g, '<br>');
     const loginUrl = `${process.env.FRONTEND_URL}/login`;
 
     const html = `
@@ -381,7 +383,7 @@ async function sendWelcomeEmail(tenant, rawPassword) {
         </div>
         <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
           <p style="color: #4B5563; margin-top: 0;">Hi <strong>${tenant.name}</strong>,</p>
-          <p style="color: #4B5563;">Your tenant account has been created. You can now log in and report maintenance issues directly through the portal.</p>
+          <p style="color: #4B5563;">${customBody}</p>
 
           <div style="background: #F0FDF4; border: 2px solid #10B981; border-radius: 8px; padding: 20px; margin: 24px 0;">
             <p style="color: #065F46; font-weight: bold; margin: 0 0 12px 0; font-size: 15px;">Your Login Credentials</p>
@@ -400,8 +402,6 @@ async function sendWelcomeEmail(tenant, rawPassword) {
               </tr>
             </table>
           </div>
-
-          <p style="color: #EF4444; font-size: 13px;">Please change your password after your first login.</p>
 
           <div style="text-align: center; margin-top: 24px;">
             <a href="${loginUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Login to Portal</a>

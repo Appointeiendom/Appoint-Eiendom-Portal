@@ -17,6 +17,7 @@ export default function Sidebar({ open, onClose }) {
     { to: '/admin/documents', label: 'Documents', icon: '📁' },
     { to: '/admin/waste', label: 'Waste Reports', icon: '♻️' },
     { to: '/admin/analytics', label: t('nav.analytics'), icon: '📊' },
+    { to: '/admin/settings', label: 'Settings', icon: '⚙️' },
     { to: '/admin/profile', label: t('nav.profile'), icon: '👤' },
   ];
 

@@ -33,7 +33,7 @@ const sendNewIssueEmail = async (issue, tenant) => {
               <td style="padding: 10px 0; color: #1F2937; font-weight: bold;">${tenant.name}</td>
             </tr>
             <tr style="border-bottom: 1px solid #E5E7EB;">
-              <td style="padding: 10px 0; color: #6B7280;">Unit</td>
+              <td style="padding: 10px 0; color: #6B7280;">Address</td>
               <td style="padding: 10px 0; color: #1F2937;">${issue.unit}</td>
             </tr>
             ${(issue.building || issue.tenantId?.building) ? `<tr style="border-bottom: 1px solid #E5E7EB;">
@@ -152,7 +152,7 @@ const sendTenantConfirmationEmail = async (issue, tenant) => {
             <h2 style="color: #1F2937; margin: 0 0 12px 0; font-size: 16px;">${issue.title}</h2>
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
-                <td style="padding: 6px 0; color: #6B7280; width: 40%; font-size: 14px;">Unit</td>
+                <td style="padding: 6px 0; color: #6B7280; width: 40%; font-size: 14px;">Address</td>
                 <td style="padding: 6px 0; color: #1F2937; font-size: 14px;">${issue.unit}</td>
               </tr>
               ${issue.building ? `<tr>
@@ -395,7 +395,7 @@ async function sendWelcomeEmail(tenant, rawPassword) {
                 <td style="padding: 8px 0; color: #1F2937; font-weight: bold; font-size: 14px; letter-spacing: 1px;">${rawPassword}</td>
               </tr>
               <tr>
-                <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Unit</td>
+                <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Address</td>
                 <td style="padding: 8px 0; color: #1F2937; font-size: 14px;">${tenant.unit}</td>
               </tr>
             </table>

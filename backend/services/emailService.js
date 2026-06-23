@@ -36,6 +36,10 @@ const sendNewIssueEmail = async (issue, tenant) => {
               <td style="padding: 10px 0; color: #6B7280;">Unit</td>
               <td style="padding: 10px 0; color: #1F2937;">${issue.unit}</td>
             </tr>
+            ${issue.building ? `<tr style="border-bottom: 1px solid #E5E7EB;">
+              <td style="padding: 10px 0; color: #6B7280;">Apartment</td>
+              <td style="padding: 10px 0; color: #1F2937;">${issue.building}</td>
+            </tr>` : ''}
             <tr style="border-bottom: 1px solid #E5E7EB;">
               <td style="padding: 10px 0; color: #6B7280;">Category</td>
               <td style="padding: 10px 0; color: #1F2937;">${issue.category}</td>
@@ -151,6 +155,10 @@ const sendTenantConfirmationEmail = async (issue, tenant) => {
                 <td style="padding: 6px 0; color: #6B7280; width: 40%; font-size: 14px;">Unit</td>
                 <td style="padding: 6px 0; color: #1F2937; font-size: 14px;">${issue.unit}</td>
               </tr>
+              ${issue.building ? `<tr>
+                <td style="padding: 6px 0; color: #6B7280; font-size: 14px;">Apartment</td>
+                <td style="padding: 6px 0; color: #1F2937; font-size: 14px;">${issue.building}</td>
+              </tr>` : ''}
               <tr>
                 <td style="padding: 6px 0; color: #6B7280; font-size: 14px;">Category</td>
                 <td style="padding: 6px 0; color: #1F2937; font-size: 14px;">${issue.category}</td>

@@ -34,7 +34,7 @@ export default function ReportIssue() {
       const data = new FormData();
       Object.entries(form).forEach(([k, v]) => data.append(k, v));
       images.forEach((file) => data.append('images', file));
-      await api.post('/issues', data, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await api.post('/issues', data);
       toast.success(t('issues.reportSuccess'));
       navigate('/tenant/issues');
     } catch (err) {

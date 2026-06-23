@@ -1,10 +1,12 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useUnread } from '../context/UnreadContext';
 
 export default function Sidebar({ open, onClose }) {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { unreadCount } = useUnread();
 
   const adminLinks = [
     { to: '/admin/dashboard', label: t('nav.dashboard'), icon: '🏠' },
@@ -21,7 +23,7 @@ export default function Sidebar({ open, onClose }) {
     { to: '/tenant/dashboard', label: t('nav.dashboard'), icon: '🏠' },
     { to: '/tenant/issues', label: t('nav.myIssues'), icon: '📋' },
     { to: '/tenant/issues/new', label: t('nav.reportIssue'), icon: '➕' },
-    { to: '/tenant/notices', label: 'Notices & Docs', icon: '📢' },
+    { to: '/tenant/notices', label: 'Notices & Docs', icon: '📢', badge: unreadCount },
     { to: '/tenant/profile', label: t('nav.profile'), icon: '👤' },
   ];
 
@@ -61,7 +63,12 @@ export default function Sidebar({ open, onClose }) {
             }
           >
             <span>{link.icon}</span>
-            {link.label}
+            <span className="flex-1">{link.label}</span>
+            {link.badge > 0 && (
+              <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                {link.badge}
+              </span>
+            )}
           </NavLink>
         ))}
       </aside>

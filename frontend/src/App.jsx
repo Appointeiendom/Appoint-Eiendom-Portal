@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { UnreadProvider } from './context/UnreadContext';
 import { useAuth } from './context/AuthContext';
 import { useLanguage } from './context/LanguageContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -45,6 +46,7 @@ export default function App() {
   return (
     <LanguageProvider>
     <AuthProvider>
+    <UnreadProvider>
       <BrowserRouter>
         <LangSync />
         <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
@@ -79,6 +81,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
+    </UnreadProvider>
     </AuthProvider>
     </LanguageProvider>
   );

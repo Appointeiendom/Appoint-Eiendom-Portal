@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import Layout from '../components/Layout';
 import { useLanguage } from '../context/LanguageContext';
+import { useUnread } from '../context/UnreadContext';
 
 export default function TenantDocuments() {
   const { t } = useLanguage();
+  const { markAllRead } = useUnread();
   const [docs, setDocs] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +19,7 @@ export default function TenantDocuments() {
     ]).then(([a, d]) => {
       setAnnouncements(a.data);
       setDocs(d.data);
+      markAllRead(a.data);
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
 

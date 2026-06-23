@@ -10,9 +10,9 @@ const { sendAnnouncementSMS } = require('../services/smsService');
 router.get('/', protect, async (req, res) => {
   try {
     let filter = {};
-    if (req.user.role === 'tenant' && req.user.building) {
-      // Show announcements targeted to their building or all (null)
-      filter = { $or: [{ building: null }, { building: req.user.building }] };
+    if (req.user.role === 'tenant' && req.user.unit) {
+      // Show announcements targeted to their building address or all (null)
+      filter = { $or: [{ building: null }, { building: req.user.unit }] };
     }
     const announcements = await Announcement.find(filter).sort({ createdAt: -1 }).limit(50);
     res.json(announcements);
@@ -24,7 +24,7 @@ router.get('/', protect, async (req, res) => {
 // GET /api/announcements/buildings — list of unique tenant buildings for targeting
 router.get('/buildings', protect, adminOnly, async (req, res) => {
   try {
-    const buildings = await User.distinct('building', { role: 'tenant', building: { $nin: [null, ''] } });
+    const buildings = await User.distinct('unit', { role: 'tenant', unit: { $nin: [null, ''] } });
     res.json(buildings.sort());
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -38,7 +38,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
     if (!title || !body) return res.status(400).json({ message: 'Title and body are required' });
 
     const tenantFilter = { role: 'tenant' };
-    if (building) tenantFilter.building = building;
+    if (building) tenantFilter.unit = building;
 
     const tenants = await User.find(tenantFilter).select('email name phone');
     const announcement = await Announcement.create({

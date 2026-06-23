@@ -15,6 +15,7 @@ export default function Sidebar({ open, onClose }) {
     { to: '/admin/maintenance', label: t('nav.maintenance'), icon: '🔧' },
     { to: '/admin/announcements', label: 'Announcements', icon: '📢' },
     { to: '/admin/documents', label: 'Documents', icon: '📁' },
+    { to: '/admin/waste', label: 'Waste Reports', icon: '♻️' },
     { to: '/admin/analytics', label: t('nav.analytics'), icon: '📊' },
     { to: '/admin/profile', label: t('nav.profile'), icon: '👤' },
   ];
@@ -24,6 +25,7 @@ export default function Sidebar({ open, onClose }) {
     { to: '/tenant/issues', label: t('nav.myIssues'), icon: '📋' },
     { to: '/tenant/issues/new', label: t('nav.reportIssue'), icon: '➕' },
     { to: '/tenant/notices', label: 'Notices & Docs', icon: '📢', badge: unreadCount },
+    { to: '/tenant/waste', label: 'Waste & Environment', icon: '♻️' },
     { to: '/tenant/profile', label: t('nav.profile'), icon: '👤' },
   ];
 

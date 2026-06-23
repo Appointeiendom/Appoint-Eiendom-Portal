@@ -25,6 +25,8 @@ import MaintenanceDashboard from './pages/MaintenanceDashboard';
 import MaintenanceAvailability from './pages/MaintenanceAvailability';
 import TenantDocuments from './pages/TenantDocuments';
 import Profile from './pages/Profile';
+import TenantWasteReport from './pages/TenantWasteReport';
+import AdminWasteReports from './pages/AdminWasteReports';
 
 // Syncs language based on logged-in user's role, runs once per role change
 function LangSync() {
@@ -62,6 +64,7 @@ export default function App() {
           <Route path="/tenant/issues/:id" element={<ProtectedRoute role="tenant"><IssueDetails /></ProtectedRoute>} />
           <Route path="/tenant/notices" element={<ProtectedRoute role="tenant"><TenantDocuments /></ProtectedRoute>} />
           <Route path="/tenant/profile" element={<ProtectedRoute role="tenant"><Profile /></ProtectedRoute>} />
+          <Route path="/tenant/waste" element={<ProtectedRoute role="tenant"><TenantWasteReport /></ProtectedRoute>} />
 
           {/* Admin */}
           <Route path="/admin/dashboard" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
@@ -73,6 +76,7 @@ export default function App() {
           <Route path="/admin/announcements" element={<ProtectedRoute role="admin"><AdminAnnouncements /></ProtectedRoute>} />
           <Route path="/admin/documents" element={<ProtectedRoute role="admin"><AdminDocuments /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute role="admin"><Profile /></ProtectedRoute>} />
+          <Route path="/admin/waste" element={<ProtectedRoute role="admin"><AdminWasteReports /></ProtectedRoute>} />
 
           {/* Maintenance */}
           <Route path="/maintenance/dashboard" element={<ProtectedRoute role="maintenance"><MaintenanceDashboard /></ProtectedRoute>} />

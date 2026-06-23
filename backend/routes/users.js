@@ -71,8 +71,10 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (unit !== undefined) user.unit = unit;
     if (building !== undefined) user.building = building;
     if (phone !== undefined) user.phone = phone;
+    if (req.body.leaseStart !== undefined) user.leaseStart = req.body.leaseStart || null;
+    if (req.body.leaseEnd !== undefined) user.leaseEnd = req.body.leaseEnd || null;
     await user.save();
-    res.json({ _id: user._id, name: user.name, email: user.email, role: user.role, unit: user.unit, building: user.building, phone: user.phone, photo: user.photo });
+    res.json({ _id: user._id, name: user.name, email: user.email, role: user.role, unit: user.unit, building: user.building, phone: user.phone, photo: user.photo, leaseStart: user.leaseStart, leaseEnd: user.leaseEnd });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

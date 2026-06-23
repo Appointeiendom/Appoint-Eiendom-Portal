@@ -44,6 +44,20 @@ export default function AdminIssues() {
     }
   };
 
+  const exportCSV = () => {
+    const rows = [['Title', 'Category', 'Status', 'Priority', 'Tenant', 'Unit', 'Date']];
+    issues.forEach(i => rows.push([
+      `"${i.title}"`, i.category, i.status, i.priority,
+      `"${i.tenantId?.name || ''}"`, i.unit,
+      new Date(i.createdAt).toLocaleDateString(),
+    ]));
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'issues.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const update = (field) => (e) => setFilters({ ...filters, [field]: e.target.value });
 
   return (
@@ -52,6 +66,9 @@ export default function AdminIssues() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-800">{t('issues.allIssues')}</h1>
           <p className="text-gray-500 text-sm mt-1">{issues.length} {t('issues.allIssues').toLowerCase()}</p>
+          <button onClick={exportCSV} className="mt-2 text-xs text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 px-3 py-1.5 rounded-lg border border-gray-200 transition-colors">
+            ⬇ Export CSV
+          </button>
         </div>
 
         {/* Filters */}

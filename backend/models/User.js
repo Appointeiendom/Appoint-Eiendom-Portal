@@ -16,6 +16,8 @@ const userSchema = new mongoose.Schema(
     bio: { type: String, trim: true },
     photo: { type: String },
     availability: [{ type: String }], // ISO date strings marked as available
+    leaseStart: { type: Date, default: null },
+    leaseEnd: { type: Date, default: null },
   },
   { timestamps: true }
 );

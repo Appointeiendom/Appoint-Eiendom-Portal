@@ -113,6 +113,23 @@ router.put('/:id/availability', protect, async (req, res) => {
   }
 });
 
+// GET /api/maintenance/:id/jobs — completed jobs for a maintenance worker
+router.get('/:id/jobs', protect, async (req, res) => {
+  try {
+    const Issue = require('../models/Issue');
+    const Message = require('../models/Message');
+    // Find issues this worker has been part of (via messages)
+    const threadIssueIds = await Message.distinct('issueId', { maintenanceId: req.params.id });
+    const issues = await Issue.find({ _id: { $in: threadIssueIds } })
+      .populate('tenantId', 'name unit')
+      .sort({ updatedAt: -1 })
+      .select('title category status unit createdAt updatedAt');
+    res.json(issues);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // DELETE /api/maintenance/:id (admin only)
 router.delete('/:id', protect, adminOnly, async (req, res) => {
   try {

@@ -18,8 +18,11 @@ import AdminIssues from './pages/AdminIssues';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminTenants from './pages/AdminTenants';
 import AdminMaintenance from './pages/AdminMaintenance';
+import AdminAnnouncements from './pages/AdminAnnouncements';
+import AdminDocuments from './pages/AdminDocuments';
 import MaintenanceDashboard from './pages/MaintenanceDashboard';
 import MaintenanceAvailability from './pages/MaintenanceAvailability';
+import TenantDocuments from './pages/TenantDocuments';
 import Profile from './pages/Profile';
 
 // Syncs language based on logged-in user's role, runs once per role change
@@ -55,6 +58,7 @@ export default function App() {
           <Route path="/tenant/issues" element={<ProtectedRoute role="tenant"><MyIssues /></ProtectedRoute>} />
           <Route path="/tenant/issues/new" element={<ProtectedRoute role="tenant"><ReportIssue /></ProtectedRoute>} />
           <Route path="/tenant/issues/:id" element={<ProtectedRoute role="tenant"><IssueDetails /></ProtectedRoute>} />
+          <Route path="/tenant/notices" element={<ProtectedRoute role="tenant"><TenantDocuments /></ProtectedRoute>} />
           <Route path="/tenant/profile" element={<ProtectedRoute role="tenant"><Profile /></ProtectedRoute>} />
 
           {/* Admin */}
@@ -64,6 +68,8 @@ export default function App() {
           <Route path="/admin/tenants" element={<ProtectedRoute role="admin"><AdminTenants /></ProtectedRoute>} />
           <Route path="/admin/maintenance" element={<ProtectedRoute role="admin"><AdminMaintenance /></ProtectedRoute>} />
           <Route path="/admin/analytics" element={<ProtectedRoute role="admin"><AdminAnalytics /></ProtectedRoute>} />
+          <Route path="/admin/announcements" element={<ProtectedRoute role="admin"><AdminAnnouncements /></ProtectedRoute>} />
+          <Route path="/admin/documents" element={<ProtectedRoute role="admin"><AdminDocuments /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute role="admin"><Profile /></ProtectedRoute>} />
 
           {/* Maintenance */}

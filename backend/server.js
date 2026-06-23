@@ -63,6 +63,8 @@ app.use('/api/messages', require('./routes/messages'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/maintenance', require('./routes/maintenance'));
+app.use('/api/announcements', require('./routes/announcements'));
+app.use('/api/documents', require('./routes/documents'));
 
 app.get('/api/health', (req, res) => res.json({ 
   status: 'ok',

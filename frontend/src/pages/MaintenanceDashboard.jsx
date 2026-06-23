@@ -12,6 +12,8 @@ export default function MaintenanceDashboard() {
   const [threads, setThreads] = useState([]);
   const [activeThread, setActiveThread] = useState(null);
   const [loadingThreads, setLoadingThreads] = useState(true);
+  const [jobs, setJobs] = useState([]);
+  const [tab, setTab] = useState('inbox');
 
   useEffect(() => {
     if (!user?._id) return;
@@ -20,6 +22,7 @@ export default function MaintenanceDashboard() {
       .then(r => setThreads(r.data))
       .catch(console.error)
       .finally(() => setLoadingThreads(false));
+    api.get(`/maintenance/${user._id}/jobs`).then(r => setJobs(r.data)).catch(console.error);
   }, [user]);
 
   return (
@@ -61,10 +64,50 @@ export default function MaintenanceDashboard() {
             </div>
           </div>
 
-          {/* Right column: inbox + chat */}
+          {/* Right column: inbox + job history */}
           <div className="md:col-span-2 space-y-4">
+            <div className="flex gap-2">
+              <button onClick={() => setTab('inbox')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'inbox' ? 'bg-emerald-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                💬 {t('chat.inbox') || 'Inbox'}
+                {threads.filter(th => th.unreadCount > 0).length > 0 && <span className="ml-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{threads.filter(th => th.unreadCount > 0).length}</span>}
+              </button>
+              <button onClick={() => setTab('history')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'history' ? 'bg-emerald-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                📋 Job History ({jobs.length})
+              </button>
+            </div>
+
+            {tab === 'history' ? (
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                {jobs.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400 text-sm">No job history yet.</div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {jobs.map(job => (
+                      <div key={job._id} className="px-5 py-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-medium text-gray-800 text-sm">{job.title}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{job.tenantId?.name} · {job.unit}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{new Date(job.updatedAt).toLocaleDateString()}</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{job.category}</span>
+                            <span className={`text-xs px-2 py-1 rounded-full ${job.status === 'resolved' ? 'bg-emerald-100 text-emerald-700' : job.status === 'in-progress' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
+                              {t(`status.${job.status}`)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
             {/* Thread list */}
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            {tab === 'inbox' && <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100">
                 <h2 className="font-semibold text-gray-700">
                   {t('chat.inbox') || 'Innboks'}
@@ -122,10 +165,10 @@ export default function MaintenanceDashboard() {
                   })}
                 </div>
               )}
-            </div>
+            </div>}
 
             {/* Active chat */}
-            {activeThread && (
+            {tab === 'inbox' && activeThread && (
               <MaintenanceChatBox
                 key={activeThread.issue._id}
                 issueId={activeThread.issue._id}

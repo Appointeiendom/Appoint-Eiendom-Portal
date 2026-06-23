@@ -52,11 +52,26 @@ export default function IssueDetails() {
   };
 
   useEffect(() => {
+    // Request browser notification permission for tenants
+    if (user?.role === 'tenant' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
     fetchIssue();
     fetchMaintThreads();
     const socket = getSocket();
     if (socket) {
-      socket.on('issue_updated', (updated) => { if (updated._id === id) setIssue(updated); });
+      socket.on('issue_updated', (updated) => {
+        if (updated._id === id) {
+          setIssue(prev => {
+            if (prev && prev.status !== updated.status && user?.role === 'tenant') {
+              if (Notification.permission === 'granted') {
+                new Notification('Issue Status Updated', { body: `"${updated.title}" is now ${updated.status.replace('-', ' ')}`, icon: '/favicon.ico' });
+              }
+            }
+            return updated;
+          });
+        }
+      });
       return () => socket.off('issue_updated');
     }
   }, [id]);

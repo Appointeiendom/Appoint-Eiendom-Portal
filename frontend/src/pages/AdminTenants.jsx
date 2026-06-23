@@ -134,12 +134,15 @@ function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, on
 }
 
 function EditModal({ tenant, onClose, onSaved, t }) {
+  const toDateInput = (d) => d ? new Date(d).toISOString().split('T')[0] : '';
   const [form, setForm] = useState({
     name: tenant.name || '',
     email: tenant.email || '',
     unit: tenant.unit || '',
     building: tenant.building || '',
     phone: tenant.phone || '',
+    leaseStart: toDateInput(tenant.leaseStart),
+    leaseEnd: toDateInput(tenant.leaseEnd),
   });
   const [saving, setSaving] = useState(false);
   const up = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
@@ -207,6 +210,16 @@ function EditModal({ tenant, onClose, onSaved, t }) {
               <input type="tel" value={form.phone} onChange={up('phone')}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Lease Start</label>
+              <input type="date" value={form.leaseStart} onChange={up('leaseStart')}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Lease End</label>
+              <input type="date" value={form.leaseEnd} onChange={up('leaseEnd')}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+            </div>
           </div>
 
           <div className="flex gap-3 pt-2">
@@ -228,6 +241,7 @@ function EditModal({ tenant, onClose, onSaved, t }) {
 export default function AdminTenants() {
   const { t } = useLanguage();
   const [tenants, setTenants] = useState([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', unit: '', building: '', phone: '', password: '' });
@@ -338,6 +352,12 @@ export default function AdminTenants() {
           </button>
         </div>
 
+        <div className="mb-4">
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name or email..."
+            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+        </div>
+
         {showForm && (
           <form onSubmit={handleCreate} className="bg-white rounded-xl border border-emerald-200 p-6 mb-6 space-y-4">
             <h2 className="font-semibold text-gray-700">{t('tenants.newTenant')}</h2>
@@ -395,7 +415,7 @@ export default function AdminTenants() {
             <p className="text-gray-400">{t('tenants.noTenants')}</p>
           </div>
         ) : (
-          <BuildingGroups tenants={tenants} uploadingId={uploadingId} t={t}
+          <BuildingGroups tenants={tenants.filter(tn => !search || tn.name.toLowerCase().includes(search.toLowerCase()) || tn.email.toLowerCase().includes(search.toLowerCase()))} uploadingId={uploadingId} t={t}
             onPhotoUpload={handlePhotoUpload} onPhotoDelete={handlePhotoDelete}
             onPhotoView={setLightbox}
             onReset={(tenant) => { setResetTarget(tenant); setNewPassword(''); }}

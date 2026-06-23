@@ -67,8 +67,9 @@ function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
 }
 
 function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, t }) {
+  const normalize = (str) => str.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
   const groups = tenants.reduce((acc, tenant) => {
-    const key = (tenant.unit && tenant.unit.trim()) ? tenant.unit.trim() : t('tenants.noBuilding');
+    const key = (tenant.unit && tenant.unit.trim()) ? normalize(tenant.unit) : t('tenants.noBuilding');
     if (!acc[key]) acc[key] = [];
     acc[key].push(tenant);
     return acc;

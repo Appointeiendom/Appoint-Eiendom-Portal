@@ -73,6 +73,42 @@ export default function Login() {
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">{t('auth.contactAdmin')}</p>
+
+        {/* Privacy Policy */}
+        <div className="mt-8 pt-6 border-t border-gray-100">
+          <details className="group">
+            <summary className="flex items-center justify-between cursor-pointer text-xs text-gray-400 hover:text-gray-600 transition-colors select-none">
+              <span className="font-medium">🔒 Personvernerklæring / Privacy Policy</span>
+              <span className="group-open:rotate-180 transition-transform text-gray-300">▼</span>
+            </summary>
+            <div className="mt-4 text-xs text-gray-500 space-y-3 leading-relaxed">
+              <div>
+                <p className="font-semibold text-gray-600 mb-1">Behandlingsansvarlig / Data Controller</p>
+                <p>Appoint Eiendom AS er behandlingsansvarlig for personopplysningene som behandles i denne portalen, i samsvar med personopplysningsloven og EUs personvernforordning (GDPR).</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-600 mb-1">Hvilke opplysninger samles inn / What We Collect</p>
+                <p>Vi samler inn navn, e-postadresse, telefonnummer og boligadresse for å administrere leieforholdet og håndtere vedlikeholdsforespørsler. Bilder lastet opp i forbindelse med saker lagres hos Cloudinary.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-600 mb-1">Formål og rettslig grunnlag / Purpose & Legal Basis</p>
+                <p>Opplysningene brukes til å administrere leiekontrakter, behandle vedlikeholdssaker og sende varsler. Rettslig grunnlag er oppfyllelse av avtale (GDPR art. 6(1)(b)) og berettiget interesse (art. 6(1)(f)).</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-600 mb-1">Lagring / Retention</p>
+                <p>Personopplysninger lagres så lenge leieforholdet er aktivt og i inntil 3 år etter avslutning, med mindre annet følger av regnskapsloven eller annen lovgivning.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-600 mb-1">Dine rettigheter / Your Rights</p>
+                <p>Du har rett til innsyn, retting, sletting og begrensning av behandling av dine personopplysninger, samt rett til å klage til Datatilsynet (www.datatilsynet.no). Ta kontakt med oss for å utøve dine rettigheter.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-600 mb-1">Kontakt / Contact</p>
+                <p>Appoint Eiendom AS — post@appointeiendom.no</p>
+              </div>
+            </div>
+          </details>
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,107 @@ import api from '../services/api';
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
 
+function TenantRow({ t, uploadingId, onPhotoUpload, onReset, onDelete }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0">
+      <label className="cursor-pointer group relative shrink-0 block w-10 h-10">
+        {t.photo
+          ? <img src={t.photo} alt={t.name} className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 group-hover:border-emerald-400 transition-colors" />
+          : <div className="w-10 h-10 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 group-hover:border-emerald-400 flex items-center justify-center transition-colors">
+              <span className="text-gray-400 text-xs font-bold">{t.name?.[0]?.toUpperCase()}</span>
+            </div>
+        }
+        {uploadingId === t._id && (
+          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+        <input type="file" accept="image/*" className="hidden"
+          onChange={(e) => onPhotoUpload(t._id, e.target.files[0])} />
+      </label>
+
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-800">{t.name}</p>
+        <p className="text-xs text-gray-500 truncate">{t.email}{t.phone ? ` · ${t.phone}` : ''}</p>
+        <p className="text-xs text-gray-400">{t.unit}</p>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        <button onClick={() => onReset(t)}
+          className="text-xs text-blue-500 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded transition-colors">
+          Reset passord
+        </button>
+        <button onClick={() => onDelete(t._id, t.name)}
+          className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors">
+          Fjern
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onReset, onDelete }) {
+  // Group by exact building string; fallback key for tenants with no building
+  const groups = tenants.reduce((acc, t) => {
+    const key = (t.building && t.building.trim()) ? t.building.trim() : '—';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(t);
+    return acc;
+  }, {});
+
+  const sorted = Object.keys(groups).sort((a, b) => a === '—' ? 1 : b === '—' ? -1 : a.localeCompare(b));
+  const [open, setOpen] = useState(() => Object.fromEntries(sorted.map(k => [k, true])));
+
+  const toggle = (key) => setOpen(prev => ({ ...prev, [key]: !prev[key] }));
+
+  return (
+    <div className="space-y-3">
+      {sorted.map(building => (
+        <div key={building} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <button
+            onClick={() => toggle(building)}
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-lg">🏢</span>
+              <div>
+                <p className="font-semibold text-gray-800 text-sm">{building === '—' ? 'Ingen bygning registrert' : building}</p>
+                <p className="text-xs text-gray-400">{groups[building].length} leietaker{groups[building].length !== 1 ? 'e' : ''}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-2">
+                {groups[building].slice(0, 3).map(t => (
+                  t.photo
+                    ? <img key={t._id} src={t.photo} alt={t.name} className="w-7 h-7 rounded-full object-cover border-2 border-white" />
+                    : <div key={t._id} className="w-7 h-7 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">{t.name?.[0]?.toUpperCase()}</span>
+                      </div>
+                ))}
+                {groups[building].length > 3 && (
+                  <div className="w-7 h-7 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center">
+                    <span className="text-gray-600 text-xs font-bold">+{groups[building].length - 3}</span>
+                  </div>
+                )}
+              </div>
+              <span className="text-gray-400 text-sm ml-1">{open[building] ? '▲' : '▼'}</span>
+            </div>
+          </button>
+
+          {open[building] && (
+            <div className="border-t border-gray-100">
+              {groups[building].map(t => (
+                <TenantRow key={t._id} t={t} uploadingId={uploadingId}
+                  onPhotoUpload={onPhotoUpload} onReset={onReset} onDelete={onDelete} />
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AdminTenants() {
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +255,7 @@ export default function AdminTenants() {
           </form>
         )}
 
-        {/* Tenants List */}
+        {/* Tenants grouped by building */}
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse h-16" />)}
@@ -164,59 +265,13 @@ export default function AdminTenants() {
             <p className="text-gray-400">No tenants yet. Add one above.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-4 py-3 text-gray-600 font-medium">Photo</th>
-                  <th className="text-left px-4 py-3 text-gray-600 font-medium">Name</th>
-                  <th className="text-left px-4 py-3 text-gray-600 font-medium">Email</th>
-                  <th className="text-left px-4 py-3 text-gray-600 font-medium hidden sm:table-cell">Unit</th>
-                  <th className="text-left px-4 py-3 text-gray-600 font-medium hidden md:table-cell">Phone</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {tenants.map((t) => (
-                  <tr key={t._id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <label className="cursor-pointer group relative block w-10 h-10">
-                        {t.photo
-                          ? <img src={t.photo} alt={t.name} className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 group-hover:border-emerald-400 transition-colors" />
-                          : <div className="w-10 h-10 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 group-hover:border-emerald-400 flex items-center justify-center transition-colors">
-                              <span className="text-gray-400 text-xs">+</span>
-                            </div>
-                        }
-                        {uploadingId === t._id && (
-                          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          </div>
-                        )}
-                        <input type="file" accept="image/*" className="hidden"
-                          onChange={(e) => handlePhotoUpload(t._id, e.target.files[0])} />
-                      </label>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-gray-800">{t.name}</td>
-                    <td className="px-4 py-3 text-gray-500">{t.email}</td>
-                    <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{t.unit}</td>
-                    <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{t.phone || '—'}</td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => { setResetTarget(t); setNewPassword(''); }}
-                          className="text-xs text-blue-500 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded transition-colors">
-                          Reset Password
-                        </button>
-                        <button onClick={() => handleDelete(t._id, t.name)}
-                          className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors">
-                          Remove
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <BuildingGroups
+            tenants={tenants}
+            uploadingId={uploadingId}
+            onPhotoUpload={handlePhotoUpload}
+            onReset={(t) => { setResetTarget(t); setNewPassword(''); }}
+            onDelete={handleDelete}
+          />
         )}
       </div>
 

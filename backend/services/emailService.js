@@ -36,9 +36,9 @@ const sendNewIssueEmail = async (issue, tenant) => {
               <td style="padding: 10px 0; color: #6B7280;">Unit</td>
               <td style="padding: 10px 0; color: #1F2937;">${issue.unit}</td>
             </tr>
-            ${issue.building ? `<tr style="border-bottom: 1px solid #E5E7EB;">
+            ${(issue.building || issue.tenantId?.building) ? `<tr style="border-bottom: 1px solid #E5E7EB;">
               <td style="padding: 10px 0; color: #6B7280;">Apartment</td>
-              <td style="padding: 10px 0; color: #1F2937;">${issue.building}</td>
+              <td style="padding: 10px 0; color: #1F2937;">${issue.building || issue.tenantId?.building}</td>
             </tr>` : ''}
             <tr style="border-bottom: 1px solid #E5E7EB;">
               <td style="padding: 10px 0; color: #6B7280;">Category</td>
@@ -59,7 +59,7 @@ const sendNewIssueEmail = async (issue, tenant) => {
             <a href="${issueUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View Issue in Dashboard</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Tenant Issue Reporting Portal — SuperStay</p>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Appoint Eiendom AS</p>
       </div>
     `;
 
@@ -116,7 +116,7 @@ const sendStatusChangeEmail = async (issue, tenant, updatedBy) => {
             <a href="${issueUrl}" style="background: #3B82F6; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View Issue</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Tenant Issue Reporting Portal — SuperStay</p>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Appoint Eiendom AS</p>
       </div>
     `;
 
@@ -176,7 +176,7 @@ const sendTenantConfirmationEmail = async (issue, tenant) => {
             <a href="${issueUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View My Issue</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Tenant Issue Reporting Portal — SuperStay</p>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Appoint Eiendom AS</p>
       </div>
     `;
 
@@ -231,7 +231,7 @@ const sendTenantStatusEmail = async (issue, tenant) => {
             <a href="${issueUrl}" style="background: ${statusColor(issue.status)}; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View Issue</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Tenant Issue Reporting Portal — SuperStay</p>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Appoint Eiendom AS</p>
       </div>
     `;
 
@@ -377,7 +377,7 @@ async function sendWelcomeEmail(tenant, rawPassword) {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
         <div style="background: #10B981; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to SuperStay Portal 🏠</h1>
+          <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to Appoint Eiendom 🏠</h1>
         </div>
         <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
           <p style="color: #4B5563; margin-top: 0;">Hi <strong>${tenant.name}</strong>,</p>
@@ -407,14 +407,14 @@ async function sendWelcomeEmail(tenant, rawPassword) {
             <a href="${loginUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Login to Portal</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Tenant Issue Reporting Portal — SuperStay</p>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Appoint Eiendom AS</p>
       </div>
     `;
 
     await sgMail.send({
       from: FROM,
       to: tenant.email,
-      subject: `Welcome to SuperStay Portal — Your Login Details`,
+      subject: `Welcome to Appoint Eiendom — Your Login Details`,
       html,
     });
 

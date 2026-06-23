@@ -3,6 +3,10 @@ const User = require('../models/User');
 const Issue = require('../models/Issue');
 const Message = require('../models/Message');
 const { sendChatNotificationEmail } = require('../services/emailService');
+const getAdminEmail = async () => {
+  const admin = await User.findOne({ role: 'admin' }).select('email');
+  return admin?.email || process.env.ADMIN_EMAIL;
+};
 
 // Map of issueId -> Set of socket IDs in that room
 const issueRooms = new Map();
@@ -92,7 +96,7 @@ const initSocket = (io) => {
             if (issue) {
               if (socket.user.role === 'tenant') {
                 await sendChatNotificationEmail({
-                  toEmail: process.env.ADMIN_EMAIL,
+                  toEmail: await getAdminEmail(),
                   toName: 'Admin',
                   fromName: socket.user.name,
                   fromRole: 'tenant',

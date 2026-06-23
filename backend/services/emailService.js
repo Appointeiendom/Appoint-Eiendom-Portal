@@ -1,6 +1,12 @@
 const sgMail = require('@sendgrid/mail');
+const User = require('../models/User');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const FROM = process.env.EMAIL_FROM || 'Sameer.karki63@gmail.com';
+
+const getAdminEmail = async () => {
+  const admin = await User.findOne({ role: 'admin' }).select('email');
+  return admin?.email || process.env.ADMIN_EMAIL;
+};
 
 const priorityColor = (priority) => {
   const colors = { high: '#EF4444', medium: '#F59E0B', low: '#10B981' };
@@ -66,7 +72,7 @@ const sendNewIssueEmail = async (issue, tenant) => {
 
     await sgMail.send({
       from: FROM,
-      to: process.env.ADMIN_EMAIL,
+      to: await getAdminEmail(),
       subject: `[${issue.priority.toUpperCase()}] New Issue: ${issue.title} — ${tenant.name} (${issue.unit})`,
       html,
     });
@@ -123,7 +129,7 @@ const sendStatusChangeEmail = async (issue, tenant, updatedBy) => {
 
     await sgMail.send({
       from: FROM,
-      to: process.env.ADMIN_EMAIL,
+      to: await getAdminEmail(),
       subject: `Issue Status Update: "${issue.title}" → ${issue.status.replace('-', ' ').toUpperCase()}`,
       html,
     });

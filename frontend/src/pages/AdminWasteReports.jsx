@@ -91,7 +91,7 @@ export default function AdminWasteReports() {
                           ? <span className="text-xs bg-amber-50 text-amber-600 px-2 py-1 rounded-full">Anonymous</span>
                           : r.reportedBy && <span className="text-xs text-gray-500">{r.reportedBy.name} · {r.reportedBy.unit}</span>
                         }
-                        {r.reportedBy?.building && <span className="text-xs text-gray-400">{r.reportedBy.building}</span>}
+                        {r.building && <span className="text-xs text-gray-400">🏢 {r.building}</span>}
                       </div>
                       <p className="text-sm text-gray-600 mt-1 line-clamp-1">{r.description}</p>
                     </div>

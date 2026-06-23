@@ -88,6 +88,7 @@ export default function Login() {
                 <p>Appoint Eiendom AS er behandlingsansvarlig for personopplysningene som behandles i denne portalen, i samsvar med personopplysningsloven (2018) og EUs personvernforordning (GDPR). Portalen benyttes til administrasjon av flere eiendommer og selskaper som er eid og drevet av samme eier. Alle disse eiendommene faller inn under samme behandlingsansvarlige og samme personvernerklæring.</p>
                 <p className="mt-1 text-gray-400">Appoint Eiendom AS is the data controller for all properties and tenants managed through this portal. Multiple properties and company names may be administered here, but all are owned and operated by the same individual and fall under this single data controller and privacy policy.</p>
                 <p className="mt-1">Kontakt / Contact: <span className="text-emerald-600">sameer@superstay.no</span></p>
+                <p className="mt-1">Fullstendige juridiske opplysninger (organisasjonsnummer, forretningsadresse) er tilgjengelig på forespørsel. / Full legal entity details (organisation number, business address) are available upon request.</p>
               </div>
 
               <div>

@@ -38,17 +38,21 @@ function PhotoCell({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
   );
 }
 
-function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, t }) {
+function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, t }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0">
       <PhotoCell tenant={tenant} uploadingId={uploadingId}
         onPhotoUpload={onPhotoUpload} onPhotoDelete={onPhotoDelete} onPhotoView={onPhotoView} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-800">{tenant.name}</p>
+      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onEdit(tenant)}>
+        <p className="text-sm font-medium text-gray-800 hover:text-emerald-600 transition-colors">{tenant.name}</p>
         <p className="text-xs text-gray-500 truncate">{tenant.email}{tenant.phone ? ` · ${tenant.phone}` : ''}</p>
         {tenant.building && <p className="text-xs text-gray-400">Apartment {tenant.building}</p>}
       </div>
       <div className="flex items-center gap-2 shrink-0">
+        <button onClick={() => onEdit(tenant)}
+          className="text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 px-2 py-1 rounded transition-colors">
+          {t('common.edit')}
+        </button>
         <button onClick={() => onReset(tenant)}
           className="text-xs text-blue-500 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded transition-colors">
           {t('tenants.resetPassword')}
@@ -62,7 +66,7 @@ function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
   );
 }
 
-function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, t }) {
+function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, t }) {
   const groups = tenants.reduce((acc, tenant) => {
     const key = (tenant.unit && tenant.unit.trim()) ? tenant.unit.trim() : t('tenants.noBuilding');
     if (!acc[key]) acc[key] = [];
@@ -82,7 +86,7 @@ function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, on
     <div className="space-y-3">
       {sorted.map(address => {
         const group = groups[address];
-        const isOpen = open[address];
+        const isOpen = !!open[address];
         return (
           <div key={address} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <button onClick={() => toggle(address)}
@@ -117,13 +121,105 @@ function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, on
                 {group.map(tenant => (
                   <TenantRow key={tenant._id} tenant={tenant} uploadingId={uploadingId} t={t}
                     onPhotoUpload={onPhotoUpload} onPhotoDelete={onPhotoDelete}
-                    onPhotoView={onPhotoView} onReset={onReset} onDelete={onDelete} />
+                    onPhotoView={onPhotoView} onReset={onReset} onDelete={onDelete} onEdit={onEdit} />
                 ))}
               </div>
             )}
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function EditModal({ tenant, onClose, onSaved, t }) {
+  const [form, setForm] = useState({
+    name: tenant.name || '',
+    email: tenant.email || '',
+    unit: tenant.unit || '',
+    building: tenant.building || '',
+    phone: tenant.phone || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const up = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.email || !form.unit) return toast.error('Name, email and address are required');
+    setSaving(true);
+    try {
+      const res = await api.put(`/users/${tenant._id}`, form);
+      toast.success('Profile updated');
+      onSaved(res.data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center gap-4 p-6 border-b border-gray-100">
+          <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+            {tenant.photo
+              ? <img src={tenant.photo} alt={tenant.name} className="w-14 h-14 rounded-full object-cover" />
+              : <span className="text-emerald-700 font-bold text-xl">{tenant.name?.[0]?.toUpperCase()}</span>
+            }
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-semibold text-gray-800 text-lg">{tenant.name}</h2>
+            <p className="text-sm text-gray-500">{tenant.email}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">✕</button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.name')} *</label>
+              <input type="text" required value={form.name} onChange={up('name')}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.email')} *</label>
+              <input type="email" required value={form.email} onChange={up('email')}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.unit')} *</label>
+              <input type="text" required value={form.unit} onChange={up('unit')}
+                placeholder={t('tenants.unitPlaceholder')}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.aptNumber')}</label>
+              <input type="text" value={form.building} onChange={up('building')}
+                placeholder={t('tenants.aptPlaceholder')}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.phone')}</label>
+              <input type="tel" value={form.phone} onChange={up('phone')}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+              {t('common.cancel')}
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60">
+              {saving ? t('common.saving') : t('common.save')}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
@@ -140,6 +236,7 @@ export default function AdminTenants() {
   const [resetTarget, setResetTarget] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetting, setResetting] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
 
   const fetchTenants = () => {
     api.get('/users').then(res => setTenants(res.data)).catch(console.error).finally(() => setLoading(false));
@@ -186,7 +283,7 @@ export default function AdminTenants() {
     try {
       await api.delete(`/users/${id}`);
       toast.success(t('tenants.deleteSuccess'));
-      setTenants(prev => prev.filter(t => t._id !== id));
+      setTenants(prev => prev.filter(tn => tn._id !== id));
     } catch {
       toast.error(t('tenants.deleteFailed'));
     }
@@ -199,7 +296,7 @@ export default function AdminTenants() {
       const fd = new FormData();
       fd.append('photo', file);
       const res = await api.put(`/users/${tenantId}/photo`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setTenants(prev => prev.map(t => t._id === tenantId ? { ...t, photo: res.data.photo } : t));
+      setTenants(prev => prev.map(tn => tn._id === tenantId ? { ...tn, photo: res.data.photo } : tn));
       toast.success(t('tenants.photoUpdated'));
     } catch {
       toast.error(t('tenants.photoFailed'));
@@ -212,11 +309,16 @@ export default function AdminTenants() {
     if (!window.confirm(t('tenants.photoDeleteConfirm'))) return;
     try {
       await api.delete(`/users/${tenantId}/photo`);
-      setTenants(prev => prev.map(t => t._id === tenantId ? { ...t, photo: null } : t));
+      setTenants(prev => prev.map(tn => tn._id === tenantId ? { ...tn, photo: null } : tn));
       toast.success(t('tenants.photoDeleted'));
     } catch {
       toast.error(t('tenants.photoDeleteFailed'));
     }
+  };
+
+  const handleSaved = (updated) => {
+    setTenants(prev => prev.map(tn => tn._id === updated._id ? { ...tn, ...updated } : tn));
+    setEditTarget(null);
   };
 
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
@@ -296,7 +398,8 @@ export default function AdminTenants() {
             onPhotoUpload={handlePhotoUpload} onPhotoDelete={handlePhotoDelete}
             onPhotoView={setLightbox}
             onReset={(tenant) => { setResetTarget(tenant); setNewPassword(''); }}
-            onDelete={handleDelete} />
+            onDelete={handleDelete}
+            onEdit={setEditTarget} />
         )}
       </div>
 
@@ -305,6 +408,12 @@ export default function AdminTenants() {
           <button onClick={() => setLightbox(null)} className="absolute top-4 right-4 text-white text-3xl hover:text-gray-300">✕</button>
           <img src={lightbox} alt="profil" className="max-w-sm max-h-full rounded-2xl shadow-2xl object-cover" onClick={e => e.stopPropagation()} />
         </div>
+      )}
+
+      {editTarget && (
+        <EditModal tenant={editTarget} t={t}
+          onClose={() => setEditTarget(null)}
+          onSaved={handleSaved} />
       )}
 
       {resetTarget && (

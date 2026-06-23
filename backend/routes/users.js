@@ -56,6 +56,28 @@ router.post('/', protect, adminOnly, async (req, res) => {
   }
 });
 
+// PUT /api/users/:id (admin only — update tenant details)
+router.put('/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const { name, email, unit, building, phone } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (email && email !== user.email) {
+      const exists = await User.findOne({ email });
+      if (exists) return res.status(400).json({ message: 'Email already in use' });
+      user.email = email;
+    }
+    if (name) user.name = name;
+    if (unit !== undefined) user.unit = unit;
+    if (building !== undefined) user.building = building;
+    if (phone !== undefined) user.phone = phone;
+    await user.save();
+    res.json({ _id: user._id, name: user.name, email: user.email, role: user.role, unit: user.unit, building: user.building, phone: user.phone, photo: user.photo });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // PUT /api/users/:id/reset-password (admin only)
 router.put('/:id/reset-password', protect, adminOnly, async (req, res) => {
   try {

@@ -17,6 +17,7 @@ export default function Login() {
     try {
       const user = await login(form.email, form.password);
       toast.success(t('auth.welcome')(user.name));
+      sessionStorage.removeItem('lang');
       navigate(
         user.role === 'admin' ? '/admin/dashboard'
         : user.role === 'maintenance' ? '/maintenance/dashboard'

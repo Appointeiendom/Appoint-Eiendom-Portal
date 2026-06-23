@@ -8,7 +8,10 @@ import {
 const STATUS_COLORS = { open: '#3B82F6', 'in-progress': '#F59E0B', resolved: '#10B981' };
 const CATEGORY_COLORS = ['#8B5CF6', '#06B6D4', '#F59E0B', '#10B981', '#EF4444'];
 
+import { useLanguage } from '../context/LanguageContext';
+
 export default function AdminAnalytics() {
+  const { t } = useLanguage();
   const [byStatus, setByStatus] = useState([]);
   const [byCategory, setByCategory] = useState([]);
   const [stats, setStats] = useState({});
@@ -38,14 +41,14 @@ export default function AdminAnalytics() {
     <Layout>
       <div>
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Analytics</h1>
-          <p className="text-gray-500 text-sm">{stats.thisMonth} issues this month · {stats.total} total</p>
+          <h1 className="text-2xl font-bold text-gray-800">{t('analytics.title')}</h1>
+          <p className="text-gray-500 text-sm">{t('analytics.thisMonth')(stats.thisMonth || 0)} · {t('analytics.total')(stats.total || 0)}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* By Status */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 lg:col-span-2">
-            <h2 className="font-semibold text-gray-700 mb-4">Issues by Status</h2>
+            <h2 className="font-semibold text-gray-700 mb-4">{t('analytics.byStatus')}</h2>
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
                 <Pie data={byStatus} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
@@ -61,7 +64,7 @@ export default function AdminAnalytics() {
 
           {/* By Category */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 lg:col-span-2">
-            <h2 className="font-semibold text-gray-700 mb-4">Issues by Category</h2>
+            <h2 className="font-semibold text-gray-700 mb-4">{t('analytics.byCategory')}</h2>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={byCategory}>
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />

@@ -1,7 +1,10 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { useAuth } from './context/AuthContext';
+import { useLanguage } from './context/LanguageContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import Login from './pages/Login';
@@ -19,11 +22,28 @@ import MaintenanceDashboard from './pages/MaintenanceDashboard';
 import MaintenanceAvailability from './pages/MaintenanceAvailability';
 import Profile from './pages/Profile';
 
+// Syncs language based on logged-in user's role, runs once per role change
+function LangSync() {
+  const { user } = useAuth();
+  const { lang, setLang } = useLanguage();
+
+  useEffect(() => {
+    if (user?.role === 'admin' && lang !== 'en') {
+      setLang('en');
+    } else if ((user?.role === 'tenant' || user?.role === 'maintenance') && lang !== 'no') {
+      // Only set to 'no' if no explicit user preference — do nothing, leave as-is
+    }
+  }, [user?.role]); // eslint-disable-line
+
+  return null;
+}
+
 export default function App() {
   return (
     <LanguageProvider>
     <AuthProvider>
       <BrowserRouter>
+        <LangSync />
         <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
         <Routes>
           {/* Public */}

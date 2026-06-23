@@ -5,10 +5,14 @@ import api from '../services/api';
 import Layout from '../components/Layout';
 import StatCard from '../components/StatCard';
 import IssueCard from '../components/IssueCard';
+import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
+  const { user } = useAuth();
   const [stats, setStats] = useState({ total: 0, open: 0, inProgress: 0, resolved: 0, thisMonth: 0 });
   const [recentIssues, setRecentIssues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,8 +36,8 @@ export default function AdminDashboard() {
     fetchData();
     const socket = getSocket();
     if (socket) {
-      socket.on('new_issue', (issue) => {
-        toast('New issue reported!', { icon: '🔔' });
+      socket.on('new_issue', () => {
+        toast(t('dashboard.newIssue') || 'New issue reported!', { icon: '🔔' });
         fetchData();
       });
       return () => socket.off('new_issue');
@@ -44,22 +48,22 @@ export default function AdminDashboard() {
     <Layout>
       <div>
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">{stats.thisMonth} issues reported this month</p>
+          <h1 className="text-2xl font-bold text-gray-800">{t('dashboard.welcome')(user?.name || 'Admin')}</h1>
+          <p className="text-gray-500 text-sm mt-1">{t('analytics.thisMonth')(stats.thisMonth)}</p>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard label="Total Issues" value={stats.total} color="gray" icon="📋" />
-          <StatCard label="Open" value={stats.open} color="blue" icon="🔓" />
-          <StatCard label="In Progress" value={stats.inProgress} color="yellow" icon="🔧" />
-          <StatCard label="Resolved" value={stats.resolved} color="emerald" icon="✅" />
+          <StatCard label={t('dashboard.totalIssues')} value={stats.total} color="gray" icon="📋" />
+          <StatCard label={t('dashboard.open')} value={stats.open} color="blue" icon="🔓" />
+          <StatCard label={t('dashboard.inProgress')} value={stats.inProgress} color="yellow" icon="🔧" />
+          <StatCard label={t('dashboard.resolved')} value={stats.resolved} color="emerald" icon="✅" />
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-700">Recent Issues</h2>
+            <h2 className="text-lg font-semibold text-gray-700">{t('dashboard.recentIssues')}</h2>
             <button onClick={() => navigate('/admin/issues')} className="text-sm text-emerald-600 hover:underline">
-              View all
+              {t('common.viewAll')}
             </button>
           </div>
 
@@ -69,7 +73,7 @@ export default function AdminDashboard() {
             </div>
           ) : recentIssues.length === 0 ? (
             <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
-              <p className="text-gray-400">No issues yet</p>
+              <p className="text-gray-400">{t('dashboard.noIssues')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

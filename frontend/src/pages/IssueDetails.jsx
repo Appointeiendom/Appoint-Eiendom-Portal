@@ -229,6 +229,23 @@ export default function IssueDetails() {
               )}
             </div>
 
+            {/* Tenant: update issue status */}
+            {isTenant && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 className="font-semibold text-gray-700 mb-4">{t('issues.updateStatus')}</h2>
+                <div className="flex gap-2 flex-wrap">
+                  {['open', 'in-progress', 'resolved'].map((s) => (
+                    <button key={s} onClick={() => updateStatus(s)} disabled={updating || issue.status === s}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        issue.status === s ? 'bg-emerald-500 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}>
+                      {t(`status.${s}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Tenant: rate the maintenance worker */}
             {isTenant && issue.status === 'resolved' && issue.assignedTo && (
               <div className="bg-white rounded-xl border border-gray-200 p-6">

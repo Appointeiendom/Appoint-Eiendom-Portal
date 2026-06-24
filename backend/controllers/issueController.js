@@ -99,6 +99,12 @@ const updateIssue = async (req, res) => {
     const issue = await Issue.findById(req.params.id);
     if (!issue) return res.status(404).json({ message: 'Issue not found' });
 
+    // Tenant can only update status on their own issue
+    if (req.user.role === 'tenant') {
+      if (issue.tenantId.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
     // Maintenance can only update status on their assigned issue
     if (req.user.role === 'maintenance') {
       if (issue.assignedTo?.toString() !== req.user._id.toString()) {

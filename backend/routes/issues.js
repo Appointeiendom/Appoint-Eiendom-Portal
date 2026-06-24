@@ -22,7 +22,7 @@ router.post('/', protect, (req, res, next) => {
   }
 }, createIssue);
 router.get('/:id', protect, getIssue);
-router.put('/:id', protect, adminOrMaintenance, updateIssue);
+router.put('/:id', protect, updateIssue);
 router.put('/:id/responsibility', protect, adminOnly, setResponsibility);
 router.put('/:id/rate', protect, rateIssue);
 router.delete('/:id', protect, adminOnly, deleteIssue);

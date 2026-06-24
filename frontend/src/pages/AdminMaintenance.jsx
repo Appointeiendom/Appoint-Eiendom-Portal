@@ -165,6 +165,12 @@ export default function AdminMaintenance() {
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-800 truncate">{w.name}</p>
                     <span className="inline-block text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{w.trade}</span>
+                    {w.avgRating !== null && w.avgRating !== undefined ? (
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-amber-400 text-sm">{'★'.repeat(Math.round(w.avgRating))}{'☆'.repeat(5 - Math.round(w.avgRating))}</span>
+                        <span className="text-xs text-gray-500">{w.avgRating} ({w.ratingCount} review{w.ratingCount !== 1 ? 's' : ''})</span>
+                      </div>
+                    ) : <p className="text-xs text-gray-400 mt-1">No ratings yet</p>}
                     {w.phone && <p className="text-xs text-gray-500 mt-1">{w.phone}</p>}
                   </div>
                 </div>

@@ -182,4 +182,31 @@ const setResponsibility = async (req, res) => {
   }
 };
 
-module.exports = { getIssues, createIssue, getIssue, updateIssue, deleteIssue, setResponsibility };
+// PUT /api/issues/:id/rate — tenant rates the maintenance worker after resolution
+const rateIssue = async (req, res) => {
+  try {
+    const { rating, ratingComment } = req.body;
+    if (!rating || rating < 1 || rating > 5) return res.status(400).json({ message: 'Rating must be 1–5' });
+
+    const issue = await Issue.findById(req.params.id);
+    if (!issue) return res.status(404).json({ message: 'Issue not found' });
+    if (issue.tenantId.toString() !== req.user._id.toString()) return res.status(403).json({ message: 'Access denied' });
+    if (issue.status !== 'resolved') return res.status(400).json({ message: 'Can only rate resolved issues' });
+    if (!issue.assignedTo) return res.status(400).json({ message: 'No maintenance worker assigned' });
+
+    issue.rating = rating;
+    issue.ratingComment = ratingComment || '';
+    await issue.save();
+
+    const updated = await Issue.findById(issue._id)
+      .populate('tenantId', 'name email unit building phone')
+      .populate('resolvedBy', 'name')
+      .populate('assignedTo', 'name trade photo');
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getIssues, createIssue, getIssue, updateIssue, deleteIssue, setResponsibility, rateIssue };

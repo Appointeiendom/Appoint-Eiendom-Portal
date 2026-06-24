@@ -9,6 +9,7 @@ const {
   updateIssue,
   deleteIssue,
   setResponsibility,
+  rateIssue,
 } = require('../controllers/issueController');
 
 router.get('/', protect, getIssues);
@@ -23,6 +24,7 @@ router.post('/', protect, (req, res, next) => {
 router.get('/:id', protect, getIssue);
 router.put('/:id', protect, adminOrMaintenance, updateIssue);
 router.put('/:id/responsibility', protect, adminOnly, setResponsibility);
+router.put('/:id/rate', protect, rateIssue);
 router.delete('/:id', protect, adminOnly, deleteIssue);
 
 module.exports = router;

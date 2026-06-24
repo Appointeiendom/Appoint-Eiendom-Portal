@@ -19,6 +19,8 @@ const issueSchema = new mongoose.Schema(
     resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     responsibility: { type: String, enum: ['landlord', 'tenant'], default: null },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    rating: { type: Number, min: 1, max: 5, default: null },
+    ratingComment: { type: String, default: '' },
   },
   { timestamps: true }
 );

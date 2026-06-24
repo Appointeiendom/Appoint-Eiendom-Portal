@@ -25,8 +25,13 @@ export default function IssueDetails() {
   const [openMaintId, setOpenMaintId] = useState(null);
   const [lightbox, setLightbox] = useState(null);
   const [workers, setWorkers] = useState([]);
+  const [ratingVal, setRatingVal] = useState(0);
+  const [ratingHover, setRatingHover] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
+  const [submittingRating, setSubmittingRating] = useState(false);
   const isAdmin = user?.role === 'admin';
   const isMaintenance = user?.role === 'maintenance';
+  const isTenant = user?.role === 'tenant';
 
   const fetchIssue = async () => {
     try {
@@ -114,6 +119,20 @@ export default function IssueDetails() {
       toast.error('Failed to assign');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const submitRating = async () => {
+    if (!ratingVal) return toast.error('Please select a star rating');
+    setSubmittingRating(true);
+    try {
+      const res = await api.put(`/issues/${id}/rate`, { rating: ratingVal, ratingComment });
+      setIssue(res.data);
+      toast.success('Rating submitted — thank you!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit rating');
+    } finally {
+      setSubmittingRating(false);
     }
   };
 
@@ -209,6 +228,49 @@ export default function IssueDetails() {
                 </div>
               )}
             </div>
+
+            {/* Tenant: rate the maintenance worker */}
+            {isTenant && issue.status === 'resolved' && issue.assignedTo && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 className="font-semibold text-gray-700 mb-1">Rate the Maintenance Worker</h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  How satisfied were you with <strong>{issue.assignedTo.name}</strong>'s work?
+                </p>
+                {issue.rating ? (
+                  <div>
+                    <div className="flex gap-1 mb-2">
+                      {[1,2,3,4,5].map(s => (
+                        <span key={s} className={`text-2xl ${s <= issue.rating ? 'text-amber-400' : 'text-gray-200'}`}>★</span>
+                      ))}
+                      <span className="text-sm text-gray-500 ml-2 self-center">{issue.rating}/5</span>
+                    </div>
+                    {issue.ratingComment && <p className="text-sm text-gray-600 italic">"{issue.ratingComment}"</p>}
+                    <p className="text-xs text-gray-400 mt-2">You already rated this issue.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex gap-1">
+                      {[1,2,3,4,5].map(s => (
+                        <button key={s}
+                          onMouseEnter={() => setRatingHover(s)}
+                          onMouseLeave={() => setRatingHover(0)}
+                          onClick={() => setRatingVal(s)}
+                          className={`text-3xl transition-colors ${s <= (ratingHover || ratingVal) ? 'text-amber-400' : 'text-gray-200'}`}>
+                          ★
+                        </button>
+                      ))}
+                    </div>
+                    <textarea rows={2} value={ratingComment} onChange={e => setRatingComment(e.target.value)}
+                      placeholder="Leave a comment (optional)..."
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none" />
+                    <button onClick={submitRating} disabled={submittingRating || !ratingVal}
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60">
+                      {submittingRating ? 'Submitting...' : 'Submit Rating'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Tenant: maintenance directory */}
             {!isAdmin && issue.responsibility === 'tenant' && (

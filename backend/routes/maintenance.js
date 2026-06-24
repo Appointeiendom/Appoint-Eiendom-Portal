@@ -5,11 +5,24 @@ const { upload } = require('../config/cloudinary');
 const User = require('../models/User');
 const { sendWelcomeEmail } = require('../services/emailService');
 
-// GET /api/maintenance — list all maintenance workers (admin)
+// GET /api/maintenance — list all maintenance workers (admin) with avg rating
 router.get('/', protect, adminOnly, async (req, res) => {
   try {
+    const Issue = require('../models/Issue');
     const workers = await User.find({ role: 'maintenance' }).select('-password').sort({ name: 1 });
-    res.json(workers);
+
+    const ratings = await Issue.aggregate([
+      { $match: { assignedTo: { $ne: null }, rating: { $ne: null } } },
+      { $group: { _id: '$assignedTo', avgRating: { $avg: '$rating' }, ratingCount: { $sum: 1 } } },
+    ]);
+    const ratingMap = Object.fromEntries(ratings.map(r => [r._id.toString(), r]));
+
+    const result = workers.map(w => {
+      const r = ratingMap[w._id.toString()];
+      return { ...w.toObject(), avgRating: r ? Math.round(r.avgRating * 10) / 10 : null, ratingCount: r?.ratingCount || 0 };
+    });
+
+    res.json(result);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

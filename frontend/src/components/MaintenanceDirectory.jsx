@@ -126,8 +126,6 @@ export default function MaintenanceDirectory({ issue, onAssign, assignedTo }) {
                   </div>
                 </div>
 
-                <AvailabilityCalendar availability={worker.availability} />
-
                 {openChat === worker._id && (
                   <div className="border-t border-gray-100 pt-3">
                     <MaintenanceChatBox issueId={issue._id} maintenanceId={worker._id} maintenanceName={worker.name} />

@@ -64,7 +64,7 @@ export default function IssueDetails() {
     }
     fetchIssue();
     fetchMaintThreads();
-    if (isAdmin) api.get('/maintenance').then(r => setWorkers(r.data)).catch(console.error);
+    if (isAdmin || isTenant) api.get('/maintenance').then(r => setWorkers(r.data)).catch(console.error);
     const socket = getSocket();
     if (socket) {
       socket.on('issue_updated', (updated) => {
@@ -229,6 +229,49 @@ export default function IssueDetails() {
               )}
             </div>
 
+            {/* Tenant: choose a company */}
+            {isTenant && workers.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 className="font-semibold text-gray-700 mb-1">{t('issues.chooseCompany')}</h2>
+                <p className="text-sm text-gray-500 mb-4">{t('issues.chooseCompanyHint')}</p>
+                {issue.assignedTo ? (
+                  <div className="flex items-center gap-3 mb-3">
+                    {issue.assignedTo.photo
+                      ? <img src={issue.assignedTo.photo} className="w-10 h-10 rounded-full object-cover border border-gray-200" alt={issue.assignedTo.name} />
+                      : <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-lg">🏢</div>
+                    }
+                    <div>
+                      <p className="font-medium text-gray-800 text-sm">{issue.assignedTo.name}</p>
+                      <p className="text-xs text-gray-500">{issue.assignedTo.trade}</p>
+                    </div>
+                    <button onClick={() => assignWorker('')} disabled={updating}
+                      className="ml-auto text-xs text-red-400 hover:text-red-600 transition-colors">
+                      {t('issues.removeCompany')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid gap-2">
+                    {workers.map(w => (
+                      <button key={w._id} onClick={() => assignWorker(w._id)} disabled={updating}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-emerald-400 hover:bg-emerald-50 text-left transition-colors">
+                        {w.photo
+                          ? <img src={w.photo} className="w-9 h-9 rounded-full object-cover border border-gray-200 shrink-0" alt={w.name} />
+                          : <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-base shrink-0">🏢</div>
+                        }
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-800 text-sm">{w.name}</p>
+                          <p className="text-xs text-gray-500">{w.trade}</p>
+                        </div>
+                        {w.avgRating && (
+                          <span className="text-xs text-amber-500 shrink-0">★ {w.avgRating}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Tenant: update issue status */}
             {isTenant && (
               <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -319,25 +362,14 @@ export default function IssueDetails() {
             {/* Admin controls */}
             {isAdmin && (
               <div className="bg-white rounded-xl border border-gray-200 p-6">
-                {/* Assign to maintenance worker */}
-                <h2 className="font-semibold text-gray-700 mb-3">Assign to Maintenance Worker</h2>
-                <div className="flex gap-2 mb-6 flex-wrap items-center">
-                  <select
-                    value={issue.assignedTo?._id || issue.assignedTo || ''}
-                    onChange={(e) => assignWorker(e.target.value)}
-                    disabled={updating}
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white min-w-48">
-                    <option value="">— Unassigned —</option>
-                    {workers.map(w => (
-                      <option key={w._id} value={w._id}>{w.name} ({w.trade})</option>
-                    ))}
-                  </select>
-                  {issue.assignedTo && (
-                    <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
-                      👷 {issue.assignedTo.name || 'Assigned'}
-                    </span>
-                  )}
-                </div>
+                {/* Assigned company (read-only for admin) */}
+                {issue.assignedTo && (
+                  <div className="flex items-center gap-2 mb-6 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <span className="text-emerald-600 text-sm">🏢</span>
+                    <span className="text-sm font-medium text-emerald-800">{issue.assignedTo.name}</span>
+                    <span className="text-xs text-emerald-600">({issue.assignedTo.trade})</span>
+                  </div>
+                )}
 
                 {/* Responsibility */}
                 <h2 className="font-semibold text-gray-700 mb-3">{t('responsibility.label')}</h2>

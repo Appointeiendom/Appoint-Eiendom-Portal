@@ -5,8 +5,8 @@ const { upload } = require('../config/cloudinary');
 const User = require('../models/User');
 const { sendWelcomeEmail } = require('../services/emailService');
 
-// GET /api/maintenance — list all maintenance workers (admin) with avg rating
-router.get('/', protect, adminOnly, async (req, res) => {
+// GET /api/maintenance — list all maintenance companies (admin + tenant)
+router.get('/', protect, async (req, res) => {
   try {
     const Issue = require('../models/Issue');
     const workers = await User.find({ role: 'maintenance' }).select('-password').sort({ name: 1 });

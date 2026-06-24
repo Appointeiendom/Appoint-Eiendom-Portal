@@ -118,7 +118,7 @@ const updateIssue = async (req, res) => {
     if (status) issue.status = status;
     if (internalNotes !== undefined) issue.internalNotes = internalNotes;
     if (category && req.user.role === 'admin') issue.category = category;
-    if (assignedTo !== undefined && req.user.role === 'admin') {
+    if (assignedTo !== undefined && (req.user.role === 'admin' || req.user.role === 'tenant')) {
       issue.assignedTo = assignedTo || null;
     }
 

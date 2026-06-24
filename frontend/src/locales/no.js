@@ -121,6 +121,9 @@ export default {
     allCategories: 'Alle kategorier',
     tenant: 'Leietaker',
     building: 'Bygning',
+    chooseCompany: 'Velg et firma',
+    chooseCompanyHint: 'Velg firmaet du vil skal håndtere denne saken. Du kan endre det før de begynner å jobbe.',
+    removeCompany: 'Fjern',
   },
 
   // Responsibility
@@ -337,7 +340,7 @@ export default {
   },
 
   rating: {
-    title: 'Vurder håndverkeren',
+    title: 'Vurder firmaet',
     subtitle: (name) => `Hvor fornøyd var du med arbeidet til ${name}?`,
     commentPlaceholder: 'Legg igjen en kommentar (valgfritt)...',
     submit: 'Send vurdering',

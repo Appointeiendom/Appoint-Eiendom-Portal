@@ -116,6 +116,9 @@ export default {
     allCategories: 'All Categories',
     tenant: 'Tenant',
     building: 'Building',
+    chooseCompany: 'Choose a Company',
+    chooseCompanyHint: 'Select the company you want to handle this issue. You can change it before they start working.',
+    removeCompany: 'Remove',
   },
 
   responsibility: {
@@ -325,7 +328,7 @@ export default {
   },
 
   rating: {
-    title: 'Rate the Maintenance Worker',
+    title: 'Rate the Company',
     subtitle: (name) => `How satisfied were you with ${name}'s work?`,
     commentPlaceholder: 'Leave a comment (optional)...',
     submit: 'Submit Rating',

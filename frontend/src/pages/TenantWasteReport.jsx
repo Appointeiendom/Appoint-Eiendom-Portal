@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Layout from '../components/Layout';
+import { useLanguage } from '../context/LanguageContext';
 import toast from 'react-hot-toast';
 
-const LOCATIONS = ['Bin Room', 'Stairwell', 'Parking Area', 'Entrance / Lobby', 'Outdoor Area', 'Balcony / Common Terrace', 'Other'];
+const LOCATION_KEYS = ['Bin Room', 'Stairwell', 'Parking Area', 'Entrance / Lobby', 'Outdoor Area', 'Balcony / Common Terrace', 'Other'];
 const statusStyles = { open: 'bg-blue-100 text-blue-700', investigating: 'bg-yellow-100 text-yellow-700', resolved: 'bg-emerald-100 text-emerald-700' };
 
 export default function TenantWasteReport() {
-  const navigate = useNavigate();
+  const { t } = useLanguage();
   const [reports, setReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -25,7 +25,7 @@ export default function TenantWasteReport() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.location || !form.description.trim()) return toast.error('Please fill in all required fields');
+    if (!form.location || !form.description.trim()) return toast.error(t('common.required'));
     setSubmitting(true);
     try {
       let res;
@@ -33,98 +33,98 @@ export default function TenantWasteReport() {
         const data = new FormData();
         data.append('location', form.location);
         data.append('description', form.description);
-        data.append('anonymous', form.anonymous);
         images.forEach(f => data.append('images', f));
         res = await api.post('/waste', data);
       } else {
         res = await api.post('/waste', form);
       }
       setReports(prev => [res.data, ...prev]);
-      setForm({ location: '', description: '', anonymous: false });
+      setForm({ location: '', description: '' });
       setImages([]);
       setShowForm(false);
-      toast.success('Report submitted successfully');
+      toast.success(t('waste.submit'));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to submit report');
+      toast.error(err.response?.data?.message || t('common.required'));
     } finally {
       setSubmitting(false);
     }
   };
+
+  const statusLabel = (s) => t(`waste.${s}`) || s;
 
   return (
     <Layout>
       <div className="max-w-2xl">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">♻️ Waste & Environment</h1>
-            <p className="text-gray-500 text-sm mt-1">Report improper waste disposal or littering in communal areas</p>
+            <h1 className="text-2xl font-bold text-gray-800">♻️ {t('waste.title')}</h1>
+            <p className="text-gray-500 text-sm mt-1">{t('waste.subtitle')}</p>
           </div>
           <button onClick={() => setShowForm(!showForm)}
             className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-            {showForm ? 'Cancel' : '+ Report Problem'}
+            {showForm ? t('waste.cancel') : t('waste.reportBtn')}
           </button>
         </div>
 
         {showForm && (
           <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-emerald-200 p-6 mb-6 space-y-4">
-            <h2 className="font-semibold text-gray-700">New Waste / Littering Report</h2>
+            <h2 className="font-semibold text-gray-700">{t('waste.formTitle')}</h2>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('waste.location')} *</label>
               <select required value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
-                <option value="">Select location...</option>
-                {LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+                <option value="">{t('waste.locationPlaceholder')}</option>
+                {LOCATION_KEYS.map(l => <option key={l} value={l}>{t('waste.locations')[l] || l}</option>)}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('waste.description')} *</label>
               <textarea required rows={4} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Describe what you saw, when it happened, and any other relevant details..."
+                placeholder={t('waste.descriptionPlaceholder')}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none" />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Photos (optional, max 3)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('waste.photos')}</label>
               <input type="file" accept="image/*" multiple onChange={e => setImages(Array.from(e.target.files).slice(0, 3))}
                 className="w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
-              {images.length > 0 && <p className="text-xs text-gray-400 mt-1">{images.length} photo(s) selected</p>}
+              {images.length > 0 && <p className="text-xs text-gray-400 mt-1">{t('waste.photosCount')(images.length)}</p>}
             </div>
 
-<button type="submit" disabled={submitting}
+            <button type="submit" disabled={submitting}
               className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60">
-              {submitting ? 'Submitting...' : 'Submit Report'}
+              {submitting ? t('waste.submitting') : t('waste.submit')}
             </button>
           </form>
         )}
 
-        {/* Past reports */}
-        <h2 className="text-sm font-semibold text-gray-600 mb-3">Your Past Reports</h2>
+        <h2 className="text-sm font-semibold text-gray-600 mb-3">{t('waste.pastReports')}</h2>
         {loadingReports ? (
           <div className="space-y-3">
             {[1, 2].map(i => <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse h-20" />)}
           </div>
         ) : reports.length === 0 ? (
           <div className="bg-white rounded-xl border border-dashed border-gray-300 p-10 text-center">
-            <p className="text-gray-400 text-sm">No reports submitted yet.</p>
+            <p className="text-gray-400 text-sm">{t('waste.noReports')}</p>
           </div>
         ) : (
           <div className="space-y-3">
             {reports.map(r => (
               <div key={r._id} className="bg-white rounded-xl border border-gray-200 p-4">
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <div>
-                    <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded-full">{r.location}</span>
-                  </div>
+                  <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded-full">
+                    {t('waste.locations')[r.location] || r.location}
+                  </span>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${statusStyles[r.status]}`}>
-                    {r.status}
+                    {statusLabel(r.status)}
                   </span>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">{r.description}</p>
                 {r.adminNote && (
                   <div className="mt-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs text-blue-700">
-                    <span className="font-medium">Admin note:</span> {r.adminNote}
+                    <span className="font-medium">{t('waste.adminNote')}</span> {r.adminNote}
                   </div>
                 )}
                 {r.images?.length > 0 && (

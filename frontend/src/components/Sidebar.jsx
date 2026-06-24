@@ -13,11 +13,11 @@ export default function Sidebar({ open, onClose }) {
     { to: '/admin/issues', label: t('nav.allIssues'), icon: '📋' },
     { to: '/admin/tenants', label: t('nav.tenants'), icon: '👥' },
     { to: '/admin/maintenance', label: t('nav.maintenance'), icon: '🔧' },
-    { to: '/admin/announcements', label: 'Announcements', icon: '📢' },
-    { to: '/admin/documents', label: 'Documents', icon: '📁' },
-    { to: '/admin/waste', label: 'Waste Reports', icon: '♻️' },
+    { to: '/admin/announcements', label: t('nav.announcements'), icon: '📢' },
+    { to: '/admin/documents', label: t('nav.documents'), icon: '📁' },
+    { to: '/admin/waste', label: t('nav.wasteReports'), icon: '♻️' },
     { to: '/admin/analytics', label: t('nav.analytics'), icon: '📊' },
-    { to: '/admin/settings', label: 'Settings', icon: '⚙️' },
+    { to: '/admin/settings', label: t('nav.settings'), icon: '⚙️' },
     { to: '/admin/profile', label: t('nav.profile'), icon: '👤' },
   ];
 
@@ -25,8 +25,8 @@ export default function Sidebar({ open, onClose }) {
     { to: '/tenant/dashboard', label: t('nav.dashboard'), icon: '🏠' },
     { to: '/tenant/issues', label: t('nav.myIssues'), icon: '📋' },
     { to: '/tenant/issues/new', label: t('nav.reportIssue'), icon: '➕' },
-    { to: '/tenant/notices', label: 'Notices & Docs', icon: '📢', badge: unreadCount },
-    { to: '/tenant/waste', label: 'Waste & Environment', icon: '♻️' },
+    { to: '/tenant/notices', label: t('nav.noticesDocs'), icon: '📢', badge: unreadCount },
+    { to: '/tenant/waste', label: t('nav.wasteEnv'), icon: '♻️' },
     { to: '/tenant/profile', label: t('nav.profile'), icon: '👤' },
   ];
 

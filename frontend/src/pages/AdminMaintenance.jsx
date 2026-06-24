@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import Layout from '../components/Layout';
+import { useLanguage } from '../context/LanguageContext';
 import toast from 'react-hot-toast';
 
 const TRADES = ['Electrical', 'Plumbing', 'HVAC', 'General', 'Appliances'];
 
 export default function AdminMaintenance() {
+  const { t } = useLanguage();
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -168,9 +170,9 @@ export default function AdminMaintenance() {
                     {w.avgRating !== null && w.avgRating !== undefined ? (
                       <div className="flex items-center gap-1 mt-1">
                         <span className="text-amber-400 text-sm">{'★'.repeat(Math.round(w.avgRating))}{'☆'.repeat(5 - Math.round(w.avgRating))}</span>
-                        <span className="text-xs text-gray-500">{w.avgRating} ({w.ratingCount} review{w.ratingCount !== 1 ? 's' : ''})</span>
+                        <span className="text-xs text-gray-500">{w.avgRating} ({t('rating.reviews')(w.ratingCount)})</span>
                       </div>
-                    ) : <p className="text-xs text-gray-400 mt-1">No ratings yet</p>}
+                    ) : <p className="text-xs text-gray-400 mt-1">{t('rating.noRatings')}</p>}
                     {w.phone && <p className="text-xs text-gray-500 mt-1">{w.phone}</p>}
                   </div>
                 </div>

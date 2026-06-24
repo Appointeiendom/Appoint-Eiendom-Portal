@@ -123,14 +123,14 @@ export default function IssueDetails() {
   };
 
   const submitRating = async () => {
-    if (!ratingVal) return toast.error('Please select a star rating');
+    if (!ratingVal) return toast.error(t('rating.selectStar'));
     setSubmittingRating(true);
     try {
       const res = await api.put(`/issues/${id}/rate`, { rating: ratingVal, ratingComment });
       setIssue(res.data);
-      toast.success('Rating submitted — thank you!');
+      toast.success(t('rating.success'));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to submit rating');
+      toast.error(err.response?.data?.message || t('rating.failed'));
     } finally {
       setSubmittingRating(false);
     }
@@ -232,10 +232,8 @@ export default function IssueDetails() {
             {/* Tenant: rate the maintenance worker */}
             {isTenant && issue.status === 'resolved' && issue.assignedTo && (
               <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 className="font-semibold text-gray-700 mb-1">Rate the Maintenance Worker</h2>
-                <p className="text-sm text-gray-500 mb-4">
-                  How satisfied were you with <strong>{issue.assignedTo.name}</strong>'s work?
-                </p>
+                <h2 className="font-semibold text-gray-700 mb-1">{t('rating.title')}</h2>
+                <p className="text-sm text-gray-500 mb-4">{t('rating.subtitle')(issue.assignedTo.name)}</p>
                 {issue.rating ? (
                   <div>
                     <div className="flex gap-1 mb-2">
@@ -245,7 +243,7 @@ export default function IssueDetails() {
                       <span className="text-sm text-gray-500 ml-2 self-center">{issue.rating}/5</span>
                     </div>
                     {issue.ratingComment && <p className="text-sm text-gray-600 italic">"{issue.ratingComment}"</p>}
-                    <p className="text-xs text-gray-400 mt-2">You already rated this issue.</p>
+                    <p className="text-xs text-gray-400 mt-2">{t('rating.alreadyRated')}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -261,11 +259,11 @@ export default function IssueDetails() {
                       ))}
                     </div>
                     <textarea rows={2} value={ratingComment} onChange={e => setRatingComment(e.target.value)}
-                      placeholder="Leave a comment (optional)..."
+                      placeholder={t('rating.commentPlaceholder')}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none" />
                     <button onClick={submitRating} disabled={submittingRating || !ratingVal}
                       className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60">
-                      {submittingRating ? 'Submitting...' : 'Submit Rating'}
+                      {submittingRating ? t('rating.submitting') : t('rating.submit')}
                     </button>
                   </div>
                 )}

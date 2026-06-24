@@ -105,26 +105,6 @@ router.put('/:id', protect, adminOnly, upload.single('photo'), async (req, res) 
   }
 });
 
-// PUT /api/maintenance/:id/availability — maintenance worker updates their own calendar
-router.put('/:id/availability', protect, async (req, res) => {
-  try {
-    if (req.user.role !== 'maintenance' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    if (req.user.role === 'maintenance' && req.user._id.toString() !== req.params.id) {
-      return res.status(403).json({ message: 'Can only update your own availability' });
-    }
-
-    const worker = await User.findOne({ _id: req.params.id, role: 'maintenance' });
-    if (!worker) return res.status(404).json({ message: 'Worker not found' });
-
-    worker.availability = req.body.availability || [];
-    await worker.save();
-    res.json({ availability: worker.availability });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
 
 // GET /api/maintenance/:id/jobs — completed jobs for a maintenance worker
 router.get('/:id/jobs', protect, async (req, res) => {

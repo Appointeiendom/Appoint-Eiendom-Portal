@@ -56,14 +56,6 @@ export default function MaintenanceDashboard() {
               </div>
             </div>
 
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
-              <h2 className="font-semibold text-gray-700 mb-1">{t('nav.availability')}</h2>
-              <p className="text-xs text-gray-500 mb-3">{t('maintenance.manageHint')}</p>
-              <a href="/maintenance/availability"
-                className="inline-block bg-emerald-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors">
-                {t('maintenance.manageAvailability')}
-              </a>
-            </div>
           </div>
 
           {/* Right column: inbox + job history */}

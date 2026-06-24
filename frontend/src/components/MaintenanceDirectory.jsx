@@ -3,44 +3,6 @@ import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 import MaintenanceChatBox from './MaintenanceChatBox';
 
-function AvailabilityCalendar({ availability }) {
-  const { t } = useLanguage();
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDay = new Date(year, month, 1).getDay();
-  const available = new Set(availability || []);
-  const months = t('months');
-  const days = t('days');
-
-  return (
-    <div>
-      <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
-        {months[month]} {year} — {t('maintenance.availability')}
-      </p>
-      <div className="grid grid-cols-7 gap-0.5 text-center">
-        {days.map(d => <div key={d} className="text-[10px] text-gray-400 pb-1">{d}</div>)}
-        {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
-        {Array.from({ length: daysInMonth }).map((_, i) => {
-          const day = i + 1;
-          const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-          const isAvailable = available.has(dateStr);
-          const isPast = new Date(dateStr) < today;
-          return (
-            <div key={day} className={`text-[11px] rounded py-0.5 ${isPast ? 'text-gray-300' : isAvailable ? 'bg-emerald-100 text-emerald-700 font-semibold' : 'text-gray-500'}`}>
-              {day}
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex items-center gap-3 mt-2">
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-emerald-100" /><span className="text-[10px] text-gray-500">{t('maintenance.available')}</span></div>
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-gray-100" /><span className="text-[10px] text-gray-500">{t('maintenance.notMarked')}</span></div>
-      </div>
-    </div>
-  );
-}
 
 export default function MaintenanceDirectory({ issue, onAssign, assignedTo }) {
   const { t } = useLanguage();

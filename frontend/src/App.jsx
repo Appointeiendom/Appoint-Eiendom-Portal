@@ -22,6 +22,8 @@ import AdminMaintenance from './pages/AdminMaintenance';
 import AdminAnnouncements from './pages/AdminAnnouncements';
 import AdminDocuments from './pages/AdminDocuments';
 import MaintenanceDashboard from './pages/MaintenanceDashboard';
+import MaintenanceInbox from './pages/MaintenanceInbox';
+import MaintenanceJobHistory from './pages/MaintenanceJobHistory';
 import TenantDocuments from './pages/TenantDocuments';
 import Profile from './pages/Profile';
 import TenantWasteReport from './pages/TenantWasteReport';
@@ -81,6 +83,8 @@ export default function App() {
 
           {/* Maintenance */}
           <Route path="/maintenance/dashboard" element={<ProtectedRoute role="maintenance"><MaintenanceDashboard /></ProtectedRoute>} />
+          <Route path="/maintenance/inbox" element={<ProtectedRoute role="maintenance"><MaintenanceInbox /></ProtectedRoute>} />
+          <Route path="/maintenance/jobs" element={<ProtectedRoute role="maintenance"><MaintenanceJobHistory /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

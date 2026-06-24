@@ -4,7 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { getSocket } from '../services/socketService';
 import api from '../services/api';
 
-export default function MaintenanceChatBox({ issueId, maintenanceId, maintenanceName }) {
+export default function MaintenanceChatBox({ issueId, maintenanceId, maintenanceName, heightClass = 'h-96' }) {
   const { user } = useAuth();
   const { t } = useLanguage();
   const [messages, setMessages] = useState([]);
@@ -77,7 +77,7 @@ export default function MaintenanceChatBox({ issueId, maintenanceId, maintenance
   if (loading) return <div className="text-center py-8 text-gray-400 text-sm">{t('common.loading')}</div>;
 
   return (
-    <div className="flex flex-col h-96 border border-gray-200 rounded-xl overflow-hidden bg-white">
+    <div className={`flex flex-col ${heightClass} border border-gray-200 rounded-xl overflow-hidden bg-white`}>
       <div className="bg-amber-50 px-4 py-3 border-b border-amber-100 flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-gray-700 text-sm">{t('chat.chatWith')(maintenanceName)}</h3>

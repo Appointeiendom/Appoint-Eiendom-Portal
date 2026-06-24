@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getSocket } from '../services/socketService';
@@ -6,8 +7,10 @@ import api from '../services/api';
 
 export default function MaintenanceChatBox({ issueId, maintenanceId, maintenanceName, heightClass = 'h-96' }) {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [messages, setMessages] = useState([]);
+  const [displayMessages, setDisplayMessages] = useState([]);
+  const [translating, setTranslating] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [showQuoteForm, setShowQuoteForm] = useState(false);
@@ -45,7 +48,26 @@ export default function MaintenanceChatBox({ issueId, maintenanceId, maintenance
     };
   }, [issueId, maintenanceId]);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  // Translate messages when language changes
+  useEffect(() => {
+    if (messages.length === 0) { setDisplayMessages([]); return; }
+    const textMessages = messages.filter(m => m.messageType !== 'quote');
+    if (textMessages.length === 0) { setDisplayMessages(messages); return; }
+    setTranslating(true);
+    api.post('/translate', {
+      texts: messages.map(m => m.messageType === 'quote' ? null : m.message),
+      target: lang,
+    }).then(res => {
+      setDisplayMessages(messages.map((m, i) => ({
+        ...m,
+        _translated: m.messageType === 'quote' ? m.message : (res.data.translations[i] || m.message),
+      })));
+    }).catch(() => {
+      setDisplayMessages(messages.map(m => ({ ...m, _translated: m.message })));
+    }).finally(() => setTranslating(false));
+  }, [messages, lang]);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [displayMessages]);
 
   const sendMessage = (e) => {
     e.preventDefault();
@@ -112,8 +134,9 @@ export default function MaintenanceChatBox({ issueId, maintenanceId, maintenance
       )}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.length === 0 && <p className="text-center text-gray-400 text-sm py-8">{t('chat.noMessages')}</p>}
-        {messages.map((msg) => {
+        {translating && <p className="text-center text-gray-400 text-xs py-1 animate-pulse">Translating…</p>}
+        {displayMessages.length === 0 && !translating && <p className="text-center text-gray-400 text-sm py-8">{t('chat.noMessages')}</p>}
+        {displayMessages.map((msg) => {
           const senderId = msg.senderId?._id || msg.senderId;
           const isOwn = String(senderId) === String(user._id);
           const isQuote = msg.messageType === 'quote';
@@ -131,7 +154,7 @@ export default function MaintenanceChatBox({ issueId, maintenanceId, maintenance
                   </div>
                 ) : (
                   <div className={`px-4 py-2 rounded-2xl text-sm ${isOwn ? 'bg-emerald-500 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-800 rounded-tl-sm'}`}>
-                    {msg.message}
+                    {msg._translated || msg.message}
                   </div>
                 )}
                 <span className="text-xs text-gray-400 mt-1 px-1">

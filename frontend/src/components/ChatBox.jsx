@@ -6,8 +6,10 @@ import api from '../services/api';
 
 export default function ChatBox({ issueId }) {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [messages, setMessages] = useState([]);
+  const [displayMessages, setDisplayMessages] = useState([]);
+  const [translating, setTranslating] = useState(false);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,20 @@ export default function ChatBox({ issueId }) {
     };
   }, [issueId]);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => {
+    if (messages.length === 0) { setDisplayMessages([]); return; }
+    setTranslating(true);
+    api.post('/translate', {
+      texts: messages.map(m => m.message),
+      target: lang,
+    }).then(res => {
+      setDisplayMessages(messages.map((m, i) => ({ ...m, _translated: res.data.translations[i] || m.message })));
+    }).catch(() => {
+      setDisplayMessages(messages.map(m => ({ ...m, _translated: m.message })));
+    }).finally(() => setTranslating(false));
+  }, [messages, lang]);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [displayMessages]);
 
   const handleInputChange = (e) => {
     setInput(e.target.value);
@@ -89,10 +104,11 @@ export default function ChatBox({ issueId }) {
         <h3 className="font-semibold text-gray-700 text-sm">{t('chat.title')}</h3>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.length === 0 && (
+        {translating && <p className="text-center text-gray-400 text-xs py-1 animate-pulse">Translating…</p>}
+        {displayMessages.length === 0 && !translating && (
           <p className="text-center text-gray-400 text-sm py-8">{t('chat.noMessages')}</p>
         )}
-        {messages.map((msg) => {
+        {displayMessages.map((msg) => {
           const senderId = msg.senderId?._id || msg.senderId;
           const isOwn = String(senderId) === String(user._id);
           return (
@@ -100,7 +116,7 @@ export default function ChatBox({ issueId }) {
               <div className={`max-w-xs lg:max-w-md ${isOwn ? 'items-end' : 'items-start'} flex flex-col`}>
                 {!isOwn && <span className="text-xs text-gray-500 mb-1 px-1">{msg.senderName}</span>}
                 <div className={`px-4 py-2 rounded-2xl text-sm ${isOwn ? 'bg-emerald-500 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-800 rounded-tl-sm'}`}>
-                  {msg.message}
+                  {msg._translated || msg.message}
                 </div>
                 <span className="text-xs text-gray-400 mt-1 px-1">
                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

@@ -116,8 +116,8 @@ export default {
     allCategories: 'All Categories',
     tenant: 'Tenant',
     building: 'Building',
-    chooseCompany: 'Choose a Company',
-    chooseCompanyHint: 'Select the company you want to handle this issue. You can change it before they start working.',
+    chooseCompany: 'Selected',
+    selectCompany: 'Select this company',
     removeCompany: 'Remove',
   },
 

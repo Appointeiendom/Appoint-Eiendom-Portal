@@ -121,8 +121,8 @@ export default {
     allCategories: 'Alle kategorier',
     tenant: 'Leietaker',
     building: 'Bygning',
-    chooseCompany: 'Velg et firma',
-    chooseCompanyHint: 'Velg firmaet du vil skal håndtere denne saken. Du kan endre det før de begynner å jobbe.',
+    chooseCompany: 'Valgt',
+    selectCompany: 'Velg dette firmaet',
     removeCompany: 'Fjern',
   },
 

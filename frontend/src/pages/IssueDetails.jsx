@@ -229,49 +229,6 @@ export default function IssueDetails() {
               )}
             </div>
 
-            {/* Tenant: choose a company */}
-            {isTenant && workers.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 className="font-semibold text-gray-700 mb-1">{t('issues.chooseCompany')}</h2>
-                <p className="text-sm text-gray-500 mb-4">{t('issues.chooseCompanyHint')}</p>
-                {issue.assignedTo ? (
-                  <div className="flex items-center gap-3 mb-3">
-                    {issue.assignedTo.photo
-                      ? <img src={issue.assignedTo.photo} className="w-10 h-10 rounded-full object-cover border border-gray-200" alt={issue.assignedTo.name} />
-                      : <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-lg">🏢</div>
-                    }
-                    <div>
-                      <p className="font-medium text-gray-800 text-sm">{issue.assignedTo.name}</p>
-                      <p className="text-xs text-gray-500">{issue.assignedTo.trade}</p>
-                    </div>
-                    <button onClick={() => assignWorker('')} disabled={updating}
-                      className="ml-auto text-xs text-red-400 hover:text-red-600 transition-colors">
-                      {t('issues.removeCompany')}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid gap-2">
-                    {workers.map(w => (
-                      <button key={w._id} onClick={() => assignWorker(w._id)} disabled={updating}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-emerald-400 hover:bg-emerald-50 text-left transition-colors">
-                        {w.photo
-                          ? <img src={w.photo} className="w-9 h-9 rounded-full object-cover border border-gray-200 shrink-0" alt={w.name} />
-                          : <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-base shrink-0">🏢</div>
-                        }
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-800 text-sm">{w.name}</p>
-                          <p className="text-xs text-gray-500">{w.trade}</p>
-                        </div>
-                        {w.avgRating && (
-                          <span className="text-xs text-amber-500 shrink-0">★ {w.avgRating}</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Tenant: update issue status */}
             {isTenant && (
               <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -338,7 +295,7 @@ export default function IssueDetails() {
                   <h2 className="font-semibold text-gray-800">{t('responsibility.tenantBanner')}</h2>
                 </div>
                 <p className="text-sm text-gray-500 mb-5">{t('responsibility.tenantBannerBody')}</p>
-                <MaintenanceDirectory issue={issue} />
+                <MaintenanceDirectory issue={issue} onAssign={assignWorker} assignedTo={issue.assignedTo?._id || issue.assignedTo} />
               </div>
             )}
 

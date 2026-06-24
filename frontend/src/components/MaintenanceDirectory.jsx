@@ -42,7 +42,7 @@ function AvailabilityCalendar({ availability }) {
   );
 }
 
-export default function MaintenanceDirectory({ issue }) {
+export default function MaintenanceDirectory({ issue, onAssign, assignedTo }) {
   const { t } = useLanguage();
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -108,12 +108,22 @@ export default function MaintenanceDirectory({ issue }) {
                       </p>
                     )}
                   </div>
-                  <button
-                    onClick={() => setOpenChat(openChat === worker._id ? null : worker._id)}
-                    className="shrink-0 text-sm bg-emerald-500 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-600 transition-colors"
-                  >
-                    {openChat === worker._id ? t('chat.closeChat') : t('chat.contact')}
-                  </button>
+                  <div className="flex flex-col gap-2 shrink-0">
+                    {onAssign && (
+                      assignedTo === worker._id
+                        ? <span className="text-xs bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-lg font-medium text-center">✓ {t('issues.chooseCompany')}</span>
+                        : <button onClick={() => onAssign(worker._id)}
+                            className="text-sm bg-emerald-500 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-600 transition-colors">
+                            {t('issues.selectCompany')}
+                          </button>
+                    )}
+                    <button
+                      onClick={() => setOpenChat(openChat === worker._id ? null : worker._id)}
+                      className="shrink-0 text-sm border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      {openChat === worker._id ? t('chat.closeChat') : t('chat.contact')}
+                    </button>
+                  </div>
                 </div>
 
                 <AvailabilityCalendar availability={worker.availability} />

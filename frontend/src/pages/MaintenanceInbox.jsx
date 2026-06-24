@@ -28,7 +28,7 @@ export default function MaintenanceInbox() {
         {/* Thread list */}
         <div className="w-72 shrink-0 border-r border-gray-200 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <p className="font-semibold text-gray-800">💬 Inbox</p>
+            <p className="font-semibold text-gray-800">💬 {t('maintenance.inbox')}</p>
             {totalUnread > 0 && <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{totalUnread}</span>}
           </div>
 
@@ -83,7 +83,7 @@ export default function MaintenanceInbox() {
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
-              Select a conversation to start chatting
+              {t('maintenance.selectConversation')}
             </div>
           )}
         </div>

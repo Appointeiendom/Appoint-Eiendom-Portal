@@ -21,7 +21,7 @@ export default function MaintenanceJobHistory() {
   return (
     <Layout>
       <div className="max-w-2xl">
-        <h1 className="text-xl font-bold text-gray-800 mb-5">📋 Job History</h1>
+        <h1 className="text-xl font-bold text-gray-800 mb-5">📋 {t('maintenance.jobHistory')}</h1>
 
         {loading ? (
           <div className="space-y-3">
@@ -29,7 +29,7 @@ export default function MaintenanceJobHistory() {
           </div>
         ) : jobs.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-xl p-10 text-center text-gray-400 text-sm">
-            No job history yet.
+            {t('maintenance.noJobs')}
           </div>
         ) : (
           <div className="space-y-3">

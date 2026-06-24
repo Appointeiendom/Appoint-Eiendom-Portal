@@ -48,6 +48,8 @@ export default {
     maintenance: 'Maintenance',
     analytics: 'Analytics',
     profile: 'Profile',
+    inbox: 'Inbox',
+    jobHistory: 'Job History',
     availability: 'My Availability',
     openMenu: 'Open menu',
     closeMenu: 'Close menu',
@@ -191,6 +193,12 @@ export default {
     yourProfile: 'Your Profile',
     manageAvailability: 'Manage Availability →',
     manageHint: 'Keep your availability up to date so tenants know when you\'re free.',
+    inbox: 'Inbox',
+    jobHistory: 'Job History',
+    assignedIssues: 'Assigned Issues',
+    noAssigned: 'No issues assigned to you yet.',
+    noJobs: 'No job history yet.',
+    selectConversation: 'Select a conversation to start chatting',
   },
 
   tenants: {

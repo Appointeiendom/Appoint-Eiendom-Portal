@@ -37,10 +37,10 @@ export default function MaintenanceDashboard() {
           </div>
         </div>
 
-        <h2 className="font-semibold text-gray-700 mb-3">🔧 Assigned Issues ({assignedIssues.length})</h2>
+        <h2 className="font-semibold text-gray-700 mb-3">🔧 {t('maintenance.assignedIssues')} ({assignedIssues.length})</h2>
         {assignedIssues.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-xl p-10 text-center text-gray-400 text-sm">
-            No issues assigned to you yet.
+            {t('maintenance.noAssigned')}
           </div>
         ) : (
           <div className="space-y-3">

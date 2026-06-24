@@ -186,6 +186,8 @@ export default {
     directoryBody: (trade) => `Følgende ${trade.toLowerCase()}-fagpersoner er tilgjengelige. Du kan kontakte dem, sammenligne tilbud og avtale arbeid direkte.`,
     noDirectory: 'Ingen fagpersoner listet ennå',
     noDirectoryBody: 'Vennligst kontakt din utleier direkte for assistanse.',
+    inbox: 'Innboks',
+    jobHistory: 'Jobbhistorikk',
     availability: 'Tilgjengelighet',
     available: 'Tilgjengelig',
     notMarked: 'Ikke merket',
@@ -199,6 +201,12 @@ export default {
     yourProfile: 'Din profil',
     manageAvailability: 'Administrer tilgjengelighet →',
     manageHint: 'Hold tilgjengeligheten din oppdatert så leietakere vet når du er ledig.',
+    inbox: 'Innboks',
+    jobHistory: 'Jobbhistorikk',
+    assignedIssues: 'Tildelte saker',
+    noAssigned: 'Ingen saker tildelt deg ennå.',
+    noJobs: 'Ingen jobbhistorikk ennå.',
+    selectConversation: 'Velg en samtale for å starte chatten',
   },
 
   // Tenants (admin)

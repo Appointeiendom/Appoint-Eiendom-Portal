@@ -53,7 +53,7 @@ export default function App() {
     <UnreadProvider>
       <BrowserRouter>
         <LangSync />
-        <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+        <Toaster position="top-right" toastOptions={{ duration: 3000, error: { duration: 5000 } }} />
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />

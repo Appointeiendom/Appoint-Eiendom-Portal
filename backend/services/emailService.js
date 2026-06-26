@@ -412,7 +412,7 @@ async function sendWelcomeEmail(tenant, rawPassword) {
           </div>
         </div>
         <div style="margin-top: 32px; border-top: 1px solid #F3F4F6; padding-top: 20px; text-align: center;">
-          <a href="${loginUrl}" style="display: inline-block; color: #9CA3AF; font-size: 12px; text-decoration: none;">🔒 Privacy Policy</a>
+          <a href="${loginUrl}#privacy" style="display: inline-block; color: #9CA3AF; font-size: 12px; text-decoration: none;">🔒 Privacy Policy</a>
         </div>
       </div>
     `;

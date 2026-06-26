@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -230,6 +230,14 @@ export default function Login() {
   };
 
   const p = policy[lang] || policy.en;
+  const detailsRef = useRef(null);
+
+  useEffect(() => {
+    if (window.location.hash === '#privacy' && detailsRef.current) {
+      detailsRef.current.open = true;
+      detailsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-gray-100 flex items-center justify-center p-4">
@@ -280,7 +288,7 @@ export default function Login() {
 
         {/* Privacy Policy */}
         <div className="mt-8 pt-6 border-t border-gray-100">
-          <details className="group">
+          <details ref={detailsRef} className="group" id="privacy">
             <summary className="flex items-center justify-between cursor-pointer text-xs text-gray-400 hover:text-gray-600 transition-colors select-none">
               <span className="font-medium">🔒 {p.title}</span>
               <span className="group-open:rotate-180 transition-transform text-gray-300">▼</span>

@@ -407,9 +407,22 @@ async function sendWelcomeEmail(tenant, rawPassword) {
             <a href="${loginUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Login to Portal</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">
-          <a href="https://www.appointegiendom.no/personvern" style="color: #9CA3AF; text-decoration: underline;">Privacy Policy</a>
-        </p>
+        <div style="margin-top: 32px; border-top: 1px solid #E5E7EB; padding-top: 24px;">
+          <p style="color: #374151; font-weight: bold; font-size: 14px; margin: 0 0 16px 0;">Privacy Policy</p>
+          <p style="color: #6B7280; font-size: 12px; margin: 0 0 4px 0; font-style: italic;">Last updated: 15 June 2026</p>
+
+          <div style="margin-top: 12px; font-size: 12px; color: #6B7280; line-height: 1.6;">
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">1. Data controller</strong><br>Appoint Eiendom AS (org. no. 891608772) is the data controller for personal data we collect through this website and in connection with our services.</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">2. Data we collect</strong><br>We may collect your name, email address, phone number, and any information you provide via the contact form. We also collect technical data such as IP address and browser information via cookies.</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">3. Purpose of processing</strong><br>Personal data is used to respond to enquiries, administer tenancy agreements, deliver contracted services, and fulfil legal obligations.</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">4. Legal basis</strong><br>Processing of personal data is based on contract (GDPR art. 6(1)(b)), legitimate interest (art. 6(1)(f)), or consent (art. 6(1)(a)) where relevant.</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">5. Sharing of data</strong><br>We do not share personal data with third parties beyond what is necessary to deliver our services, or where we are legally required to do so.</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">6. Your rights</strong><br>You have the right to access, rectify, erase, and port your data. You may file a complaint with the Norwegian Data Protection Authority (datatilsynet.no) if you believe we process your data unlawfully.</p>
+            <p style="margin: 0;"><strong style="color: #374151;">7. Contact</strong><br>For privacy-related questions, contact us at <a href="mailto:post@appointeiendom.no" style="color: #10B981;">post@appointeiendom.no</a>.</p>
+          </div>
+
+          <p style="color: #9CA3AF; font-size: 11px; margin-top: 16px;">Appoint Eiendom AS · Org.nr. 891608772</p>
+        </div>
       </div>
     `;
 

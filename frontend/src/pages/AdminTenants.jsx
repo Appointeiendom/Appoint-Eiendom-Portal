@@ -38,9 +38,11 @@ function PhotoCell({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
   );
 }
 
-function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, onToggleActive, t }) {
+function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, onToggleActive, selected, onToggleSelect, t }) {
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0 ${!tenant.isActive ? 'opacity-60 bg-gray-50' : ''}`}>
+    <div className={`flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 ${!tenant.isActive ? 'opacity-60 bg-gray-50' : ''} ${selected ? 'bg-emerald-50/40' : ''}`}>
+      <input type="checkbox" checked={selected} onChange={() => onToggleSelect(tenant._id)}
+        className="w-4 h-4 accent-emerald-500 cursor-pointer shrink-0" onClick={e => e.stopPropagation()} />
       <PhotoCell tenant={tenant} uploadingId={uploadingId}
         onPhotoUpload={onPhotoUpload} onPhotoDelete={onPhotoDelete} onPhotoView={onPhotoView} />
       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onEdit(tenant)}>
@@ -73,7 +75,7 @@ function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
   );
 }
 
-function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, onToggleActive, t }) {
+function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, onToggleActive, selectedSet, onToggleSelect, t }) {
   const normalize = (str) => str.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
   const groups = tenants.reduce((acc, tenant) => {
     const key = (tenant.unit && tenant.unit.trim()) ? normalize(tenant.unit) : t('tenants.noBuilding');
@@ -128,6 +130,8 @@ function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, on
               <div className="border-t border-gray-100">
                 {group.map(tenant => (
                   <TenantRow key={tenant._id} tenant={tenant} uploadingId={uploadingId} t={t}
+                    selected={selectedSet.has(tenant._id)}
+                    onToggleSelect={onToggleSelect}
                     onPhotoUpload={onPhotoUpload} onPhotoDelete={onPhotoDelete}
                     onPhotoView={onPhotoView} onReset={onReset} onDelete={onDelete} onEdit={onEdit} onToggleActive={onToggleActive} />
                 ))}
@@ -172,7 +176,6 @@ function EditModal({ tenant, onClose, onSaved, t }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
-        {/* Header */}
         <div className="flex items-center gap-4 p-6 border-b border-gray-100">
           <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
             {tenant.photo
@@ -187,7 +190,6 @@ function EditModal({ tenant, onClose, onSaved, t }) {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">✕</button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 sm:col-span-1">
@@ -259,12 +261,21 @@ export default function AdminTenants() {
   const [newPassword, setNewPassword] = useState('');
   const [resetting, setResetting] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [selected, setSelected] = useState(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const fetchTenants = () => {
-    api.get('/users').then(res => setTenants(res.data)).catch(console.error).finally(() => setLoading(false));
+    api.get('/users').then(res => { setTenants(res.data); setSelected(new Set()); }).catch(console.error).finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchTenants(); }, []);
+
+  const toggleSelect = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  const filteredTenants = tenants.filter(tn => !search || tn.name.toLowerCase().includes(search.toLowerCase()) || tn.email.toLowerCase().includes(search.toLowerCase()));
+  const allVisible = filteredTenants.map(t => t._id);
+  const allSelected = allVisible.length > 0 && allVisible.every(id => selected.has(id));
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(allVisible));
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -285,7 +296,6 @@ export default function AdminTenants() {
   };
 
   const handleToggleActive = async (tenant) => {
-    const action = tenant.isActive ? 'expire' : 'reactivate';
     const msg = tenant.isActive ? t('tenants.expireConfirm')(tenant.name) : t('tenants.reactivateConfirm')(tenant.name);
     if (!window.confirm(msg)) return;
     try {
@@ -319,8 +329,24 @@ export default function AdminTenants() {
       await api.delete(`/users/${id}`);
       toast.success(t('tenants.deleteSuccess'));
       setTenants(prev => prev.filter(tn => tn._id !== id));
+      setSelected(prev => { const n = new Set(prev); n.delete(id); return n; });
     } catch {
       toast.error(t('tenants.deleteFailed'));
+    }
+  };
+
+  const bulkDelete = async () => {
+    if (!confirm(`Delete ${selected.size} selected tenants?`)) return;
+    setBulkDeleting(true);
+    try {
+      await Promise.all([...selected].map(id => api.delete(`/users/${id}`)));
+      setTenants(prev => prev.filter(tn => !selected.has(tn._id)));
+      toast.success(`${selected.size} tenants deleted`);
+      setSelected(new Set());
+    } catch {
+      toast.error('Some deletions failed');
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -366,10 +392,18 @@ export default function AdminTenants() {
             <h1 className="text-2xl font-bold text-gray-800">{t('tenants.title')}</h1>
             <p className="text-gray-500 text-sm mt-1">{t('tenants.registered')(tenants.length)}</p>
           </div>
-          <button onClick={() => setShowForm(!showForm)}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-            {showForm ? t('tenants.cancel') : t('tenants.addTenant')}
-          </button>
+          <div className="flex items-center gap-2">
+            {selected.size > 0 && (
+              <button onClick={bulkDelete} disabled={bulkDeleting}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-60">
+                {bulkDeleting ? '...' : `🗑 Delete ${selected.size}`}
+              </button>
+            )}
+            <button onClick={() => setShowForm(!showForm)}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+              {showForm ? t('tenants.cancel') : t('tenants.addTenant')}
+            </button>
+          </div>
         </div>
 
         <div className="mb-4">
@@ -445,13 +479,29 @@ export default function AdminTenants() {
             <p className="text-gray-400">{t('tenants.noTenants')}</p>
           </div>
         ) : (
-          <BuildingGroups tenants={tenants.filter(tn => !search || tn.name.toLowerCase().includes(search.toLowerCase()) || tn.email.toLowerCase().includes(search.toLowerCase()))} uploadingId={uploadingId} t={t}
-            onPhotoUpload={handlePhotoUpload} onPhotoDelete={handlePhotoDelete}
-            onPhotoView={setLightbox}
-            onReset={(tenant) => { setResetTarget(tenant); setNewPassword(''); }}
-            onDelete={handleDelete}
-            onEdit={setEditTarget}
-            onToggleActive={handleToggleActive} />
+          <>
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <input type="checkbox" checked={allSelected} onChange={toggleAll}
+                className="w-4 h-4 accent-emerald-500 cursor-pointer" />
+              <span className="text-xs text-gray-500">
+                {allSelected ? 'Deselect all' : `Select all (${filteredTenants.length})`}
+              </span>
+            </div>
+            <BuildingGroups
+              tenants={filteredTenants}
+              uploadingId={uploadingId}
+              t={t}
+              selectedSet={selected}
+              onToggleSelect={toggleSelect}
+              onPhotoUpload={handlePhotoUpload}
+              onPhotoDelete={handlePhotoDelete}
+              onPhotoView={setLightbox}
+              onReset={(tenant) => { setResetTarget(tenant); setNewPassword(''); }}
+              onDelete={handleDelete}
+              onEdit={setEditTarget}
+              onToggleActive={handleToggleActive}
+            />
+          </>
         )}
       </div>
 

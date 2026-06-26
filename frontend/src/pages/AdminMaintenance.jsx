@@ -13,6 +13,8 @@ export default function AdminMaintenance() {
   const [showForm, setShowForm] = useState(false);
   const [editWorker, setEditWorker] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [selected, setSelected] = useState(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const emptyForm = { name: '', email: '', trade: 'Electrical', bio: '', phone: '', password: '', photo: null };
   const [form, setForm] = useState(emptyForm);
@@ -21,6 +23,7 @@ export default function AdminMaintenance() {
     try {
       const res = await api.get('/maintenance');
       setWorkers(res.data);
+      setSelected(new Set());
     } catch {
       toast.error(t('maintenance.loadFailed'));
     } finally {
@@ -29,6 +32,11 @@ export default function AdminMaintenance() {
   };
 
   useEffect(() => { fetchWorkers(); }, []);
+
+  const toggleSelect = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const allIds = workers.map(w => w._id);
+  const allSelected = allIds.length > 0 && allIds.every(id => selected.has(id));
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(allIds));
 
   const openAdd = () => { setForm(emptyForm); setEditWorker(null); setShowForm(true); };
   const openEdit = (w) => {
@@ -67,9 +75,25 @@ export default function AdminMaintenance() {
     try {
       await api.delete(`/maintenance/${id}`);
       setWorkers(w => w.filter(x => x._id !== id));
+      setSelected(prev => { const n = new Set(prev); n.delete(id); return n; });
       toast.success(t('maintenance.deleted'));
     } catch {
       toast.error(t('maintenance.deleteFailed'));
+    }
+  };
+
+  const bulkDelete = async () => {
+    if (!confirm(`Delete ${selected.size} selected workers?`)) return;
+    setBulkDeleting(true);
+    try {
+      await Promise.all([...selected].map(id => api.delete(`/maintenance/${id}`)));
+      setWorkers(prev => prev.filter(w => !selected.has(w._id)));
+      toast.success(`${selected.size} workers deleted`);
+      setSelected(new Set());
+    } catch {
+      toast.error('Some deletions failed');
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -81,9 +105,17 @@ export default function AdminMaintenance() {
             <h1 className="text-2xl font-bold text-gray-800">{t('maintenance.companiesTitle')}</h1>
             <p className="text-gray-500 text-sm mt-1">{t('maintenance.companiesSubtitle')}</p>
           </div>
-          <button onClick={openAdd} className="bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-600 transition-colors">
-            {t('maintenance.addCompany')}
-          </button>
+          <div className="flex items-center gap-2">
+            {selected.size > 0 && (
+              <button onClick={bulkDelete} disabled={bulkDeleting}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-60">
+                {bulkDeleting ? '...' : `🗑 Delete ${selected.size}`}
+              </button>
+            )}
+            <button onClick={openAdd} className="bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-600 transition-colors">
+              {t('maintenance.addCompany')}
+            </button>
+          </div>
         </div>
 
         {/* Add/Edit Form */}
@@ -155,36 +187,47 @@ export default function AdminMaintenance() {
             <button onClick={openAdd} className="mt-4 text-emerald-600 hover:underline text-sm">{t('maintenance.addFirstCompany')}</button>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {workers.map(w => (
-              <div key={w._id} className="bg-white border border-gray-200 rounded-xl p-5">
-                <div className="flex items-start gap-3 mb-3">
-                  {w.photo ? (
-                    <img src={w.photo} alt={w.name} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shrink-0" />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center text-2xl shrink-0">👷</div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="font-semibold text-gray-800 truncate">{w.name}</p>
-                    <span className="inline-block text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{w.trade}</span>
-                    {w.avgRating !== null && w.avgRating !== undefined ? (
-                      <div className="flex items-center gap-1 mt-1">
-                        <span className="text-amber-400 text-sm">{'★'.repeat(Math.round(w.avgRating))}{'☆'.repeat(5 - Math.round(w.avgRating))}</span>
-                        <span className="text-xs text-gray-500">{w.avgRating} ({t('rating.reviews')(w.ratingCount)})</span>
-                      </div>
-                    ) : <p className="text-xs text-gray-400 mt-1">{t('rating.noRatings')}</p>}
-                    {w.phone && <p className="text-xs text-gray-500 mt-1">{w.phone}</p>}
+          <>
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <input type="checkbox" checked={allSelected} onChange={toggleAll}
+                className="w-4 h-4 accent-emerald-500 cursor-pointer" />
+              <span className="text-xs text-gray-500">
+                {allSelected ? 'Deselect all' : `Select all (${workers.length})`}
+              </span>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {workers.map(w => (
+                <div key={w._id} className={`bg-white border rounded-xl p-5 relative ${selected.has(w._id) ? 'border-emerald-400 bg-emerald-50/30' : 'border-gray-200'}`}>
+                  <input type="checkbox" checked={selected.has(w._id)} onChange={() => toggleSelect(w._id)}
+                    className="absolute top-3 right-3 w-4 h-4 accent-emerald-500 cursor-pointer" />
+                  <div className="flex items-start gap-3 mb-3">
+                    {w.photo ? (
+                      <img src={w.photo} alt={w.name} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shrink-0" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center text-2xl shrink-0">👷</div>
+                    )}
+                    <div className="min-w-0 pr-6">
+                      <p className="font-semibold text-gray-800 truncate">{w.name}</p>
+                      <span className="inline-block text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{w.trade}</span>
+                      {w.avgRating !== null && w.avgRating !== undefined ? (
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className="text-amber-400 text-sm">{'★'.repeat(Math.round(w.avgRating))}{'☆'.repeat(5 - Math.round(w.avgRating))}</span>
+                          <span className="text-xs text-gray-500">{w.avgRating} ({t('rating.reviews')(w.ratingCount)})</span>
+                        </div>
+                      ) : <p className="text-xs text-gray-400 mt-1">{t('rating.noRatings')}</p>}
+                      {w.phone && <p className="text-xs text-gray-500 mt-1">{w.phone}</p>}
+                    </div>
+                  </div>
+                  {w.bio && <p className="text-xs text-gray-500 mb-3 line-clamp-2">{w.bio}</p>}
+                  <p className="text-xs text-gray-400 mb-3">{w.email}</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => openEdit(w)} className="flex-1 text-xs border border-gray-300 text-gray-700 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">{t('common.edit')}</button>
+                    <button onClick={() => deleteWorker(w._id)} className="flex-1 text-xs border border-red-200 text-red-600 py-1.5 rounded-lg hover:bg-red-50 transition-colors">{t('common.delete')}</button>
                   </div>
                 </div>
-                {w.bio && <p className="text-xs text-gray-500 mb-3 line-clamp-2">{w.bio}</p>}
-                <p className="text-xs text-gray-400 mb-3">{w.email}</p>
-                <div className="flex gap-2">
-                  <button onClick={() => openEdit(w)} className="flex-1 text-xs border border-gray-300 text-gray-700 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">{t('common.edit')}</button>
-                  <button onClick={() => deleteWorker(w._id)} className="flex-1 text-xs border border-red-200 text-red-600 py-1.5 rounded-lg hover:bg-red-50 transition-colors">{t('common.delete')}</button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </Layout>

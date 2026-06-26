@@ -43,9 +43,20 @@ router.get('/by-trade/:trade', protect, async (req, res) => {
 // GET /api/maintenance/:id
 router.get('/:id', protect, async (req, res) => {
   try {
+    const Issue = require('../models/Issue');
     const worker = await User.findOne({ _id: req.params.id, role: 'maintenance' }).select('-password');
     if (!worker) return res.status(404).json({ message: 'Maintenance worker not found' });
-    res.json(worker);
+
+    const [ratingData] = await Issue.aggregate([
+      { $match: { assignedTo: worker._id, rating: { $ne: null } } },
+      { $group: { _id: '$assignedTo', avgRating: { $avg: '$rating' }, ratingCount: { $sum: 1 } } },
+    ]);
+
+    res.json({
+      ...worker.toObject(),
+      avgRating: ratingData ? Math.round(ratingData.avgRating * 10) / 10 : null,
+      ratingCount: ratingData?.ratingCount || 0,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

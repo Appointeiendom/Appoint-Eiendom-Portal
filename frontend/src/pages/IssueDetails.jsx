@@ -29,6 +29,7 @@ export default function IssueDetails() {
   const [ratingHover, setRatingHover] = useState(0);
   const [ratingComment, setRatingComment] = useState('');
   const [submittingRating, setSubmittingRating] = useState(false);
+  const [editingRating, setEditingRating] = useState(false);
   const isAdmin = user?.role === 'admin';
   const isMaintenance = user?.role === 'maintenance';
   const isTenant = user?.role === 'tenant';
@@ -127,6 +128,7 @@ export default function IssueDetails() {
     setSubmittingRating(true);
     try {
       const res = await api.put(`/issues/${id}/rate`, { rating: ratingVal, ratingComment });
+      setEditingRating(false);
       setIssue(res.data);
       toast.success(t('rating.success'));
     } catch (err) {
@@ -251,7 +253,7 @@ export default function IssueDetails() {
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <h2 className="font-semibold text-gray-700 mb-1">{t('rating.title')}</h2>
                 <p className="text-sm text-gray-500 mb-4">{t('rating.subtitle')(issue.assignedTo.name)}</p>
-                {issue.rating ? (
+                {issue.rating && !editingRating ? (
                   <div>
                     <div className="flex gap-1 mb-2">
                       {[1,2,3,4,5].map(s => (
@@ -260,7 +262,10 @@ export default function IssueDetails() {
                       <span className="text-sm text-gray-500 ml-2 self-center">{issue.rating}/5</span>
                     </div>
                     {issue.ratingComment && <p className="text-sm text-gray-600 italic">"{issue.ratingComment}"</p>}
-                    <p className="text-xs text-gray-400 mt-2">{t('rating.alreadyRated')}</p>
+                    <button onClick={() => { setRatingVal(issue.rating); setRatingComment(issue.ratingComment || ''); setEditingRating(true); }}
+                      className="text-xs text-emerald-600 hover:text-emerald-800 mt-2 underline">
+                      {t('common.edit')} {t('rating.title').toLowerCase()}
+                    </button>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -278,10 +283,18 @@ export default function IssueDetails() {
                     <textarea rows={2} value={ratingComment} onChange={e => setRatingComment(e.target.value)}
                       placeholder={t('rating.commentPlaceholder')}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none" />
-                    <button onClick={submitRating} disabled={submittingRating || !ratingVal}
-                      className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60">
-                      {submittingRating ? t('rating.submitting') : t('rating.submit')}
-                    </button>
+                    <div className="flex gap-2">
+                      <button onClick={submitRating} disabled={submittingRating || !ratingVal}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60">
+                        {submittingRating ? t('rating.submitting') : t('rating.submit')}
+                      </button>
+                      {editingRating && (
+                        <button onClick={() => setEditingRating(false)}
+                          className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">
+                          {t('common.cancel')}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

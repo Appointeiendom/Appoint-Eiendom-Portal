@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useUnread } from '../context/UnreadContext';
 import Layout from '../components/Layout';
 import MaintenanceChatBox from '../components/MaintenanceChatBox';
 import api from '../services/api';
@@ -8,9 +9,12 @@ import api from '../services/api';
 export default function MaintenanceInbox() {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { clearMaintenanceUnread } = useUnread();
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeThread, setActiveThread] = useState(null);
+
+  useEffect(() => { clearMaintenanceUnread(); }, []);
 
   useEffect(() => {
     api.get('/messages/maintenance/threads')

@@ -1,14 +1,17 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { useAuth } from './AuthContext';
+import { getSocket } from '../services/socketService';
 
-const UnreadContext = createContext({ unreadCount: 0, markAllRead: () => {} });
+const UnreadContext = createContext({ unreadCount: 0, markAllRead: () => {}, maintenanceUnread: 0, clearMaintenanceUnread: () => {} });
 
 export function UnreadProvider({ children }) {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [maintenanceUnread, setMaintenanceUnread] = useState(0);
 
   const storageKey = user?._id ? `read_announcements_${user._id}` : null;
+  const maintStorageKey = user?._id ? `maintenance_unread_${user._id}` : null;
 
   const getReadIds = useCallback(() => {
     if (!storageKey) return new Set();
@@ -27,6 +30,30 @@ export function UnreadProvider({ children }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Maintenance: restore persisted count and listen for new messages
+  useEffect(() => {
+    if (user?.role !== 'maintenance' || !maintStorageKey) return;
+    const stored = parseInt(localStorage.getItem(maintStorageKey) || '0', 10);
+    setMaintenanceUnread(stored);
+
+    const interval = setInterval(() => {
+      const socket = getSocket();
+      if (!socket) return;
+      const onMsg = () => {
+        setMaintenanceUnread(prev => {
+          const next = prev + 1;
+          localStorage.setItem(maintStorageKey, String(next));
+          return next;
+        });
+      };
+      socket.on('new_message_notification', onMsg);
+      clearInterval(interval);
+      return () => socket.off('new_message_notification', onMsg);
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [user?.role, maintStorageKey]);
+
   const markAllRead = useCallback((announcements) => {
     if (!storageKey) return;
     const ids = announcements.map(a => a._id);
@@ -34,8 +61,14 @@ export function UnreadProvider({ children }) {
     setUnreadCount(0);
   }, [storageKey]);
 
+  const clearMaintenanceUnread = useCallback(() => {
+    if (!maintStorageKey) return;
+    localStorage.setItem(maintStorageKey, '0');
+    setMaintenanceUnread(0);
+  }, [maintStorageKey]);
+
   return (
-    <UnreadContext.Provider value={{ unreadCount, markAllRead, refresh }}>
+    <UnreadContext.Provider value={{ unreadCount, markAllRead, refresh, maintenanceUnread, clearMaintenanceUnread }}>
       {children}
     </UnreadContext.Provider>
   );

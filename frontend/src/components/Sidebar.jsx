@@ -6,7 +6,7 @@ import { useUnread } from '../context/UnreadContext';
 export default function Sidebar({ open, onClose }) {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { unreadCount } = useUnread();
+  const { unreadCount, maintenanceUnread } = useUnread();
 
   const adminLinks = [
     { to: '/admin/dashboard', label: t('nav.dashboard'), icon: '🏠' },
@@ -32,7 +32,7 @@ export default function Sidebar({ open, onClose }) {
 
   const maintenanceLinks = [
     { to: '/maintenance/dashboard', label: t('nav.dashboard'), icon: '🏠' },
-    { to: '/maintenance/inbox', label: t('maintenance.inbox'), icon: '💬' },
+    { to: '/maintenance/inbox', label: t('maintenance.inbox'), icon: '💬', badge: maintenanceUnread },
     { to: '/maintenance/jobs', label: t('maintenance.jobHistory'), icon: '📋' },
   ];
 

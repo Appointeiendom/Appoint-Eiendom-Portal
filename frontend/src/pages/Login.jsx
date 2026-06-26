@@ -209,10 +209,12 @@ export default function Login() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
     try {
       const user = await login(form.email, form.password);
       toast.success(t('auth.welcome')(user.name));
@@ -223,7 +225,7 @@ export default function Login() {
         : '/tenant/dashboard'
       );
     } catch (err) {
-      toast.error(err.response?.data?.message || t('auth.loginFailed'));
+      setError(err.response?.data?.message || t('auth.loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -278,6 +280,11 @@ export default function Login() {
               placeholder="••••••••"
             />
           </div>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+              {error}
+            </div>
+          )}
           <button type="submit" disabled={loading}
             className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-60 mt-2">
             {loading ? t('auth.signingIn') : t('auth.signin')}

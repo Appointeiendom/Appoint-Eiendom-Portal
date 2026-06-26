@@ -46,10 +46,10 @@ function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onEdit(tenant)}>
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-gray-800 hover:text-emerald-600 transition-colors">{tenant.name}</p>
-          {!tenant.isActive && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">Expired</span>}
+          {!tenant.isActive && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">{t('tenants.expired')}</span>}
         </div>
         <p className="text-xs text-gray-500 truncate">{tenant.email}{tenant.phone ? ` · ${tenant.phone}` : ''}</p>
-        {tenant.building && <p className="text-xs text-gray-400">Apartment {tenant.building}</p>}
+        {tenant.building && <p className="text-xs text-gray-400">{t('tenants.apartment')(tenant.building)}</p>}
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <button onClick={() => onEdit(tenant)}
@@ -62,7 +62,7 @@ function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
         </button>
         <button onClick={() => onToggleActive(tenant)}
           className={`text-xs px-2 py-1 rounded transition-colors ${tenant.isActive ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-50' : 'text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50'}`}>
-          {tenant.isActive ? 'Expire' : 'Reactivate'}
+          {tenant.isActive ? t('tenants.expire') : t('tenants.reactivate')}
         </button>
         <button onClick={() => onDelete(tenant._id, tenant.name)}
           className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors">
@@ -156,14 +156,14 @@ function EditModal({ tenant, onClose, onSaved, t }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.unit) return toast.error('Name, email and address are required');
+    if (!form.name || !form.email || !form.unit) return toast.error(t('tenants.required'));
     setSaving(true);
     try {
       const res = await api.put(`/users/${tenant._id}`, form);
-      toast.success('Profile updated');
+      toast.success(t('tenants.editSuccess'));
       onSaved(res.data);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update');
+      toast.error(err.response?.data?.message || t('tenants.editFailed'));
     } finally {
       setSaving(false);
     }
@@ -218,12 +218,12 @@ function EditModal({ tenant, onClose, onSaved, t }) {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
             <div className="col-span-2 sm:col-span-1">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Lease Start</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.leaseStart')}</label>
               <input type="date" value={form.leaseStart} onChange={up('leaseStart')}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
             <div className="col-span-2 sm:col-span-1">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Lease End</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.leaseEnd')}</label>
               <input type="date" value={form.leaseEnd} onChange={up('leaseEnd')}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
@@ -268,8 +268,8 @@ export default function AdminTenants() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.unit) return toast.error('Name, email and address are required');
-    if (form.password && form.password.length < 6) return toast.error('Password must be at least 6 characters');
+    if (!form.name || !form.email || !form.unit) return toast.error(t('tenants.required'));
+    if (form.password && form.password.length < 6) return toast.error(t('tenants.passwordMin'));
     setSaving(true);
     try {
       await api.post('/users', form);
@@ -286,19 +286,20 @@ export default function AdminTenants() {
 
   const handleToggleActive = async (tenant) => {
     const action = tenant.isActive ? 'expire' : 'reactivate';
-    if (!window.confirm(`${action === 'expire' ? 'Expire' : 'Reactivate'} ${tenant.name}'s account?`)) return;
+    const msg = tenant.isActive ? t('tenants.expireConfirm')(tenant.name) : t('tenants.reactivateConfirm')(tenant.name);
+    if (!window.confirm(msg)) return;
     try {
       const res = await api.put(`/users/${tenant._id}/toggle-active`);
-      setTenants(prev => prev.map(t => t._id === tenant._id ? { ...t, isActive: res.data.isActive } : t));
-      toast.success(res.data.isActive ? `${tenant.name} reactivated` : `${tenant.name}'s access expired`);
+      setTenants(prev => prev.map(tn => tn._id === tenant._id ? { ...tn, isActive: res.data.isActive } : tn));
+      toast.success(res.data.isActive ? t('tenants.reactivated')(tenant.name) : t('tenants.accessExpired')(tenant.name));
     } catch {
-      toast.error('Failed to update access');
+      toast.error(t('tenants.toggleFailed'));
     }
   };
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    if (newPassword.length < 6) return toast.error('Password must be at least 6 characters');
+    if (newPassword.length < 6) return toast.error(t('tenants.passwordMin'));
     setResetting(true);
     try {
       await api.put(`/users/${resetTarget._id}/reset-password`, { password: newPassword });
@@ -373,7 +374,7 @@ export default function AdminTenants() {
 
         <div className="mb-4">
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name or email..."
+            placeholder={t('tenants.search')}
             className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
         </div>
 

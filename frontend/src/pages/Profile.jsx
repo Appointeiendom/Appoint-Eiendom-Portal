@@ -30,10 +30,10 @@ export default function Profile() {
     setSaving(true);
     try {
       await api.post('/auth/request-email-change', emailForm);
-      toast.success(`Bekreftelseskode sendt til ${emailForm.email}`);
+      toast.success(t('profile.otpSent')(emailForm.email));
       setStep('confirm');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Noe gikk galt');
+      toast.error(err.response?.data?.message || t('common.error'));
     } finally {
       setSaving(false);
     }
@@ -45,12 +45,12 @@ export default function Profile() {
     try {
       const res = await api.put('/auth/confirm-email-change', { otp });
       updateUser({ email: res.data.email });
-      toast.success('E-post oppdatert');
+      toast.success(t('profile.emailUpdated'));
       setEmailForm({ email: '', password: '' });
       setOtp('');
       setStep('idle');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Feil kode');
+      toast.error(err.response?.data?.message || t('profile.wrongCode'));
     } finally {
       setSaving(false);
     }
@@ -89,31 +89,31 @@ export default function Profile() {
           {isAdmin && (
             <div className="mt-6 pt-5 border-t border-gray-100">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-gray-700">Endre e-post</p>
+                <p className="text-sm font-medium text-gray-700">{t('profile.changeEmail')}</p>
                 {step !== 'idle' && (
                   <button onClick={() => { setStep('idle'); setOtp(''); setEmailForm({ email: '', password: '' }); }}
-                    className="text-xs text-gray-400 hover:text-gray-600">Avbryt</button>
+                    className="text-xs text-gray-400 hover:text-gray-600">{t('common.cancel')}</button>
                 )}
               </div>
 
               {step === 'idle' && (
                 <button onClick={() => setStep('request')}
                   className="text-sm text-emerald-600 hover:text-emerald-700 font-medium border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors w-full">
-                  Endre e-postadresse
+                  {t('profile.changeEmailBtn')}
                 </button>
               )}
 
               {step === 'request' && (
                 <form onSubmit={handleRequestOtp} className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Ny e-post</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('profile.newEmail')}</label>
                     <input type="email" required value={emailForm.email}
                       onChange={(e) => setEmailForm({ ...emailForm, email: e.target.value })}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                      placeholder="ny@epost.no" />
+                      placeholder={t('profile.newEmailPlaceholder')} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Bekreft med passord</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('profile.confirmPassword')}</label>
                     <input type="password" required value={emailForm.password}
                       onChange={(e) => setEmailForm({ ...emailForm, password: e.target.value })}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
@@ -121,7 +121,7 @@ export default function Profile() {
                   </div>
                   <button type="submit" disabled={saving}
                     className="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold py-2 rounded-lg transition-colors disabled:opacity-60">
-                    {saving ? 'Sender kode…' : 'Send bekreftelseskode'}
+                    {saving ? t('profile.sending') : t('profile.sendCode')}
                   </button>
                 </form>
               )}
@@ -129,10 +129,10 @@ export default function Profile() {
               {step === 'confirm' && (
                 <form onSubmit={handleConfirmOtp} className="space-y-3">
                   <p className="text-xs text-gray-500">
-                    En 6-sifret kode ble sendt til <strong>{emailForm.email}</strong>. Gyldig i 10 minutter.
+                    {t('profile.codeSentTo')(emailForm.email)}
                   </p>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Bekreftelseskode</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('profile.code')}</label>
                     <input type="text" required value={otp} onChange={(e) => setOtp(e.target.value)}
                       maxLength={6} inputMode="numeric"
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-center tracking-widest font-mono text-lg focus:outline-none focus:ring-2 focus:ring-emerald-400"
@@ -140,11 +140,11 @@ export default function Profile() {
                   </div>
                   <button type="submit" disabled={saving || otp.length < 6}
                     className="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold py-2 rounded-lg transition-colors disabled:opacity-60">
-                    {saving ? 'Bekrefter…' : 'Bekreft og oppdater e-post'}
+                    {saving ? t('profile.confirming') : t('profile.confirmBtn')}
                   </button>
                   <button type="button" onClick={handleRequestOtp} disabled={saving}
                     className="w-full text-xs text-gray-400 hover:text-gray-600 py-1">
-                    Send kode på nytt
+                    {t('profile.resendCode')}
                   </button>
                 </form>
               )}

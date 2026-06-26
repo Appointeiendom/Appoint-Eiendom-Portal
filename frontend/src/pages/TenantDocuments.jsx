@@ -36,18 +36,18 @@ export default function TenantDocuments() {
     <Layout>
       <div className="max-w-2xl">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Notices & Documents</h1>
-          <p className="text-gray-500 text-sm mt-1">Announcements and files from your landlord</p>
+          <h1 className="text-2xl font-bold text-gray-800">{t('notices.title')}</h1>
+          <p className="text-gray-500 text-sm mt-1">{t('notices.subtitle')}</p>
         </div>
 
         <div className="flex gap-2 mb-5">
           <button onClick={() => setTab('announcements')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'announcements' ? 'bg-emerald-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-            📢 Announcements {announcements.length > 0 && <span className="ml-1">({announcements.length})</span>}
+            📢 {t('nav.announcements')} {announcements.length > 0 && <span className="ml-1">({announcements.length})</span>}
           </button>
           <button onClick={() => setTab('documents')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'documents' ? 'bg-emerald-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-            📁 Documents {docs.length > 0 && <span className="ml-1">({docs.length})</span>}
+            📁 {t('nav.documents')} {docs.length > 0 && <span className="ml-1">({docs.length})</span>}
           </button>
         </div>
 
@@ -58,7 +58,7 @@ export default function TenantDocuments() {
         ) : tab === 'announcements' ? (
           announcements.length === 0 ? (
             <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
-              <p className="text-gray-400">No announcements yet.</p>
+              <p className="text-gray-400">{t('notices.noAnnouncements')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -79,7 +79,7 @@ export default function TenantDocuments() {
         ) : (
           docs.length === 0 ? (
             <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
-              <p className="text-gray-400">No documents available.</p>
+              <p className="text-gray-400">{t('notices.noDocs')}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -91,7 +91,7 @@ export default function TenantDocuments() {
                     <p className="font-medium text-gray-800 text-sm">{doc.title}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{new Date(doc.createdAt).toLocaleDateString()}</p>
                   </div>
-                  <span className="text-xs text-emerald-600 shrink-0">Open →</span>
+                  <span className="text-xs text-emerald-600 shrink-0">{t('notices.open')}</span>
                 </a>
               ))}
             </div>

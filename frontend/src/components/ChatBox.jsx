@@ -114,7 +114,7 @@ export default function ChatBox({ issueId }) {
           return (
             <div key={msg._id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-xs lg:max-w-md ${isOwn ? 'items-end' : 'items-start'} flex flex-col`}>
-                {!isOwn && <span className="text-xs text-gray-500 mb-1 px-1">{msg.senderName}</span>}
+                {!isOwn && <span className="text-xs text-gray-500 mb-1 px-1">{msg.senderRole === 'admin' ? 'Admin' : msg.senderName}</span>}
                 <div className={`px-4 py-2 rounded-2xl text-sm ${isOwn ? 'bg-emerald-500 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-800 rounded-tl-sm'}`}>
                   {msg._translated || msg.message}
                 </div>

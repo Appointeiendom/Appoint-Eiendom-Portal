@@ -143,7 +143,7 @@ export default function MaintenanceChatBox({ issueId, maintenanceId, maintenance
           return (
             <div key={msg._id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-xs lg:max-w-md flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
-                {!isOwn && <span className="text-xs text-gray-500 mb-1 px-1">{msg.senderName}</span>}
+                {!isOwn && <span className="text-xs text-gray-500 mb-1 px-1">{msg.senderRole === 'admin' ? 'Admin' : msg.senderName}</span>}
                 {isQuote ? (
                   <div className={`rounded-2xl overflow-hidden border-2 ${isOwn ? 'border-amber-400' : 'border-amber-300'}`}>
                     <div className="bg-amber-500 text-white px-4 py-2 text-xs font-semibold uppercase tracking-wide">{t('chat.quoteLabel')}</div>

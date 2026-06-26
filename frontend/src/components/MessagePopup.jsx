@@ -42,7 +42,7 @@ export default function MessagePopup() {
           ? `💰 ${msg.quoteAmount?.toLocaleString()} kr`
           : msg.message?.length > 60 ? msg.message.slice(0, 60) + '…' : msg.message;
 
-        setPopup({ senderName: msg.senderName, message: preview, path });
+        setPopup({ senderName: msg.senderRole === 'admin' ? 'Admin' : msg.senderName, message: preview, path });
 
         clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => setPopup(null), DISMISS_MS);

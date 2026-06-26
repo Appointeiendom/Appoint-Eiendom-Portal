@@ -34,6 +34,14 @@ export default function MaintenanceDashboard() {
           <div>
             <h1 className="text-2xl font-bold text-gray-800">{t('maintenance.welcomeMsg')} {user?.name}</h1>
             <p className="text-gray-500 text-sm">{t('maintenance.tradeLabel')} {user?.trade || profile?.trade}</p>
+            {profile?.avgRating != null ? (
+              <div className="flex items-center gap-1 mt-1">
+                <span className="text-amber-400 text-sm">{'★'.repeat(Math.round(profile.avgRating))}{'☆'.repeat(5 - Math.round(profile.avgRating))}</span>
+                <span className="text-xs text-gray-500">{profile.avgRating} ({t('rating.reviews')(profile.ratingCount)})</span>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 mt-1">{t('rating.noRatings')}</p>
+            )}
           </div>
         </div>
 

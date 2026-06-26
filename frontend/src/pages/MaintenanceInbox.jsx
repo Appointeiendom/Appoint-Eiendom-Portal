@@ -31,9 +31,8 @@ export default function MaintenanceInbox() {
 
         {/* Thread list */}
         <div className="w-72 shrink-0 border-r border-gray-200 flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <div className="px-4 py-3 border-b border-gray-100">
             <p className="font-semibold text-gray-800">💬 {t('maintenance.inbox')}</p>
-            {totalUnread > 0 && <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{totalUnread}</span>}
           </div>
 
           <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
@@ -48,7 +47,7 @@ export default function MaintenanceInbox() {
                 const { issue, lastMessage, unreadCount } = thread;
                 const isActive = activeThread?.issue._id === issue._id;
                 return (
-                  <button key={issue._id} onClick={() => setActiveThread(thread)}
+                  <button key={issue._id} onClick={() => { setActiveThread(thread); setThreads(prev => prev.map(th => th.issue._id === issue._id ? { ...th, unreadCount: 0 } : th)); }}
                     className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${isActive ? 'bg-emerald-50 border-l-4 border-emerald-500' : 'border-l-4 border-transparent'}`}>
                     <div className="flex items-start gap-2">
                       <div className="flex-1 min-w-0">

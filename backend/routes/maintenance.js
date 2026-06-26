@@ -116,7 +116,7 @@ router.get('/:id/jobs', protect, async (req, res) => {
     const issues = await Issue.find({ _id: { $in: threadIssueIds } })
       .populate('tenantId', 'name unit')
       .sort({ updatedAt: -1 })
-      .select('title category status unit createdAt updatedAt');
+      .select('title category status unit createdAt updatedAt rating ratingComment');
     res.json(issues);
   } catch (err) {
     res.status(500).json({ message: err.message });

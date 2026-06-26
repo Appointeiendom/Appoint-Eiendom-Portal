@@ -244,6 +244,8 @@ export default {
     resetPlaceholder: 'Min. 6 tegn',
     resetBtn: 'Oppdater og send',
     resetting: 'Lagrer...',
+    leaseStart: 'Leiestart',
+    leaseEnd: 'Leieavslutning',
     resetSuccess: 'Passord oppdatert og sendt',
     resetFailed: 'Kunne ikke tilbakestille passord',
     noBuilding: 'Ingen adresse registrert',

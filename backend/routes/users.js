@@ -27,7 +27,7 @@ router.put('/profile', protect, async (req, res) => {
 // POST /api/users  — admin creates a tenant account
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
-    const { name, email, unit, building, phone, password: customPassword } = req.body;
+    const { name, email, unit, building, phone, password: customPassword, leaseStart, leaseEnd } = req.body;
     if (!name || !email || !unit) {
       return res.status(400).json({ message: 'Name, email and unit are required' });
     }
@@ -42,6 +42,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
 
     const user = await User.create({
       name, email, password: rawPassword, role: 'tenant', unit, building, phone,
+      leaseStart: leaseStart || null, leaseEnd: leaseEnd || null,
     });
 
     // Send welcome email in background (non-blocking)

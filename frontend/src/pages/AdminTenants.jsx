@@ -244,7 +244,7 @@ export default function AdminTenants() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', unit: '', building: '', phone: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', unit: '', building: '', phone: '', password: '', leaseStart: '', leaseEnd: '' });
   const [saving, setSaving] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
   const [lightbox, setLightbox] = useState(null);
@@ -267,7 +267,7 @@ export default function AdminTenants() {
     try {
       await api.post('/users', form);
       toast.success(t('tenants.addSuccess'));
-      setForm({ name: '', email: '', unit: '', building: '', phone: '', password: '' });
+      setForm({ name: '', email: '', unit: '', building: '', phone: '', password: '', leaseStart: '', leaseEnd: '' });
       setShowForm(false);
       fetchTenants();
     } catch (err) {
@@ -396,6 +396,16 @@ export default function AdminTenants() {
                 </label>
                 <input type="text" value={form.password} onChange={update('password')}
                   placeholder={t('tenants.passwordHint')}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('tenants.leaseStart')}</label>
+                <input type="date" value={form.leaseStart} onChange={update('leaseStart')}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('tenants.leaseEnd')}</label>
+                <input type="date" value={form.leaseEnd} onChange={update('leaseEnd')}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
               </div>
             </div>

@@ -235,6 +235,8 @@ export default {
     resetPlaceholder: 'Min 6 characters',
     resetBtn: 'Update & Email',
     resetting: 'Saving...',
+    leaseStart: 'Lease Start',
+    leaseEnd: 'Lease End',
     resetSuccess: 'Password updated and emailed',
     resetFailed: 'Failed to reset password',
     noBuilding: 'No address registered',

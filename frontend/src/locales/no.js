@@ -40,6 +40,15 @@ export default {
     noAccount: 'Ingen konto funnet med disse opplysningene',
     welcome: (name) => `Velkommen tilbake, ${name}!`,
     loginFailed: 'Innlogging mislyktes',
+    createAccount: 'Opprett konto',
+    registerSubtitle: 'Registrer deg som leietaker',
+    registering: 'Oppretter konto...',
+    registerSuccess: 'Konto opprettet! Velkommen.',
+    registerFailed: 'Registrering mislyktes',
+    alreadyAccount: 'Har du allerede en konto?',
+    signInLink: 'Logg inn',
+    unitAddress: 'Enhet / Adresse',
+    unitPlaceholder: 'f.eks. Storgata 12 - Enhet 3A',
   },
 
   // Sidebar / Nav

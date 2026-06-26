@@ -6,13 +6,15 @@ const User = require('../models/User');
 const { sendAnnouncementEmail } = require('../services/emailService');
 const { sendAnnouncementSMS } = require('../services/smsService');
 
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // GET /api/announcements — filtered by tenant's building if applicable
 router.get('/', protect, async (req, res) => {
   try {
     let filter = {};
     if (req.user.role === 'tenant' && req.user.unit) {
       // Show announcements targeted to their building address or all (null)
-      filter = { $or: [{ building: null }, { building: { $regex: new RegExp(`^${req.user.unit.trim()}$`, 'i') } }] };
+      filter = { $or: [{ building: null }, { building: { $regex: new RegExp(`^${escapeRegex(req.user.unit.trim())}$`, 'i') } }] };
     }
     const announcements = await Announcement.find(filter).sort({ createdAt: -1 }).limit(50);
     res.json(announcements);
@@ -41,7 +43,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
     if (!title || !body) return res.status(400).json({ message: 'Title and body are required' });
 
     const tenantFilter = { role: 'tenant' };
-    if (building) tenantFilter.unit = { $regex: new RegExp(`^${building.trim()}$`, 'i') };
+    if (building) tenantFilter.unit = { $regex: new RegExp(`^${escapeRegex(building.trim())}$`, 'i') };
 
     const tenants = await User.find(tenantFilter).select('email name phone');
     const announcement = await Announcement.create({

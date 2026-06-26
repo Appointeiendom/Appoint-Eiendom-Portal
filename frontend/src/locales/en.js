@@ -38,6 +38,15 @@ export default {
     noAccount: 'No account found with these credentials',
     welcome: (name) => `Welcome back, ${name}!`,
     loginFailed: 'Login failed',
+    createAccount: 'Create Account',
+    registerSubtitle: 'Register as a tenant',
+    registering: 'Creating account...',
+    registerSuccess: 'Account created! Welcome.',
+    registerFailed: 'Registration failed',
+    alreadyAccount: 'Already have an account?',
+    signInLink: 'Sign in',
+    unitAddress: 'Unit / Address',
+    unitPlaceholder: 'e.g. Storgata 12 - Unit 3A',
   },
 
   nav: {

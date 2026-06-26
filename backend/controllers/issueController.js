@@ -3,6 +3,8 @@ const User = require('../models/User');
 const { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail, sendResponsibilityEmail } = require('../services/emailService');
 const { sendIssueStatusSMS } = require('../services/smsService');
 
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // GET /api/issues
 const getIssues = async (req, res) => {
   try {
@@ -15,7 +17,7 @@ const getIssues = async (req, res) => {
     if (status) filter.status = status;
     if (category) filter.category = category;
     if (tenant && req.user.role === 'admin') {
-      const tenantUser = await User.findOne({ name: { $regex: tenant, $options: 'i' } });
+      const tenantUser = await User.findOne({ name: { $regex: escapeRegex(tenant), $options: 'i' } });
       if (tenantUser) filter.tenantId = tenantUser._id;
     }
     if (search) {

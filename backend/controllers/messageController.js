@@ -1,5 +1,6 @@
 const Message = require('../models/Message');
 const Issue = require('../models/Issue');
+const mongoose = require('mongoose');
 
 // GET /api/messages/:issueId  OR  /api/messages/:issueId/maintenance/:maintenanceId
 const getMessages = async (req, res) => {
@@ -62,12 +63,15 @@ const sendMessage = async (req, res) => {
 // GET unread count for a user
 const getUnreadCount = async (req, res) => {
   try {
-    const oppositeRole = req.user.role === 'tenant' ? 'admin' : 'tenant';
-    const count = await Message.countDocuments({
-      senderRole: oppositeRole,
-      isRead: false,
-      ...(req.user.role === 'tenant' ? {} : {}),
-    });
+    let filter = { isRead: false };
+    if (req.user.role === 'tenant') {
+      const userIssueIds = await Issue.distinct('_id', { tenantId: req.user._id });
+      filter.issueId = { $in: userIssueIds };
+      filter.senderRole = 'admin';
+    } else if (req.user.role === 'admin') {
+      filter.senderRole = 'tenant';
+    }
+    const count = await Message.countDocuments(filter);
     res.json({ count });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -85,32 +89,51 @@ const getMaintenanceThreads = async (req, res) => {
     if (isAdmin && !filterIssueId) return res.json([]);
 
     const matchFilter = isAdmin
-      ? { issueId: require('mongoose').Types.ObjectId.createFromHexString(filterIssueId), maintenanceId: { $ne: null } }
+      ? { issueId: mongoose.Types.ObjectId.createFromHexString(filterIssueId), maintenanceId: { $ne: null } }
       : { maintenanceId: req.user._id };
 
-    // Get distinct (issueId, maintenanceId) pairs
-    const pairs = await Message.aggregate([
+    const threads = await Message.aggregate([
       { $match: matchFilter },
-      { $group: { _id: { issueId: '$issueId', maintenanceId: '$maintenanceId' } } },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: { issueId: '$issueId', maintenanceId: '$maintenanceId' },
+          lastMessage: { $first: '$$ROOT' },
+          unreadCount: {
+            $sum: {
+              $cond: [{ $and: [{ $eq: ['$senderRole', 'tenant'] }, { $eq: ['$isRead', false] }] }, 1, 0],
+            },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: 'issues',
+          localField: '_id.issueId',
+          foreignField: '_id',
+          as: 'issue',
+        },
+      },
+      { $unwind: '$issue' },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'issue.tenantId',
+          foreignField: '_id',
+          as: 'issue.tenantId',
+          pipeline: [{ $project: { name: 1, email: 1, unit: 1, building: 1 } }],
+        },
+      },
+      { $unwind: { path: '$issue.tenantId', preserveNullAndEmptyArrays: true } },
+      { $sort: { 'lastMessage.createdAt': -1 } },
     ]);
 
-    const threads = await Promise.all(pairs.map(async ({ _id: { issueId, maintenanceId } }) => {
-      const issue = await Issue.findById(issueId).populate('tenantId', 'name email unit building');
-      if (!issue) return null;
-
-      const lastMsg = await Message.findOne({ issueId, maintenanceId }).sort({ createdAt: -1 });
-
-      const unread = await Message.countDocuments({
-        issueId,
-        maintenanceId,
-        senderRole: 'tenant',
-        isRead: false,
-      });
-
-      return { issue, maintenanceId, lastMessage: lastMsg, unreadCount: unread };
-    }));
-
-    res.json(threads.filter(Boolean));
+    res.json(threads.map(t => ({
+      issue: t.issue,
+      maintenanceId: t._id.maintenanceId,
+      lastMessage: t.lastMessage,
+      unreadCount: t.unreadCount,
+    })));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

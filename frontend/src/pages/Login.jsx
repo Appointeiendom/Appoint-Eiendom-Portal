@@ -10,7 +10,7 @@ const policy = {
     sections: [
       {
         heading: '1. Behandlingsansvarlig',
-        body: 'Appoint Eiendom AS er behandlingsansvarlig for personopplysningene som behandles i denne portalen, i samsvar med personopplysningsloven (2018) og EUs personvernforordning (GDPR). Portalen benyttes til administrasjon av flere eiendommer og selskaper som er eid og drevet av samme eier. Alle disse eiendommene faller inn under samme behandlingsansvarlige og samme personvernerklæring.',
+        body: 'Service Portal er behandlingsansvarlig for personopplysningene som behandles i denne portalen, i samsvar med personopplysningsloven (2018) og EUs personvernforordning (GDPR). Portalen benyttes til administrasjon av flere eiendommer og selskaper som er eid og drevet av samme eier. Alle disse eiendommene faller inn under samme behandlingsansvarlige og samme personvernerklæring.',
         extra: [
           'Kontakt: sameer@superstay.no',
           'Fullstendige juridiske opplysninger (organisasjonsnummer, forretningsadresse) er tilgjengelig på forespørsel.',
@@ -108,7 +108,7 @@ const policy = {
     sections: [
       {
         heading: '1. Data Controller',
-        body: 'Appoint Eiendom AS is the data controller for all personal data processed in this portal, in accordance with the Norwegian Personal Data Act (2018) and the EU General Data Protection Regulation (GDPR). Multiple properties and company names are administered through this portal, all owned and operated by the same individual and covered by this single privacy policy.',
+        body: 'Service Portal is the data controller for all personal data processed in this portal, in accordance with the Norwegian Personal Data Act (2018) and the EU General Data Protection Regulation (GDPR). Multiple properties and company names are administered through this portal, all owned and operated by the same individual and covered by this single privacy policy.',
         extra: [
           'Contact: sameer@superstay.no',
           'Full legal entity details (organisation number, business address) are available upon request.',
@@ -244,7 +244,7 @@ export default function Login() {
           <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="text-white font-bold text-xl">AE</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Appoint Eiendom AS</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Service Portal</h1>
           <p className="text-gray-500 text-sm mt-1">{t('auth.signin')}</p>
         </div>
 

@@ -60,7 +60,7 @@ const sendNewIssueEmail = async (issue, tenant) => {
             <a href="${issueUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View Issue in Dashboard</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Appoint Eiendom AS</p>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Service Portal</p>
       </div>
     `;
 
@@ -117,7 +117,7 @@ const sendStatusChangeEmail = async (issue, tenant, updatedBy) => {
             <a href="${issueUrl}" style="background: #3B82F6; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View Issue</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Appoint Eiendom AS</p>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Service Portal</p>
       </div>
     `;
 
@@ -177,7 +177,7 @@ const sendTenantConfirmationEmail = async (issue, tenant) => {
             <a href="${issueUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View My Issue</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Appoint Eiendom AS</p>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Service Portal</p>
       </div>
     `;
 
@@ -232,7 +232,7 @@ const sendTenantStatusEmail = async (issue, tenant) => {
             <a href="${issueUrl}" style="background: ${statusColor(issue.status)}; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View Issue</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Appoint Eiendom AS</p>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Service Portal</p>
       </div>
     `;
 
@@ -274,7 +274,7 @@ const sendResponsibilityEmail = async (issue, tenant) => {
             <a href="${portalUrl}" style="background: #F59E0B; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View Issue &amp; Find Maintenance</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Appoint Eiendom AS — Tenant Portal</p>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Service Portal</p>
       </div>
     `;
 
@@ -320,7 +320,7 @@ const sendChatNotificationEmail = async ({ toEmail, toName, fromName, fromRole, 
             <a href="${issueUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Reply in Portal</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Appoint Eiendom AS — Tenant Portal</p>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Service Portal</p>
       </div>
     `;
 
@@ -341,7 +341,7 @@ const sendOtpEmail = async (toEmail, otp) => {
   await sgMail.send({
     from: FROM,
     to: toEmail,
-    subject: 'Bekreft ny e-postadresse — Appoint Eiendom',
+    subject: 'Bekreft ny e-postadresse — Service Portal',
     html: `
       <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
         <div style="background:#10B981;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
@@ -362,7 +362,7 @@ const sendOtpEmail = async (toEmail, otp) => {
 
 const sendAnnouncementEmail = async (tenants, title, body) => {
   try {
-    const emails = tenants.map(t => ({ to: t.email, from: FROM, subject: `📢 ${title} — Appoint Eiendom`, html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px;"><div style="background:#10B981;padding:20px;border-radius:8px 8px 0 0;text-align:center;"><h1 style="color:white;margin:0;font-size:22px;">📢 ${title}</h1></div><div style="background:white;padding:30px;border-radius:0 0 8px 8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);"><p style="color:#4B5563;margin-top:0;">Hi <strong>${t.name}</strong>,</p><div style="background:#F9FAFB;border-left:4px solid #10B981;padding:16px;border-radius:4px;white-space:pre-wrap;color:#1F2937;line-height:1.6;">${body}</div><p style="color:#9CA3AF;font-size:12px;margin-top:24px;">Appoint Eiendom AS — Tenant Portal</p></div></div>` }));
+    const emails = tenants.map(t => ({ to: t.email, from: FROM, subject: `📢 ${title} — Service Portal`, html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px;"><div style="background:#10B981;padding:20px;border-radius:8px 8px 0 0;text-align:center;"><h1 style="color:white;margin:0;font-size:22px;">📢 ${title}</h1></div><div style="background:white;padding:30px;border-radius:0 0 8px 8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);"><p style="color:#4B5563;margin-top:0;">Hi <strong>${t.name}</strong>,</p><div style="background:#F9FAFB;border-left:4px solid #10B981;padding:16px;border-radius:4px;white-space:pre-wrap;color:#1F2937;line-height:1.6;">${body}</div><p style="color:#9CA3AF;font-size:12px;margin-top:24px;">Service Portal</p></div></div>` }));
     for (const msg of emails) { await sgMail.send(msg).catch(e => console.error('Announcement email failed:', e.message)); }
   } catch (err) { console.error('sendAnnouncementEmail error:', err.message); }
 };
@@ -412,7 +412,7 @@ async function sendWelcomeEmail(tenant, rawPassword) {
           <p style="color: #6B7280; font-size: 12px; margin: 0 0 4px 0; font-style: italic;">Last updated: 15 June 2026</p>
 
           <div style="margin-top: 12px; font-size: 12px; color: #6B7280; line-height: 1.6;">
-            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">1. Data controller</strong><br>Appoint Eiendom AS (org. no. 891608772) is the data controller for personal data we collect through this website and in connection with our services.</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">1. Data controller</strong><br>Service Portal (org. no. 891608772) is the data controller for personal data we collect through this website and in connection with our services.</p>
             <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">2. Data we collect</strong><br>We may collect your name, email address, phone number, and any information you provide via the contact form. We also collect technical data such as IP address and browser information via cookies.</p>
             <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">3. Purpose of processing</strong><br>Personal data is used to respond to enquiries, administer tenancy agreements, deliver contracted services, and fulfil legal obligations.</p>
             <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">4. Legal basis</strong><br>Processing of personal data is based on contract (GDPR art. 6(1)(b)), legitimate interest (art. 6(1)(f)), or consent (art. 6(1)(a)) where relevant.</p>
@@ -421,7 +421,7 @@ async function sendWelcomeEmail(tenant, rawPassword) {
             <p style="margin: 0;"><strong style="color: #374151;">7. Contact</strong><br>For privacy-related questions, contact us at <a href="mailto:post@appointeiendom.no" style="color: #10B981;">post@appointeiendom.no</a>.</p>
           </div>
 
-          <p style="color: #9CA3AF; font-size: 11px; margin-top: 16px;">Appoint Eiendom AS · Org.nr. 891608772</p>
+          <p style="color: #9CA3AF; font-size: 11px; margin-top: 16px;">Service Portal · Org.nr. 891608772</p>
         </div>
       </div>
     `;

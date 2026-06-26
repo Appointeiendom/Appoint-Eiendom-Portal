@@ -67,7 +67,7 @@ const sendDigest = async () => {
             <a href="${process.env.FRONTEND_URL}/admin/issues" style="background:#10B981;color:white;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">View All Issues</a>
           </div>
         </div>
-        <p style="text-align:center;color:#9CA3AF;font-size:12px;margin-top:20px;">Appoint Eiendom AS</p>
+        <p style="text-align:center;color:#9CA3AF;font-size:12px;margin-top:20px;">Service Portal</p>
       </div>
     `;
 

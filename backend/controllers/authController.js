@@ -44,7 +44,7 @@ const login = async (req, res) => {
     if (!user || !(await user.matchPassword(password))) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
-    if (!user.isActive) return res.status(403).json({ message: 'Your access has expired. Please contact your landlord.' });
+    if (!user.isActive) return res.status(403).json({ message: 'Your access has expired. Please contact your admin.' });
 
     res.json({
       _id: user._id,

@@ -408,20 +408,25 @@ async function sendWelcomeEmail(tenant, rawPassword) {
           </div>
         </div>
         <div style="margin-top: 32px; border-top: 1px solid #E5E7EB; padding-top: 24px;">
-          <p style="color: #374151; font-weight: bold; font-size: 14px; margin: 0 0 16px 0;">Privacy Policy</p>
-          <p style="color: #6B7280; font-size: 12px; margin: 0 0 4px 0; font-style: italic;">Last updated: 15 June 2026</p>
+          <p style="color: #374151; font-weight: bold; font-size: 14px; margin: 0 0 4px 0;">Privacy Policy</p>
+          <p style="color: #6B7280; font-size: 11px; margin: 0 0 16px 0; font-style: italic;">Last updated: 15 June 2026</p>
 
-          <div style="margin-top: 12px; font-size: 12px; color: #6B7280; line-height: 1.6;">
-            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">1. Data controller</strong><br>Service Portal (org. no. 891608772) is the data controller for personal data we collect through this website and in connection with our services.</p>
-            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">2. Data we collect</strong><br>We may collect your name, email address, phone number, and any information you provide via the contact form. We also collect technical data such as IP address and browser information via cookies.</p>
-            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">3. Purpose of processing</strong><br>Personal data is used to respond to enquiries, administer tenancy agreements, deliver contracted services, and fulfil legal obligations.</p>
-            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">4. Legal basis</strong><br>Processing of personal data is based on contract (GDPR art. 6(1)(b)), legitimate interest (art. 6(1)(f)), or consent (art. 6(1)(a)) where relevant.</p>
-            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">5. Sharing of data</strong><br>We do not share personal data with third parties beyond what is necessary to deliver our services, or where we are legally required to do so.</p>
-            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">6. Your rights</strong><br>You have the right to access, rectify, erase, and port your data. You may file a complaint with the Norwegian Data Protection Authority (datatilsynet.no) if you believe we process your data unlawfully.</p>
-            <p style="margin: 0;"><strong style="color: #374151;">7. Contact</strong><br>For privacy-related questions, contact us at <a href="mailto:post@appointeiendom.no" style="color: #10B981;">post@appointeiendom.no</a>.</p>
+          <div style="font-size: 12px; color: #6B7280; line-height: 1.6;">
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">1. Data Controller</strong><br>Service Portal is the data controller for all personal data processed in this portal, in accordance with the Norwegian Personal Data Act (2018) and the EU General Data Protection Regulation (GDPR). Multiple properties and company names are administered through this portal, all owned and operated by the same individual and covered by this single privacy policy.<br><span style="color:#9CA3AF;">Contact: sameer@superstay.no · Full legal entity details available upon request.</span></p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">2. What Personal Data We Collect</strong><br>Full name, email address, phone number · Residential address and apartment number · Lease period · Login credentials (encrypted) · Maintenance issues: title, description, category, photos · Messages and communications · Profile photo (optional) · IP addresses and technical logs.</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">3. Purpose &amp; Legal Basis</strong><br>Managing tenancy agreements (GDPR Art. 6(1)(b)) · Processing maintenance requests (Art. 6(1)(b)) · Issue status notifications (Art. 6(1)(f)) · Announcements to tenants (Art. 6(1)(f)) · Document sharing (Art. 6(1)(b)) · Security and access control (Art. 6(1)(f)).</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">4. Third-Party Processors</strong><br>MongoDB Atlas (USA) — database · Cloudinary (USA) — image storage · SendGrid / Twilio (USA) — email &amp; SMS · Render (USA) — server hosting · Vercel (USA) — website hosting. All bound by data processing agreements.</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">5. International Data Transfers</strong><br>All processors are located in the USA. Transfers are carried out under EU Standard Contractual Clauses (SCCs) pursuant to GDPR Art. 46(2)(c).</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">6. Data Retention</strong><br>Account data: tenancy duration + 3 years · Resolved maintenance issues: deleted 7 days after resolution · Messages: 3 years after tenancy ends · Accounting data: 5 years (Norwegian Accounting Act § 13) · Security logs: 90 days.</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">7. Cookies &amp; Local Storage</strong><br>The portal uses browser sessionStorage and localStorage to store login tokens, language preferences, and read notifications. No third-party tracking cookies are used. This data never leaves your device.</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">8. Security</strong><br>Passwords are encrypted with bcrypt. All communication is encrypted via TLS/HTTPS. Access is restricted to authorised users through role-based access control (GDPR Art. 32).</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">9. Automated Decision-Making</strong><br>We do not carry out any automated decision-making or profiling with legal or similarly significant effects (GDPR Art. 22).</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">10. Your Rights</strong><br>Under GDPR you have the right to: Access (Art. 15) · Rectification (Art. 16) · Erasure (Art. 17) · Restriction (Art. 18) · Data portability (Art. 20) · Objection (Art. 21) · Withdraw consent at any time.<br><span style="color:#9CA3AF;">To exercise your rights, contact us at <a href="mailto:sameer@superstay.no" style="color: #10B981;">sameer@superstay.no</a>. We respond within 30 days per GDPR Art. 12.</span></p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">11. Right to Lodge a Complaint</strong><br>You have the right to lodge a complaint with the Norwegian Data Protection Authority (Datatilsynet) if you believe we are processing your personal data unlawfully.<br><span style="color:#9CA3AF;">Datatilsynet — www.datatilsynet.no — tel. 74 07 70 00</span></p>
+            <p style="margin: 0;"><strong style="color: #374151;">12. Policy Updates</strong><br>Tenants will be notified of material changes via email or the portal. The current version is always available on the login page.</p>
           </div>
 
-          <p style="color: #9CA3AF; font-size: 11px; margin-top: 16px;">Service Portal · Org.nr. 891608772</p>
+          <p style="color: #9CA3AF; font-size: 11px; margin-top: 16px;">Service Portal · <a href="mailto:sameer@superstay.no" style="color:#9CA3AF;">sameer@superstay.no</a></p>
         </div>
       </div>
     `;

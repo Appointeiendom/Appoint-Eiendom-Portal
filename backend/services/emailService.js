@@ -379,7 +379,7 @@ async function sendWelcomeEmail(tenant, rawPassword) {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
         <div style="background: #10B981; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to Appoint Eiendom 🏠</h1>
+          <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to the Service Portal 🏠</h1>
         </div>
         <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
           <p style="color: #4B5563; margin-top: 0;">Hi <strong>${tenant.name}</strong>,</p>
@@ -407,14 +407,16 @@ async function sendWelcomeEmail(tenant, rawPassword) {
             <a href="${loginUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Login to Portal</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Appoint Eiendom AS</p>
+        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">
+          <a href="https://www.appointegiendom.no/personvern" style="color: #9CA3AF; text-decoration: underline;">Privacy Policy</a>
+        </p>
       </div>
     `;
 
     await sgMail.send({
       from: FROM,
       to: tenant.email,
-      subject: `Welcome to Appoint Eiendom — Your Login Details`,
+      subject: `Welcome to the Service Portal — Your Login Details`,
       html,
     });
 

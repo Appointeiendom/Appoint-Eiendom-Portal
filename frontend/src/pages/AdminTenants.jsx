@@ -38,13 +38,16 @@ function PhotoCell({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
   );
 }
 
-function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, t }) {
+function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, onToggleActive, t }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0">
+    <div className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0 ${!tenant.isActive ? 'opacity-60 bg-gray-50' : ''}`}>
       <PhotoCell tenant={tenant} uploadingId={uploadingId}
         onPhotoUpload={onPhotoUpload} onPhotoDelete={onPhotoDelete} onPhotoView={onPhotoView} />
       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onEdit(tenant)}>
-        <p className="text-sm font-medium text-gray-800 hover:text-emerald-600 transition-colors">{tenant.name}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium text-gray-800 hover:text-emerald-600 transition-colors">{tenant.name}</p>
+          {!tenant.isActive && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">Expired</span>}
+        </div>
         <p className="text-xs text-gray-500 truncate">{tenant.email}{tenant.phone ? ` · ${tenant.phone}` : ''}</p>
         {tenant.building && <p className="text-xs text-gray-400">Apartment {tenant.building}</p>}
       </div>
@@ -57,6 +60,10 @@ function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
           className="text-xs text-blue-500 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded transition-colors">
           {t('tenants.resetPassword')}
         </button>
+        <button onClick={() => onToggleActive(tenant)}
+          className={`text-xs px-2 py-1 rounded transition-colors ${tenant.isActive ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-50' : 'text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50'}`}>
+          {tenant.isActive ? 'Expire' : 'Reactivate'}
+        </button>
         <button onClick={() => onDelete(tenant._id, tenant.name)}
           className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors">
           {t('common.delete')}
@@ -66,7 +73,7 @@ function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
   );
 }
 
-function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, t }) {
+function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, onToggleActive, t }) {
   const normalize = (str) => str.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
   const groups = tenants.reduce((acc, tenant) => {
     const key = (tenant.unit && tenant.unit.trim()) ? normalize(tenant.unit) : t('tenants.noBuilding');
@@ -122,7 +129,7 @@ function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, on
                 {group.map(tenant => (
                   <TenantRow key={tenant._id} tenant={tenant} uploadingId={uploadingId} t={t}
                     onPhotoUpload={onPhotoUpload} onPhotoDelete={onPhotoDelete}
-                    onPhotoView={onPhotoView} onReset={onReset} onDelete={onDelete} onEdit={onEdit} />
+                    onPhotoView={onPhotoView} onReset={onReset} onDelete={onDelete} onEdit={onEdit} onToggleActive={onToggleActive} />
                 ))}
               </div>
             )}
@@ -274,6 +281,18 @@ export default function AdminTenants() {
       toast.error(err.response?.data?.message || t('tenants.addFailed'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleToggleActive = async (tenant) => {
+    const action = tenant.isActive ? 'expire' : 'reactivate';
+    if (!window.confirm(`${action === 'expire' ? 'Expire' : 'Reactivate'} ${tenant.name}'s account?`)) return;
+    try {
+      const res = await api.put(`/users/${tenant._id}/toggle-active`);
+      setTenants(prev => prev.map(t => t._id === tenant._id ? { ...t, isActive: res.data.isActive } : t));
+      toast.success(res.data.isActive ? `${tenant.name} reactivated` : `${tenant.name}'s access expired`);
+    } catch {
+      toast.error('Failed to update access');
     }
   };
 
@@ -430,7 +449,8 @@ export default function AdminTenants() {
             onPhotoView={setLightbox}
             onReset={(tenant) => { setResetTarget(tenant); setNewPassword(''); }}
             onDelete={handleDelete}
-            onEdit={setEditTarget} />
+            onEdit={setEditTarget}
+            onToggleActive={handleToggleActive} />
         )}
       </div>
 

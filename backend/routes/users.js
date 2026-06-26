@@ -81,6 +81,19 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
   }
 });
 
+// PUT /api/users/:id/toggle-active (admin only — expire or reactivate tenant)
+router.put('/:id/toggle-active', protect, adminOnly, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.isActive = !user.isActive;
+    await user.save();
+    res.json({ isActive: user.isActive });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // PUT /api/users/:id/reset-password (admin only)
 router.put('/:id/reset-password', protect, adminOnly, async (req, res) => {
   try {

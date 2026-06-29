@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import Layout from '../components/Layout';
 import { useLanguage } from '../context/LanguageContext';
@@ -144,6 +144,63 @@ function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, on
   );
 }
 
+// Searchable dropdown component
+function SearchableSelect({ options, value, onChange, placeholder, disabled, renderOption, getLabel, getKey, isDisabled }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef(null);
+  const inputRef = useRef(null);
+
+  const filtered = options.filter(o => getLabel(o).toLowerCase().includes(search.toLowerCase()));
+  const selectedOption = options.find(o => getKey(o) === value);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  useEffect(() => {
+    if (open && inputRef.current) inputRef.current.focus();
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button type="button" onClick={() => !disabled && setOpen(o => !o)}
+        className={`w-full border rounded-lg px-3 py-2.5 text-sm text-left flex justify-between items-center transition-colors ${disabled ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-300 bg-white hover:border-emerald-400 focus:outline-none'} ${open ? 'ring-2 ring-emerald-400 border-emerald-400' : ''}`}>
+        <span className={selectedOption ? 'text-gray-800' : 'text-gray-400'}>
+          {selectedOption ? getLabel(selectedOption) : (disabled ? '—' : placeholder)}
+        </span>
+        <span className="text-gray-400 text-xs ml-2">▾</span>
+      </button>
+      {open && (
+        <div className="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search…"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+          </div>
+          <div className="max-h-52 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="text-xs text-gray-400 px-4 py-3 text-center">No results</p>
+            ) : filtered.map(opt => {
+              const key = getKey(opt);
+              const dis = isDisabled ? isDisabled(opt) : false;
+              return (
+                <button key={key} type="button" disabled={dis}
+                  onClick={() => { onChange(key); setOpen(false); setSearch(''); }}
+                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${key === value ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700 hover:bg-gray-50'} ${dis ? 'opacity-40 cursor-not-allowed' : ''}`}>
+                  {renderOption ? renderOption(opt) : getLabel(opt)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Reusable building+apartment selector
 function BuildingApartmentPicker({ buildings, buildingId, apartmentId, onBuildingChange, onApartmentChange, excludeTenantId }) {
   const [apts, setApts] = useState([]);
@@ -169,26 +226,37 @@ function BuildingApartmentPicker({ buildings, buildingId, apartmentId, onBuildin
     <>
       <div className="col-span-2 sm:col-span-1">
         <label className="block text-xs font-medium text-gray-600 mb-1">Building *</label>
-        <select required value={buildingId} onChange={e => { onBuildingChange(e.target.value); onApartmentChange(''); }}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
-          <option value="">Select building…</option>
-          {buildings.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
-        </select>
+        <SearchableSelect
+          options={buildings}
+          value={buildingId}
+          onChange={v => { onBuildingChange(v); onApartmentChange(''); }}
+          placeholder="Select building…"
+          getKey={b => b._id}
+          getLabel={b => b.name + (b.address ? ` — ${b.address}` : '')}
+        />
       </div>
       <div className="col-span-2 sm:col-span-1">
-        <label className="block text-xs font-medium text-gray-600 mb-1">Apartment *</label>
-        <select required value={apartmentId} onChange={e => onApartmentChange(e.target.value)}
+        <label className="block text-xs font-medium text-gray-600 mb-1">Unit Number *</label>
+        <SearchableSelect
+          options={apts}
+          value={apartmentId}
+          onChange={onApartmentChange}
+          placeholder={loadingApts ? 'Loading…' : buildingId ? 'Select unit…' : 'Select building first'}
           disabled={!buildingId || loadingApts}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white disabled:bg-gray-50 disabled:text-gray-400">
-          <option value="">{loadingApts ? 'Loading…' : 'Select apartment…'}</option>
-          {apts.map(apt => (
-            <option key={apt._id} value={apt._id} disabled={apt.isOccupied}>
-              {apt.number}{apt.floor ? ` (${apt.floor})` : ''}{apt.type ? ` — ${apt.type}` : ''}{apt.isOccupied ? ` · Occupied by ${apt.occupantName}` : ''}
-            </option>
-          ))}
-        </select>
+          getKey={a => a._id}
+          getLabel={a => a.number + (a.floor ? ` (${a.floor})` : '') + (a.type ? ` — ${a.type}` : '')}
+          renderOption={a => (
+            <span className={a.isOccupied ? 'opacity-50' : ''}>
+              <span className="font-medium">{a.number}</span>
+              {a.floor && <span className="text-gray-400 text-xs ml-1">({a.floor})</span>}
+              {a.type && <span className="text-gray-400 text-xs ml-1">— {a.type}</span>}
+              {a.isOccupied && <span className="text-xs text-red-400 ml-2">Occupied · {a.occupantName}</span>}
+            </span>
+          )}
+          isDisabled={a => a.isOccupied}
+        />
         {buildingId && apts.length === 0 && !loadingApts && (
-          <p className="text-xs text-gray-400 mt-1">No apartments in this building yet.</p>
+          <p className="text-xs text-gray-400 mt-1">No units in this building yet.</p>
         )}
       </div>
     </>
@@ -267,31 +335,14 @@ function EditModal({ tenant, buildings, onClose, onSaved, t }) {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
 
-            {buildings.length > 0 ? (
-              <BuildingApartmentPicker
-                buildings={buildings}
-                buildingId={form.buildingId}
-                apartmentId={form.apartmentId}
-                excludeTenantId={tenant._id}
-                onBuildingChange={v => setForm(f => ({ ...f, buildingId: v }))}
-                onApartmentChange={v => setForm(f => ({ ...f, apartmentId: v }))}
-              />
-            ) : (
-              <>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.unit')} *</label>
-                  <input type="text" required value={form.unit} onChange={up('unit')}
-                    placeholder={t('tenants.unitPlaceholder')}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.aptNumber')}</label>
-                  <input type="text" value={form.building} onChange={up('building')}
-                    placeholder={t('tenants.aptPlaceholder')}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-                </div>
-              </>
-            )}
+            <BuildingApartmentPicker
+              buildings={buildings}
+              buildingId={form.buildingId}
+              apartmentId={form.apartmentId}
+              excludeTenantId={tenant._id}
+              onBuildingChange={v => setForm(f => ({ ...f, buildingId: v }))}
+              onApartmentChange={v => setForm(f => ({ ...f, apartmentId: v }))}
+            />
 
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.phone')}</label>
@@ -512,30 +563,13 @@ export default function AdminTenants() {
                 <input type="email" required value={form.email} onChange={update('email')}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
               </div>
-              {buildings.length > 0 ? (
-                <BuildingApartmentPicker
-                  buildings={buildings}
-                  buildingId={form.buildingId}
-                  apartmentId={form.apartmentId}
-                  onBuildingChange={v => setForm(f => ({ ...f, buildingId: v, apartmentId: '' }))}
-                  onApartmentChange={v => setForm(f => ({ ...f, apartmentId: v }))}
-                />
-              ) : (
-                <>
-                  <div className="col-span-2 sm:col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('tenants.unit')} *</label>
-                    <input type="text" value={form.unit} onChange={update('unit')}
-                      placeholder={t('tenants.unitPlaceholder')}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-                  </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('tenants.aptNumber')}</label>
-                    <input type="text" value={form.building} onChange={update('building')}
-                      placeholder={t('tenants.aptPlaceholder')}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-                  </div>
-                </>
-              )}
+              <BuildingApartmentPicker
+                buildings={buildings}
+                buildingId={form.buildingId}
+                apartmentId={form.apartmentId}
+                onBuildingChange={v => setForm(f => ({ ...f, buildingId: v, apartmentId: '' }))}
+                onApartmentChange={v => setForm(f => ({ ...f, apartmentId: v }))}
+              />
               <div className="col-span-2 sm:col-span-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('tenants.phone')}</label>
                 <input type="tel" value={form.phone} onChange={update('phone')}

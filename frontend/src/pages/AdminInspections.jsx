@@ -205,11 +205,11 @@ function OverviewTab({ rows, onDeleteResponse }) {
 }
 
 function OverviewCell({ status }) {
-  if (!status || status.pass === null) return <div className="text-center text-gray-300 text-lg">—</div>;
-  if (status.pass) return <div className="text-center text-lg">✅</div>;
+  if (!status || status.pass === null) return <div className="text-center text-gray-400 text-xs">—</div>;
+  if (status.pass) return <div className="text-center text-sm">✅</div>;
   return (
     <div className="text-center">
-      <div className="text-lg">❌</div>
+      <div className="text-sm">❌</div>
       {status.reason && <p className="text-xs text-red-500 leading-tight mt-0.5">{status.reason}</p>}
     </div>
   );

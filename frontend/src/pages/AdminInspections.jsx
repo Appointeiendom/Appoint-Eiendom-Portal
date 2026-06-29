@@ -293,20 +293,33 @@ function IssueItemRow({ label, status }) {
 // ── Passed tab ────────────────────────────────────────────────────────────────
 
 function PassedTab({ rows, onDeleteResponse }) {
-  const passedRows = rows.filter(r => overallCategory(r.response) === 'passed');
+  // Show any tenant who has at least one passing item
+  const passedRows = rows.filter(r => {
+    const s = getItemStatuses(r.response);
+    return s && (s.fe.pass === true || s.sd.pass === true || s.sv.pass === true);
+  });
   if (!passedRows.length) return <Empty text="No passed responses yet." />;
+
+  const ITEMS = [
+    { key: 'fe', label: '🧯 Fire Ext' },
+    { key: 'sd', label: '🔔 Smoke Det' },
+    { key: 'sv', label: '🍳 Stove' },
+  ];
+
   return (
     <div className="bg-white rounded-xl border border-emerald-200 overflow-hidden">
       <div className="divide-y divide-gray-100">
-        {passedRows.map(row => (
+        {passedRows.map(row => {
+          const s = getItemStatuses(row.response);
+          return (
           <div key={row.tenant._id} className="px-5 py-3.5 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-800">{row.tenant.name}</p>
               <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · Unit ${row.tenant.building}` : ''}</p>
-              <div className="flex gap-1.5 mt-1.5">
-                <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">🧯 ✅</span>
-                <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">🔔 ✅</span>
-                <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">🍳 ✅</span>
+              <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                {ITEMS.filter(i => s[i.key].pass === true).map(i => (
+                  <span key={i.key} className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">{i.label} ✅</span>
+                ))}
               </div>
             </div>
             <div className="flex items-center gap-3 shrink-0">
@@ -321,7 +334,8 @@ function PassedTab({ rows, onDeleteResponse }) {
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

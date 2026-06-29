@@ -416,7 +416,7 @@ function ExportButton({ rows, inspectionDate }) {
 
 const TABS = [
   { id: 'overview',   label: 'Overview' },
-  { id: 'submitted',  label: 'Compliant' },
+  { id: 'submitted',  label: 'Passed' },
   { id: 'needs',      label: 'Needs Inspection' },
   { id: 'pending',    label: 'Pending' },
 ];
@@ -537,7 +537,7 @@ export default function AdminInspections() {
             <div className="grid grid-cols-4 gap-3 mb-5">
               {[
                 { label: 'Total', value: rows.length, color: 'text-gray-800' },
-                { label: 'Compliant', value: compliantCount, color: 'text-emerald-600' },
+                { label: 'Passed', value: compliantCount, color: 'text-emerald-600' },
                 { label: 'Pending', value: pendingCount, color: 'text-amber-600' },
                 { label: 'Needs Inspection', value: issueCount, color: 'text-red-600' },
               ].map(s => (

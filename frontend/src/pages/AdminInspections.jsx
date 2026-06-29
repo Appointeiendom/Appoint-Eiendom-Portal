@@ -4,430 +4,179 @@ import api from '../services/api';
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
 
+// ── Status logic ──────────────────────────────────────────────────────────────
+
 function itemStatus(data, type) {
   if (!data) return 'pending';
   if (type === 'fireExt') {
-    if (!data.present) return 'absent';
-    if (data.gaugeGreen === false || data.pinIntact === false) return 'issue';
+    if (!data.present) return 'fail';
+    if (data.gaugeGreen === false || data.pinIntact === false) return 'fail';
     return 'ok';
   }
-  if (!data.present) return 'absent';
-  if (data.needsInspection) return 'needs';
+  if (!data.present) return 'fail';
+  if (data.needsInspection) return 'fail';
   return 'ok';
 }
 
 function overallStatus(r) {
   if (!r) return 'pending';
-  const statuses = [itemStatus(r.fireExtinguisher, 'fireExt'), itemStatus(r.smokeDetector, 'det'), itemStatus(r.stoveSensor, 'det')];
-  if (statuses.includes('needs')) return 'needs';
-  if (statuses.includes('issue')) return 'issue';
-  if (statuses.includes('absent')) return 'absent';
-  if (statuses.every(s => s === 'ok')) return 'ok';
+  const s = [
+    itemStatus(r.fireExtinguisher, 'fireExt'),
+    itemStatus(r.smokeDetector, 'det'),
+    itemStatus(r.stoveSensor, 'det'),
+  ];
+  if (s.every(x => x === 'ok')) return 'passed';
+  if (s.includes('fail')) return 'issues';
   return 'pending';
 }
 
-const STATUS_CONFIG = {
-  ok:      { label: 'OK',               pill: 'bg-emerald-100 text-emerald-700', icon: '✅' },
-  absent:  { label: 'Absent',           pill: 'bg-amber-100 text-amber-700',     icon: '⚠️' },
-  issue:   { label: 'Issue',            pill: 'bg-amber-100 text-amber-700',     icon: '⚠️' },
-  needs:   { label: 'Needs Inspection', pill: 'bg-red-100 text-red-700',         icon: '🔴' },
-  pending: { label: 'Pending',          pill: 'bg-gray-100 text-gray-500',       icon: '—'  },
-};
-
-function StatusBadge({ status }) {
-  const c = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
-  return <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${c.pill}`}>{c.icon} {c.label}</span>;
-}
-
-function StatusIcon({ status }) {
-  return <span className="text-base">{(STATUS_CONFIG[status] || STATUS_CONFIG.pending).icon}</span>;
-}
-
-function DetailRow({ label, value, color }) {
-  return (
-    <div className="flex justify-between text-xs py-0.5">
-      <span className="text-gray-500">{label}</span>
-      <span className={color || 'text-gray-700'}>{value || '—'}</span>
-    </div>
-  );
-}
-
-function TenantDetail({ row }) {
-  const r = row.response;
-  if (!r) return <p className="text-sm text-gray-400 py-4 text-center">No response submitted yet.</p>;
-  const fe = r.fireExtinguisher;
-  const sd = r.smokeDetector;
-  const sv = r.stoveSensor;
-  return (
-    <div className="grid md:grid-cols-3 gap-4 py-4 px-2 border-t border-gray-100">
-      <div className="space-y-2">
-        <p className="text-sm font-semibold text-gray-700">🧯 Fire Extinguisher</p>
-        {fe ? (
-          <>
-            <DetailRow label="Present" value={fe.present ? '✅ Yes' : `❌ No — ${fe.notPresentReason || ''}`} color={fe.present ? 'text-emerald-700' : 'text-amber-700'} />
-            {fe.present && <>
-              <DetailRow label="Gauge (green)" value={fe.gaugeGreen ? '✅ Yes' : `❌ No — ${fe.gaugeReason || ''}`} color={fe.gaugeGreen ? 'text-emerald-700' : 'text-red-700'} />
-              <DetailRow label="Safety pin" value={fe.pinIntact ? '✅ Intact' : `❌ No — ${fe.pinReason || ''}`} color={fe.pinIntact ? 'text-emerald-700' : 'text-red-700'} />
-            </>}
-            {fe.photo && <img src={fe.photo} alt="fire ext" className="w-full h-32 object-cover rounded-lg mt-1 cursor-pointer" onClick={() => window.open(fe.photo)} />}
-          </>
-        ) : <p className="text-xs text-gray-400">No data</p>}
-      </div>
-      <div className="space-y-2">
-        <p className="text-sm font-semibold text-gray-700">🔔 Smoke Detector</p>
-        {sd ? (
-          <>
-            <DetailRow label="Present" value={sd.present ? '✅ Yes' : `❌ No — ${sd.notPresentReason || ''}`} color={sd.present ? 'text-emerald-700' : 'text-amber-700'} />
-            {sd.present && <>
-              <DetailRow label="Beeped (first)" value={sd.beeped ? '✅ Yes' : '❌ No'} color={sd.beeped ? 'text-emerald-700' : 'text-red-700'} />
-              {sd.beeped === false && <DetailRow label="Beeped after battery" value={sd.beepedAfterBattery ? '✅ Yes' : '❌ No'} color={sd.beepedAfterBattery ? 'text-emerald-700' : 'text-red-700'} />}
-              {sd.needsInspection && <p className="text-xs text-red-700 font-semibold">🚨 Needs physical inspection</p>}
-            </>}
-            {sd.photo && <img src={sd.photo} alt="smoke det" className="w-full h-32 object-cover rounded-lg mt-1 cursor-pointer" onClick={() => window.open(sd.photo)} />}
-          </>
-        ) : <p className="text-xs text-gray-400">No data</p>}
-      </div>
-      <div className="space-y-2">
-        <p className="text-sm font-semibold text-gray-700">🍳 Stove Heat Detector</p>
-        {sv ? (
-          <>
-            <DetailRow label="Present" value={sv.present ? '✅ Yes' : `❌ No — ${sv.notPresentReason || ''}`} color={sv.present ? 'text-emerald-700' : 'text-amber-700'} />
-            {sv.present && <>
-              <DetailRow label="Beeped (first)" value={sv.beeped ? '✅ Yes' : '❌ No'} color={sv.beeped ? 'text-emerald-700' : 'text-red-700'} />
-              {sv.beeped === false && <DetailRow label="Beeped after battery" value={sv.beepedAfterBattery ? '✅ Yes' : '❌ No'} color={sv.beepedAfterBattery ? 'text-emerald-700' : 'text-red-700'} />}
-              {sv.needsInspection && <p className="text-xs text-red-700 font-semibold">🚨 Needs physical inspection</p>}
-            </>}
-            {sv.photo && <img src={sv.photo} alt="stove sensor" className="w-full h-32 object-cover rounded-lg mt-1 cursor-pointer" onClick={() => window.open(sv.photo)} />}
-          </>
-        ) : <p className="text-xs text-gray-400">No data</p>}
-      </div>
-    </div>
-  );
-}
-
-// Compliance table rows — used by Overview and Submitted tabs
-function ComplianceTable({ rows, expanded, setExpanded, emptyMessage, onDeleteResponse }) {
-  if (rows.length === 0) {
-    return (
-      <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
-        <p className="text-gray-400">{emptyMessage}</p>
-      </div>
-    );
+function getIssues(r) {
+  const issues = [];
+  const fe = r?.fireExtinguisher;
+  const sd = r?.smokeDetector;
+  const sv = r?.stoveSensor;
+  if (fe) {
+    if (!fe.present) issues.push(`🧯 Fire ext not present${fe.notPresentReason ? ` — ${fe.notPresentReason}` : ''}`);
+    else if (fe.gaugeGreen === false) issues.push(`🧯 Gauge not green${fe.gaugeReason ? ` — ${fe.gaugeReason}` : ''}`);
+    else if (fe.pinIntact === false) issues.push(`🧯 Pin not intact${fe.pinReason ? ` — ${fe.pinReason}` : ''}`);
   }
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-        <span>Tenant</span>
-        <span className="text-center w-10">🧯</span>
-        <span className="text-center w-10">🔔</span>
-        <span className="text-center w-10">🍳</span>
-        <span>Status</span>
-      </div>
-      {rows.map(row => {
-        const r = row.response;
-        const feStatus = itemStatus(r?.fireExtinguisher, 'fireExt');
-        const sdStatus = itemStatus(r?.smokeDetector, 'det');
-        const svStatus = itemStatus(r?.stoveSensor, 'det');
-        const overall = overallStatus(r);
-        const isExpanded = expanded === row.tenant._id;
-        return (
-          <div key={row.tenant._id} className="border-b border-gray-100 last:border-0">
-            <button
-              onClick={() => setExpanded(isExpanded ? null : row.tenant._id)}
-              className="w-full grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-4 py-3 hover:bg-gray-50 transition-colors text-left">
-              <div>
-                <p className="text-sm font-medium text-gray-800">{row.tenant.name}</p>
-                <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · Apt ${row.tenant.building}` : ''}</p>
-              </div>
-              <div className="w-10 text-center"><StatusIcon status={feStatus} /></div>
-              <div className="w-10 text-center"><StatusIcon status={sdStatus} /></div>
-              <div className="w-10 text-center"><StatusIcon status={svStatus} /></div>
-              <div className="flex items-center gap-2">
-                <div>
-                  <StatusBadge status={overall} />
-                  {r?.completedAt && <p className="text-xs text-gray-400 mt-0.5">{new Date(r.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>}
-                </div>
-                {r && onDeleteResponse && (
-                  <button onClick={e => { e.stopPropagation(); onDeleteResponse(row.tenant._id); }}
-                    className="text-gray-300 hover:text-red-400 text-xs transition-colors" title="Delete response">
-                    🗑
-                  </button>
-                )}
-              </div>
-            </button>
-            {isExpanded && <div className="px-4 pb-4"><TenantDetail row={row} /></div>}
-          </div>
-        );
-      })}
-    </div>
-  );
+  if (sd) {
+    if (!sd.present) issues.push(`🔔 Smoke detector not present${sd.notPresentReason ? ` — ${sd.notPresentReason}` : ''}`);
+    else if (sd.needsInspection) issues.push('🔔 Smoke detector needs physical inspection');
+  }
+  if (sv) {
+    if (!sv.present) issues.push(`🍳 Stove sensor not present${sv.notPresentReason ? ` — ${sv.notPresentReason}` : ''}`);
+    else if (sv.needsInspection) issues.push('🍳 Stove sensor needs physical inspection');
+  }
+  return issues;
 }
 
-// Needs Inspection tab — grouped by building, shows only problem rows
-function NeedsInspectionTab({ rows }) {
-  const problemRows = rows.filter(r => {
-    const s = overallStatus(r.response);
-    return s !== 'ok' && s !== 'pending';
-  });
+// ── Export ────────────────────────────────────────────────────────────────────
 
-  if (problemRows.length === 0) {
-    return (
-      <div className="bg-white rounded-xl border border-dashed border-gray-300 p-16 text-center">
-        <p className="text-3xl mb-2">✅</p>
-        <p className="text-gray-600 font-medium">No issues found</p>
-        <p className="text-gray-400 text-sm mt-1">All submitted responses passed every check.</p>
-      </div>
-    );
-  }
-
-  const groups = {};
-  for (const row of problemRows) {
-    const key = row.tenant.unit || 'Unknown Building';
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(row);
-  }
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-gray-500">{problemRows.length} {problemRows.length === 1 ? 'tenant has' : 'tenants have'} issues across {Object.keys(groups).length} building{Object.keys(groups).length !== 1 ? 's' : ''}.</p>
-      {Object.keys(groups).sort().map(building => {
-        const buildingRows = groups[building];
-        const hasPhysical = buildingRows.some(r => overallStatus(r.response) === 'needs');
-        return (
-          <div key={building} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🏢</span>
-                <span className="font-semibold text-gray-800">{building}</span>
-                {hasPhysical && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Physical visit needed</span>}
-              </div>
-              <span className="text-xs text-gray-400">{buildingRows.length} {buildingRows.length === 1 ? 'tenant' : 'tenants'}</span>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {buildingRows.map(row => {
-                const r = row.response;
-                const fe = r?.fireExtinguisher;
-                const sd = r?.smokeDetector;
-                const sv = r?.stoveSensor;
-                const issues = [];
-                if (fe) {
-                  if (!fe.present) issues.push({ icon: '🧯', text: `Fire ext not present${fe.notPresentReason ? ` — ${fe.notPresentReason}` : ''}` });
-                  else if (fe.gaugeGreen === false) issues.push({ icon: '🧯', text: `Gauge not green${fe.gaugeReason ? ` — ${fe.gaugeReason}` : ''}` });
-                  else if (fe.pinIntact === false) issues.push({ icon: '🧯', text: `Pin not intact${fe.pinReason ? ` — ${fe.pinReason}` : ''}` });
-                }
-                if (sd) {
-                  if (!sd.present) issues.push({ icon: '🔔', text: `Smoke detector not present${sd.notPresentReason ? ` — ${sd.notPresentReason}` : ''}` });
-                  else if (sd.needsInspection) issues.push({ icon: '🔔', text: 'Smoke detector needs physical inspection' });
-                }
-                if (sv) {
-                  if (!sv.present) issues.push({ icon: '🍳', text: `Stove sensor not present${sv.notPresentReason ? ` — ${sv.notPresentReason}` : ''}` });
-                  else if (sv.needsInspection) issues.push({ icon: '🍳', text: 'Stove sensor needs physical inspection' });
-                }
-                return (
-                  <div key={row.tenant._id} className="px-5 py-3.5 flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">
-                        {row.tenant.name}
-                        {row.tenant.building && <span className="text-gray-400 font-normal"> · Apt {row.tenant.building}</span>}
-                      </p>
-                      <ul className="mt-1.5 space-y-0.5">
-                        {issues.map((issue, i) => (
-                          <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
-                            <span className="shrink-0">{issue.icon}</span>
-                            <span>{issue.text}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <StatusBadge status={overallStatus(row.response)} />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// Pending tab — tenants who haven't responded
-function PendingTab({ rows }) {
-  const pendingRows = rows.filter(r => !r.response);
-  if (pendingRows.length === 0) {
-    return (
-      <div className="bg-white rounded-xl border border-dashed border-gray-300 p-16 text-center">
-        <p className="text-3xl mb-2">🎉</p>
-        <p className="text-gray-600 font-medium">All tenants have responded</p>
-      </div>
-    );
-  }
-
-  const groups = {};
-  for (const row of pendingRows) {
-    const key = row.tenant.unit || 'Unknown Building';
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(row);
-  }
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-gray-500">{pendingRows.length} {pendingRows.length === 1 ? 'tenant has' : 'tenants have'} not responded yet.</p>
-      {Object.keys(groups).sort().map(building => (
-        <div key={building} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50 border-b border-gray-100">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🏢</span>
-              <span className="font-semibold text-gray-800">{building}</span>
-            </div>
-            <span className="text-xs text-gray-400">{groups[building].length} pending</span>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {groups[building].map(row => (
-              <div key={row.tenant._id} className="px-5 py-3 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-800">
-                    {row.tenant.name}
-                    {row.tenant.building && <span className="text-gray-400 font-normal"> · Apt {row.tenant.building}</span>}
-                  </p>
-                  <p className="text-xs text-gray-400">{row.tenant.email}</p>
-                </div>
-                <StatusBadge status="pending" />
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Export helpers ────────────────────────────────────────────────────────────
-
-function buildExportRows(rows, inspectionDate) {
-  return rows.map(row => {
+function exportExcel(rows, label) {
+  const data = rows.map(row => {
     const r = row.response;
     const fe = r?.fireExtinguisher;
     const sd = r?.smokeDetector;
     const sv = r?.stoveSensor;
-    const statusLabel = (s) => STATUS_CONFIG[s]?.label || s;
     return {
-      'Tenant Name': row.tenant.name,
+      'Tenant': row.tenant.name,
       'Email': row.tenant.email,
       'Building': row.tenant.unit || '',
-      'Apartment': row.tenant.building || '',
-      'Overall Status': statusLabel(overallStatus(r)),
-      'Submitted At': r?.completedAt ? new Date(r.completedAt).toLocaleDateString('en-GB') : 'Not submitted',
-      // Fire ext
-      'Fire Ext — Present': fe ? (fe.present ? 'Yes' : 'No') : '—',
-      'Fire Ext — Reason': !fe?.present ? (fe?.notPresentReason || '') : '',
-      'Fire Ext — Gauge Green': fe?.present ? (fe.gaugeGreen ? 'Yes' : 'No') : '—',
-      'Fire Ext — Gauge Reason': fe?.present && !fe?.gaugeGreen ? (fe?.gaugeReason || '') : '',
-      'Fire Ext — Pin Intact': fe?.present ? (fe.pinIntact ? 'Yes' : 'No') : '—',
-      'Fire Ext — Pin Reason': fe?.present && !fe?.pinIntact ? (fe?.pinReason || '') : '',
-      // Smoke det
-      'Smoke Det — Present': sd ? (sd.present ? 'Yes' : 'No') : '—',
-      'Smoke Det — Reason': !sd?.present ? (sd?.notPresentReason || '') : '',
-      'Smoke Det — Beeped': sd?.present ? (sd.beeped ? 'Yes' : 'No') : '—',
-      'Smoke Det — Beeped After Battery': sd?.present && sd?.beeped === false ? (sd.beepedAfterBattery ? 'Yes' : 'No') : '—',
-      'Smoke Det — Needs Inspection': sd?.present ? (sd.needsInspection ? 'YES' : 'No') : '—',
-      // Stove sensor
-      'Stove Sensor — Present': sv ? (sv.present ? 'Yes' : 'No') : '—',
-      'Stove Sensor — Reason': !sv?.present ? (sv?.notPresentReason || '') : '',
-      'Stove Sensor — Beeped': sv?.present ? (sv.beeped ? 'Yes' : 'No') : '—',
-      'Stove Sensor — Beeped After Battery': sv?.present && sv?.beeped === false ? (sv.beepedAfterBattery ? 'Yes' : 'No') : '—',
-      'Stove Sensor — Needs Inspection': sv?.present ? (sv.needsInspection ? 'YES' : 'No') : '—',
+      'Unit': row.tenant.building || '',
+      'Status': overallStatus(r) === 'passed' ? 'Passed' : overallStatus(r) === 'issues' ? 'Has Issues' : 'Pending',
+      'Submitted': r?.completedAt ? new Date(r.completedAt).toLocaleDateString('en-GB') : '—',
+      'Fire Ext Present': fe ? (fe.present ? 'Yes' : 'No') : '—',
+      'Fire Ext Gauge': fe?.present ? (fe.gaugeGreen ? 'Yes' : 'No') : '—',
+      'Fire Ext Pin': fe?.present ? (fe.pinIntact ? 'Yes' : 'No') : '—',
+      'Smoke Det Present': sd ? (sd.present ? 'Yes' : 'No') : '—',
+      'Smoke Det Beeped': sd?.present ? (sd.beeped ? 'Yes' : 'No') : '—',
+      'Smoke Det Needs Visit': sd?.present ? (sd.needsInspection ? 'YES' : 'No') : '—',
+      'Stove Sensor Present': sv ? (sv.present ? 'Yes' : 'No') : '—',
+      'Stove Sensor Beeped': sv?.present ? (sv.beeped ? 'Yes' : 'No') : '—',
+      'Stove Sensor Needs Visit': sv?.present ? (sv.needsInspection ? 'YES' : 'No') : '—',
     };
   });
-}
-
-function exportExcel(rows, inspectionDate) {
-  const data = buildExportRows(rows, inspectionDate);
   const ws = XLSX.utils.json_to_sheet(data);
-  // Auto-width columns
-  const colWidths = Object.keys(data[0] || {}).map(key => ({
-    wch: Math.max(key.length, ...data.map(r => String(r[key] || '').length)) + 2
-  }));
-  ws['!cols'] = colWidths;
+  ws['!cols'] = Object.keys(data[0] || {}).map(k => ({ wch: Math.max(k.length, ...data.map(r => String(r[k] || '').length)) + 2 }));
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Inspection Results');
-  const filename = `inspection-${inspectionDate.replace(/\//g, '-')}.xlsx`;
-  XLSX.writeFile(wb, filename);
-  toast.success('Excel file downloaded');
+  XLSX.utils.book_append_sheet(wb, ws, 'Results');
+  XLSX.writeFile(wb, `inspection-${label.replace(/\s/g, '-')}.xlsx`);
+  toast.success('Excel downloaded');
 }
 
-function exportWord(rows, inspectionDate) {
-  const data = buildExportRows(rows, inspectionDate);
-  const headers = Object.keys(data[0] || {});
-
+function exportWord(rows, label) {
+  const headers = ['Tenant', 'Building', 'Unit', 'Status', 'Issues'];
   const tableRows = [
-    `<tr>${headers.map(h => `<th style="background:#f3f4f6;padding:6px 10px;font-size:11px;border:1px solid #e5e7eb;white-space:nowrap">${h}</th>`).join('')}</tr>`,
-    ...data.map(row => `<tr>${headers.map(h => `<td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${row[h] ?? ''}</td>`).join('')}</tr>`),
+    `<tr>${headers.map(h => `<th style="background:#f3f4f6;padding:6px 10px;font-size:11px;border:1px solid #e5e7eb">${h}</th>`).join('')}</tr>`,
+    ...rows.map(row => {
+      const status = overallStatus(row.response);
+      const issues = getIssues(row.response).join('; ');
+      return `<tr>
+        <td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${row.tenant.name}</td>
+        <td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${row.tenant.unit || ''}</td>
+        <td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${row.tenant.building || ''}</td>
+        <td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${status === 'passed' ? 'Passed' : status === 'issues' ? 'Has Issues' : 'Pending'}</td>
+        <td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${issues || '—'}</td>
+      </tr>`;
+    }),
   ].join('');
-
-  const html = `
-    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-    <head><meta charset="utf-8"><title>Safety Inspection ${inspectionDate}</title></head>
-    <body>
-      <h2 style="font-family:Arial;color:#111827">Safety Inspection Report</h2>
-      <p style="font-family:Arial;font-size:12px;color:#6b7280">Due date: ${inspectionDate} &nbsp;·&nbsp; Exported: ${new Date().toLocaleDateString('en-GB')}</p>
-      <table style="border-collapse:collapse;font-family:Arial;width:100%">${tableRows}</table>
-    </body></html>`;
-
+  const html = `<html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"></head><body>
+    <h2 style="font-family:Arial">Safety Inspection — ${label}</h2>
+    <table style="border-collapse:collapse;font-family:Arial;width:100%">${tableRows}</table>
+  </body></html>`;
   const blob = new Blob([html], { type: 'application/msword' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = `inspection-${inspectionDate.replace(/\//g, '-')}.doc`;
-  a.click();
+  a.href = url; a.download = `inspection-${label.replace(/\s/g, '-')}.doc`; a.click();
   URL.revokeObjectURL(url);
-  toast.success('Word file downloaded');
+  toast.success('Word downloaded');
 }
 
-// Export dropdown button
-function ExportButton({ rows, inspectionDate }) {
+function ExportMenu({ rows, label }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
   }, []);
-
-  if (rows.length === 0) return null;
-
+  if (!rows.length) return null;
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-        ⬇ Export
-        <span className="text-gray-400 text-xs">▾</span>
+        className="flex items-center gap-1.5 border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg text-sm transition-colors">
+        ⬇ Export ▾
       </button>
       {open && (
         <div className="absolute right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 w-40 py-1">
-          <button onClick={() => { exportExcel(rows, inspectionDate); setOpen(false); }}
-            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-            <span>📊</span> Excel (.xlsx)
-          </button>
-          <button onClick={() => { exportWord(rows, inspectionDate); setOpen(false); }}
-            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-            <span>📄</span> Word (.doc)
-          </button>
+          <button onClick={() => { exportExcel(rows, label); setOpen(false); }}
+            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex gap-2">📊 Excel (.xlsx)</button>
+          <button onClick={() => { exportWord(rows, label); setOpen(false); }}
+            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex gap-2">📄 Word (.doc)</button>
         </div>
       )}
     </div>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Issue detail expandable ───────────────────────────────────────────────────
 
-const TABS = [
-  { id: 'overview',   label: 'Overview' },
-  { id: 'submitted',  label: 'Passed' },
-  { id: 'needs',      label: 'Needs Inspection' },
-  { id: 'pending',    label: 'Pending' },
-];
+function IssueDetail({ response }) {
+  const fe = response?.fireExtinguisher;
+  const sd = response?.smokeDetector;
+  const sv = response?.stoveSensor;
+  return (
+    <div className="mt-2 pt-2 border-t border-red-100 grid grid-cols-3 gap-3 text-xs">
+      {[
+        { label: '🧯 Fire Ext', data: fe, type: 'fireExt' },
+        { label: '🔔 Smoke Det', data: sd, type: 'det' },
+        { label: '🍳 Stove Sensor', data: sv, type: 'det' },
+      ].map(({ label, data, type }) => (
+        <div key={label}>
+          <p className="font-semibold text-gray-600 mb-1">{label}</p>
+          {!data ? <p className="text-gray-400">No data</p> : (
+            <div className="space-y-0.5 text-gray-600">
+              <p>Present: {data.present ? '✅' : '❌'}{!data.present && data.notPresentReason ? ` ${data.notPresentReason}` : ''}</p>
+              {type === 'fireExt' && data.present && <>
+                <p>Gauge: {data.gaugeGreen ? '✅' : '❌'}{!data.gaugeGreen && data.gaugeReason ? ` ${data.gaugeReason}` : ''}</p>
+                <p>Pin: {data.pinIntact ? '✅' : '❌'}{!data.pinIntact && data.pinReason ? ` ${data.pinReason}` : ''}</p>
+              </>}
+              {type === 'det' && data.present && <>
+                <p>Beeped: {data.beeped ? '✅' : '❌'}</p>
+                {data.beeped === false && <p>After battery: {data.beepedAfterBattery ? '✅' : '❌'}</p>}
+                {data.needsInspection && <p className="text-red-600 font-semibold">Needs visit</p>}
+              </>}
+              {data.photo && <img src={data.photo} alt="" className="mt-1 h-16 rounded object-cover cursor-pointer" onClick={() => window.open(data.photo)} />}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function AdminInspections() {
   const [inspections, setInspections] = useState([]);
@@ -436,10 +185,8 @@ export default function AdminInspections() {
   const [loadingRows, setLoadingRows] = useState(false);
   const [creating, setCreating] = useState(false);
   const [dueDate, setDueDate] = useState('');
-  const [expanded, setExpanded] = useState(null);
   const [closing, setClosing] = useState(false);
-  const [tab, setTab] = useState('overview');
-  const [deletingInspection, setDeletingInspection] = useState(false);
+  const [expandedIssue, setExpandedIssue] = useState(null);
 
   useEffect(() => {
     api.get('/inspections').then(r => {
@@ -451,10 +198,11 @@ export default function AdminInspections() {
   useEffect(() => {
     if (!selected) return;
     setLoadingRows(true);
-    setExpanded(null);
-    api.get(`/inspections/${selected._id}/responses`).then(r => {
-      setRows(r.data.tenants);
-    }).catch(console.error).finally(() => setLoadingRows(false));
+    setExpandedIssue(null);
+    api.get(`/inspections/${selected._id}/responses`)
+      .then(r => setRows(r.data.tenants))
+      .catch(console.error)
+      .finally(() => setLoadingRows(false));
   }, [selected]);
 
   const handleCreate = async (e) => {
@@ -466,109 +214,97 @@ export default function AdminInspections() {
       setInspections(prev => [res.data, ...prev.map(i => ({ ...i, status: 'closed' }))]);
       setSelected(res.data);
       setDueDate('');
-      toast.success('Inspection started — all tenants are now blocked until they complete it.');
+      toast.success('Inspection started');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create');
+      toast.error(err.response?.data?.message || 'Failed');
     } finally {
       setCreating(false);
     }
   };
 
+  const handleClose = async () => {
+    if (!selected || !confirm("Close this inspection?")) return;
+    setClosing(true);
+    try {
+      const res = await api.put(`/inspections/${selected._id}/close`);
+      setInspections(prev => prev.map(i => i._id === selected._id ? res.data : i));
+      setSelected(res.data);
+      toast.success('Inspection closed');
+    } catch { toast.error('Failed'); } finally { setClosing(false); }
+  };
+
   const handleDeleteInspection = async (ins) => {
-    if (!confirm(`Delete inspection (${new Date(ins.dueDate).toLocaleDateString('en-GB')}) and all its responses? This cannot be undone.`)) return;
-    setDeletingInspection(ins._id);
+    if (!confirm(`Delete this inspection and all responses?`)) return;
     try {
       await api.delete(`/inspections/${ins._id}`);
       const updated = inspections.filter(i => i._id !== ins._id);
       setInspections(updated);
       setSelected(updated[0] || null);
       setRows([]);
-      toast.success('Inspection deleted');
-    } catch {
-      toast.error('Failed to delete');
-    } finally {
-      setDeletingInspection(false);
-    }
+      toast.success('Deleted');
+    } catch { toast.error('Failed'); }
   };
 
   const handleDeleteResponse = async (tenantId) => {
-    if (!confirm('Delete this tenant\'s response? They will need to fill it in again.')) return;
+    if (!confirm("Reset this tenant's response?")) return;
     try {
       await api.delete(`/inspections/${selected._id}/responses/${tenantId}`);
       setRows(prev => prev.map(r => r.tenant._id === tenantId ? { ...r, response: null } : r));
-      toast.success('Response deleted');
-    } catch {
-      toast.error('Failed to delete response');
-    }
+      toast.success('Response reset');
+    } catch { toast.error('Failed'); }
   };
 
-  const handleClose = async () => {
-    if (!selected || !confirm("Close this inspection? Tenants who haven't completed it will no longer be blocked.")) return;
-    setClosing(true);
-    try {
-      const res = await api.put(`/inspections/${selected._id}/close`);
-      setInspections(prev => prev.map(i => i._id === selected._id ? res.data : i));
-      setSelected(res.data);
-      toast.success('Inspection closed.');
-    } catch {
-      toast.error('Failed to close');
-    } finally {
-      setClosing(false);
-    }
-  };
+  const passed = rows.filter(r => overallStatus(r.response) === 'passed');
+  const issues = rows.filter(r => overallStatus(r.response) === 'issues');
+  const pending = rows.filter(r => overallStatus(r.response) === 'pending');
 
-  const completed = rows.filter(r => r.response).length;
-  const pendingCount = rows.filter(r => !r.response).length;
-  const issueCount = rows.filter(r => ['needs', 'issue', 'absent'].includes(overallStatus(r.response))).length;
-  const submittedRows = rows.filter(r => overallStatus(r.response) === 'ok');
+  // Group issues by building
+  const issuesByBuilding = issues.reduce((acc, row) => {
+    const key = row.tenant.unit || 'Unknown Building';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(row);
+    return acc;
+  }, {});
+
   const minDate = new Date();
   minDate.setDate(minDate.getDate() + 1);
-  const inspectionDateLabel = selected ? new Date(selected.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-
-  const compliantCount = rows.filter(r => overallStatus(r.response) === 'ok').length;
-  const tabCounts = {
-    overview: rows.length,
-    submitted: compliantCount,
-    needs: issueCount,
-    pending: pendingCount,
-  };
+  const inspLabel = selected ? new Date(selected.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 
   return (
     <Layout>
-      <div className="max-w-5xl">
+      <div className="max-w-4xl">
+
+        {/* Header */}
         <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">🔥 Safety Inspections</h1>
             <p className="text-gray-500 text-sm mt-1">Fire extinguisher · Smoke detector · Stove heat detector</p>
           </div>
-          <form onSubmit={handleCreate} className="flex items-center gap-2 flex-wrap">
+          <form onSubmit={handleCreate} className="flex items-center gap-2">
             <input type="date" value={dueDate} min={minDate.toISOString().split('T')[0]}
               onChange={e => setDueDate(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
             <button type="submit" disabled={creating || !dueDate}
               className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60">
-              {creating ? 'Starting…' : '+ New Inspection'}
+              {creating ? '…' : '+ New'}
             </button>
           </form>
         </div>
 
-        {/* Inspection selector */}
+        {/* Inspection picker */}
         {inspections.length > 0 && (
           <div className="flex gap-2 flex-wrap mb-6">
             {inspections.map(ins => (
-              <div key={ins._id} className={`flex items-center gap-1 rounded-lg border text-sm font-medium transition-colors ${selected?._id === ins._id ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200'}`}>
+              <div key={ins._id}
+                className={`flex items-center rounded-lg border text-sm font-medium transition-colors ${selected?._id === ins._id ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200'}`}>
                 <button onClick={() => setSelected(ins)} className="px-3 py-1.5">
                   {new Date(ins.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  {' '}
-                  <span className={`text-xs ${ins.status === 'active' ? 'text-emerald-400' : selected?._id === ins._id ? 'text-gray-400' : 'text-gray-400'}`}>
+                  <span className={`ml-1.5 text-xs ${ins.status === 'active' ? 'text-emerald-400' : 'text-gray-400'}`}>
                     {ins.status === 'active' ? '● Active' : '○ Closed'}
                   </span>
                 </button>
-                <button onClick={() => handleDeleteInspection(ins)} disabled={deletingInspection === ins._id}
-                  className={`pr-2 text-xs hover:text-red-400 transition-colors disabled:opacity-40 ${selected?._id === ins._id ? 'text-gray-400' : 'text-gray-300'}`}
-                  title="Delete inspection">
-                  🗑
-                </button>
+                <button onClick={() => handleDeleteInspection(ins)}
+                  className={`pr-2.5 text-sm hover:text-red-400 transition-colors ${selected?._id === ins._id ? 'text-gray-500' : 'text-gray-300'}`}>🗑</button>
               </div>
             ))}
           </div>
@@ -576,74 +312,139 @@ export default function AdminInspections() {
 
         {selected && (
           <>
-            {/* Stats bar */}
-            <div className="grid grid-cols-4 gap-3 mb-5">
-              {[
-                { label: 'Total', value: rows.length, color: 'text-gray-800' },
-                { label: 'Passed', value: compliantCount, color: 'text-emerald-600' },
-                { label: 'Pending', value: pendingCount, color: 'text-amber-600' },
-                { label: 'Needs Inspection', value: issueCount, color: 'text-red-600' },
-              ].map(s => (
-                <div key={s.label} className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-                  <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                  <p className="text-xs text-gray-500 mt-1">{s.label}</p>
-                </div>
-              ))}
-            </div>
-
             {/* Progress bar */}
-            {rows.length > 0 && (
-              <div className="bg-white border border-gray-200 rounded-xl p-4 mb-5">
-                <div className="flex justify-between text-xs text-gray-500 mb-1.5">
-                  <span>Completion</span>
-                  <span>{completed}/{rows.length}</span>
+            <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="text-gray-500">
+                    <span className="font-bold text-gray-800 text-lg">{passed.length + issues.length}</span>
+                    <span className="text-gray-400">/{rows.length}</span>
+                    <span className="ml-1">responded</span>
+                  </span>
+                  <span className="text-emerald-600 font-medium">✅ {passed.length} passed</span>
+                  <span className="text-red-500 font-medium">🔴 {issues.length} issues</span>
+                  <span className="text-gray-400">⏳ {pending.length} pending</span>
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${rows.length ? (completed / rows.length) * 100 : 0}%` }} />
-                </div>
-                {selected.status === 'active' && (
-                  <div className="flex justify-end mt-3">
+                <div className="flex items-center gap-2">
+                  <ExportMenu rows={rows} label={inspLabel} />
+                  {selected.status === 'active' && (
                     <button onClick={handleClose} disabled={closing}
-                      className="text-xs text-red-500 hover:text-red-700 hover:underline disabled:opacity-60">
-                      {closing ? 'Closing…' : 'Close inspection'}
+                      className="text-xs text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                      {closing ? '…' : 'Close inspection'}
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            )}
-
-            {/* Tab bar + export */}
-            <div className="flex items-center justify-between mb-4 gap-3">
-              <div className="flex gap-1 bg-gray-100 p-1 rounded-xl overflow-x-auto">
-                {TABS.map(t => (
-                  <button key={t.id} onClick={() => setTab(t.id)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${tab === t.id ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                    {t.label}
-                    {tabCounts[t.id] > 0 && (
-                      <span className={`text-xs rounded-full px-1.5 py-0.5 font-semibold ${
-                        t.id === 'needs' && tabCounts[t.id] > 0 ? 'bg-red-500 text-white' :
-                        t.id === 'pending' && tabCounts[t.id] > 0 ? 'bg-amber-400 text-white' :
-                        'bg-gray-200 text-gray-600'
-                      }`}>
-                        {tabCounts[t.id]}
-                      </span>
-                    )}
-                  </button>
-                ))}
+              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden flex">
+                <div className="h-full bg-emerald-500 transition-all" style={{ width: `${rows.length ? (passed.length / rows.length) * 100 : 0}%` }} />
+                <div className="h-full bg-red-400 transition-all" style={{ width: `${rows.length ? (issues.length / rows.length) * 100 : 0}%` }} />
               </div>
-              <ExportButton rows={rows} inspectionDate={inspectionDateLabel} />
+              <div className="flex gap-4 mt-1.5 text-xs text-gray-400">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500 inline-block"/>Passed</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-400 inline-block"/>Issues</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-gray-200 inline-block"/>Pending</span>
+              </div>
             </div>
 
             {loadingRows ? (
-              <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="bg-white rounded-xl border border-gray-200 h-14 animate-pulse" />)}</div>
-            ) : tab === 'overview' ? (
-              <ComplianceTable rows={rows} expanded={expanded} setExpanded={setExpanded} emptyMessage="No tenants yet." onDeleteResponse={handleDeleteResponse} />
-            ) : tab === 'submitted' ? (
-              <ComplianceTable rows={submittedRows} expanded={expanded} setExpanded={setExpanded} emptyMessage="No passed responses yet." onDeleteResponse={handleDeleteResponse} />
-            ) : tab === 'needs' ? (
-              <NeedsInspectionTab rows={rows} />
+              <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-xl border border-gray-200 animate-pulse" />)}</div>
             ) : (
-              <PendingTab rows={rows} />
+              <div className="space-y-4">
+
+                {/* ── Issues ── */}
+                {issues.length > 0 && (
+                  <div className="bg-white border border-red-200 rounded-xl overflow-hidden">
+                    <div className="px-5 py-3 bg-red-50 border-b border-red-100 flex items-center justify-between">
+                      <p className="font-semibold text-red-700">🔴 Needs Attention — {issues.length} {issues.length === 1 ? 'tenant' : 'tenants'}</p>
+                      <p className="text-xs text-red-400">These buildings need a physical visit</p>
+                    </div>
+                    {Object.keys(issuesByBuilding).sort().map(building => (
+                      <div key={building} className="border-b border-red-50 last:border-0">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-5 pt-3 pb-1">🏢 {building}</p>
+                        {issuesByBuilding[building].map(row => {
+                          const issueList = getIssues(row.response);
+                          const isOpen = expandedIssue === row.tenant._id;
+                          return (
+                            <div key={row.tenant._id} className="px-5 pb-3">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1">
+                                  <button onClick={() => setExpandedIssue(isOpen ? null : row.tenant._id)}
+                                    className="text-sm font-medium text-gray-800 hover:text-red-600 text-left">
+                                    {row.tenant.name}
+                                    {row.tenant.building && <span className="text-gray-400 font-normal ml-1">· Unit {row.tenant.building}</span>}
+                                    <span className="text-gray-400 text-xs ml-2">{isOpen ? '▲' : '▼'}</span>
+                                  </button>
+                                  <ul className="mt-1 space-y-0.5">
+                                    {issueList.map((issue, i) => (
+                                      <li key={i} className="text-xs text-red-600">{issue}</li>
+                                    ))}
+                                  </ul>
+                                  {isOpen && <IssueDetail response={row.response} />}
+                                </div>
+                                <button onClick={() => handleDeleteResponse(row.tenant._id)}
+                                  className="text-gray-300 hover:text-red-400 text-xs mt-0.5 shrink-0" title="Reset response">🗑</button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── Pending ── */}
+                {pending.length > 0 && (
+                  <div className="bg-white border border-amber-200 rounded-xl overflow-hidden">
+                    <div className="px-5 py-3 bg-amber-50 border-b border-amber-100">
+                      <p className="font-semibold text-amber-700">⏳ Waiting for Response — {pending.length} {pending.length === 1 ? 'tenant' : 'tenants'}</p>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      {pending.map(row => (
+                        <div key={row.tenant._id} className="px-5 py-3 flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-gray-700">{row.tenant.name}</p>
+                            <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · Unit ${row.tenant.building}` : ''}</p>
+                          </div>
+                          <span className="text-xs text-amber-500 font-medium">Not submitted</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Passed ── */}
+                {passed.length > 0 && (
+                  <div className="bg-white border border-emerald-200 rounded-xl overflow-hidden">
+                    <div className="px-5 py-3 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between">
+                      <p className="font-semibold text-emerald-700">✅ Passed — {passed.length} {passed.length === 1 ? 'tenant' : 'tenants'}</p>
+                      <p className="text-xs text-emerald-500">Everything checked out</p>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      {passed.map(row => (
+                        <div key={row.tenant._id} className="px-5 py-3 flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-gray-700">{row.tenant.name}</p>
+                            <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · Unit ${row.tenant.building}` : ''}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {row.response?.completedAt && (
+                              <span className="text-xs text-gray-400">{new Date(row.response.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                            )}
+                            <button onClick={() => handleDeleteResponse(row.tenant._id)}
+                              className="text-gray-300 hover:text-red-400 text-xs transition-colors" title="Reset response">🗑</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {rows.length === 0 && (
+                  <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
+                    <p className="text-gray-400">No tenants found for this inspection.</p>
+                  </div>
+                )}
+              </div>
             )}
           </>
         )}
@@ -652,7 +453,7 @@ export default function AdminInspections() {
           <div className="bg-white rounded-xl border border-dashed border-gray-300 p-16 text-center">
             <p className="text-4xl mb-3">🔥</p>
             <p className="text-gray-600 font-medium">No inspections yet</p>
-            <p className="text-gray-400 text-sm mt-1">Set a due date above to start the first inspection. All active tenants will be required to complete it.</p>
+            <p className="text-gray-400 text-sm mt-1">Set a due date above to start the first inspection.</p>
           </div>
         )}
       </div>

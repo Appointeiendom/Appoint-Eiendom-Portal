@@ -1,0 +1,117 @@
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { protect, adminOnly } = require('../middleware/auth');
+const { cloudinary } = require('../config/cloudinary');
+const Inspection = require('../models/Inspection');
+const InspectionResponse = require('../models/InspectionResponse');
+const User = require('../models/User');
+
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: { folder: 'tenant-portal/inspections', allowed_formats: ['jpg', 'jpeg', 'png', 'webp'], resource_type: 'image' },
+});
+const photoUpload = multer({ storage, limits: { fileSize: 15 * 1024 * 1024 } }).fields([
+  { name: 'fireExtPhoto', maxCount: 1 },
+  { name: 'smokeDetPhoto', maxCount: 1 },
+  { name: 'stoveSensorPhoto', maxCount: 1 },
+]);
+
+// POST /api/inspections — admin creates a new inspection (closes any active one first)
+router.post('/', protect, adminOnly, async (req, res) => {
+  try {
+    const { dueDate } = req.body;
+    if (!dueDate) return res.status(400).json({ message: 'Due date is required' });
+    await Inspection.updateMany({ status: 'active' }, { status: 'closed' });
+    const inspection = await Inspection.create({ createdBy: req.user._id, dueDate });
+    res.status(201).json(inspection);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/inspections — admin: list all
+router.get('/', protect, adminOnly, async (req, res) => {
+  try {
+    const inspections = await Inspection.find().sort({ createdAt: -1 }).limit(20);
+    res.json(inspections);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/inspections/active — check active inspection + whether current user has responded
+router.get('/active', protect, async (req, res) => {
+  try {
+    const inspection = await Inspection.findOne({ status: 'active' });
+    if (!inspection) return res.json(null);
+    let responded = false;
+    if (req.user.role === 'tenant') {
+      const existing = await InspectionResponse.findOne({ inspectionId: inspection._id, tenantId: req.user._id });
+      responded = !!existing;
+    }
+    res.json({ inspection, responded });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/inspections/:id/respond — tenant submits response with optional photos
+router.post('/:id/respond', protect, photoUpload, async (req, res) => {
+  try {
+    const inspection = await Inspection.findById(req.params.id);
+    if (!inspection || inspection.status !== 'active') {
+      return res.status(404).json({ message: 'Inspection not found or already closed' });
+    }
+
+    const fireExt = JSON.parse(req.body.fireExtinguisher || '{}');
+    const smokeDet = JSON.parse(req.body.smokeDetector || '{}');
+    const stoveSensor = JSON.parse(req.body.stoveSensor || '{}');
+
+    if (req.files?.fireExtPhoto?.[0]) fireExt.photo = req.files.fireExtPhoto[0].path;
+    if (req.files?.smokeDetPhoto?.[0]) smokeDet.photo = req.files.smokeDetPhoto[0].path;
+    if (req.files?.stoveSensorPhoto?.[0]) stoveSensor.photo = req.files.stoveSensorPhoto[0].path;
+
+    const response = await InspectionResponse.findOneAndUpdate(
+      { inspectionId: inspection._id, tenantId: req.user._id },
+      { fireExtinguisher: fireExt, smokeDetector: smokeDet, stoveSensor: stoveSensor, completedAt: new Date() },
+      { upsert: true, new: true }
+    );
+
+    res.json(response);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/inspections/:id/responses — admin: all tenant responses for an inspection
+router.get('/:id/responses', protect, adminOnly, async (req, res) => {
+  try {
+    const inspection = await Inspection.findById(req.params.id);
+    if (!inspection) return res.status(404).json({ message: 'Not found' });
+
+    const tenants = await User.find({ role: 'tenant', isActive: true }).select('name email unit building').sort({ name: 1 });
+    const responses = await InspectionResponse.find({ inspectionId: inspection._id });
+    const responseMap = Object.fromEntries(responses.map(r => [r.tenantId.toString(), r]));
+
+    res.json({
+      inspection,
+      tenants: tenants.map(t => ({ tenant: t, response: responseMap[t._id.toString()] || null })),
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// PUT /api/inspections/:id/close — admin closes inspection
+router.put('/:id/close', protect, adminOnly, async (req, res) => {
+  try {
+    const inspection = await Inspection.findByIdAndUpdate(req.params.id, { status: 'closed' }, { new: true });
+    res.json(inspection);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+module.exports = router;

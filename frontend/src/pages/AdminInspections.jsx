@@ -4,51 +4,74 @@ import api from '../services/api';
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
 
-// ── Status logic ──────────────────────────────────────────────────────────────
+// ── Status helpers ────────────────────────────────────────────────────────────
 
-function itemStatus(data, type) {
-  if (!data) return 'pending';
-  if (type === 'fireExt') {
-    if (!data.present) return 'fail';
-    if (data.gaugeGreen === false || data.pinIntact === false) return 'fail';
-    return 'ok';
-  }
-  if (!data.present) return 'fail';
-  if (data.needsInspection) return 'fail';
-  return 'ok';
+function fireExtStatus(fe) {
+  if (!fe) return { pass: null, reason: null };
+  if (!fe.present) return { pass: false, reason: fe.notPresentReason || 'Not present' };
+  if (fe.gaugeGreen === false) return { pass: false, reason: fe.gaugeReason ? `Gauge — ${fe.gaugeReason}` : 'Gauge not green' };
+  if (fe.pinIntact === false) return { pass: false, reason: fe.pinReason ? `Pin — ${fe.pinReason}` : 'Pin not intact' };
+  return { pass: true, reason: null };
 }
 
-function overallStatus(r) {
+function detectorStatus(d) {
+  if (!d) return { pass: null, reason: null };
+  if (!d.present) return { pass: false, reason: d.notPresentReason || 'Not present' };
+  if (d.needsInspection) return { pass: false, reason: 'Did not beep — needs physical inspection' };
+  return { pass: true, reason: null };
+}
+
+function getItemStatuses(r) {
+  if (!r) return null;
+  return {
+    fe: fireExtStatus(r.fireExtinguisher),
+    sd: detectorStatus(r.smokeDetector),
+    sv: detectorStatus(r.stoveSensor),
+  };
+}
+
+function overallCategory(r) {
   if (!r) return 'pending';
-  const s = [
-    itemStatus(r.fireExtinguisher, 'fireExt'),
-    itemStatus(r.smokeDetector, 'det'),
-    itemStatus(r.stoveSensor, 'det'),
-  ];
-  if (s.every(x => x === 'ok')) return 'passed';
-  if (s.includes('fail')) return 'issues';
+  const s = getItemStatuses(r);
+  if (s.fe.pass === false || s.sd.pass === false || s.sv.pass === false) return 'issues';
+  if (s.fe.pass === true && s.sd.pass === true && s.sv.pass === true) return 'passed';
   return 'pending';
 }
 
-function getIssues(r) {
-  const issues = [];
-  const fe = r?.fireExtinguisher;
-  const sd = r?.smokeDetector;
-  const sv = r?.stoveSensor;
-  if (fe) {
-    if (!fe.present) issues.push(`🧯 Fire ext not present${fe.notPresentReason ? ` — ${fe.notPresentReason}` : ''}`);
-    else if (fe.gaugeGreen === false) issues.push(`🧯 Gauge not green${fe.gaugeReason ? ` — ${fe.gaugeReason}` : ''}`);
-    else if (fe.pinIntact === false) issues.push(`🧯 Pin not intact${fe.pinReason ? ` — ${fe.pinReason}` : ''}`);
+// ── Item pill — shows pass/fail/pending for one item ─────────────────────────
+
+function ItemPill({ label, status }) {
+  if (status.pass === null) {
+    return (
+      <span className="flex items-center gap-1 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">
+        {label} <span>—</span>
+      </span>
+    );
   }
-  if (sd) {
-    if (!sd.present) issues.push(`🔔 Smoke detector not present${sd.notPresentReason ? ` — ${sd.notPresentReason}` : ''}`);
-    else if (sd.needsInspection) issues.push('🔔 Smoke detector needs physical inspection');
+  if (status.pass) {
+    return (
+      <span className="flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg font-medium">
+        {label} ✅
+      </span>
+    );
   }
-  if (sv) {
-    if (!sv.present) issues.push(`🍳 Stove sensor not present${sv.notPresentReason ? ` — ${sv.notPresentReason}` : ''}`);
-    else if (sv.needsInspection) issues.push('🍳 Stove sensor needs physical inspection');
-  }
-  return issues;
+  return (
+    <span className="flex items-center gap-1 text-xs text-red-700 bg-red-50 px-2 py-1 rounded-lg font-medium">
+      {label} ❌
+    </span>
+  );
+}
+
+// Three pills in a row for one tenant
+function ItemRow({ statuses }) {
+  if (!statuses) return null;
+  return (
+    <div className="flex gap-1.5 mt-1.5 flex-wrap">
+      <ItemPill label="🧯 Fire Ext" status={statuses.fe} />
+      <ItemPill label="🔔 Smoke Det" status={statuses.sd} />
+      <ItemPill label="🍳 Stove" status={statuses.sv} />
+    </div>
+  );
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────
@@ -56,48 +79,41 @@ function getIssues(r) {
 function exportExcel(rows, label) {
   const data = rows.map(row => {
     const r = row.response;
-    const fe = r?.fireExtinguisher;
-    const sd = r?.smokeDetector;
-    const sv = r?.stoveSensor;
+    const s = getItemStatuses(r);
     return {
       'Tenant': row.tenant.name,
       'Email': row.tenant.email,
       'Building': row.tenant.unit || '',
       'Unit': row.tenant.building || '',
-      'Status': overallStatus(r) === 'passed' ? 'Passed' : overallStatus(r) === 'issues' ? 'Has Issues' : 'Pending',
+      'Overall': overallCategory(r) === 'passed' ? 'Passed' : overallCategory(r) === 'issues' ? 'Has Issues' : 'Pending',
       'Submitted': r?.completedAt ? new Date(r.completedAt).toLocaleDateString('en-GB') : '—',
-      'Fire Ext Present': fe ? (fe.present ? 'Yes' : 'No') : '—',
-      'Fire Ext Gauge': fe?.present ? (fe.gaugeGreen ? 'Yes' : 'No') : '—',
-      'Fire Ext Pin': fe?.present ? (fe.pinIntact ? 'Yes' : 'No') : '—',
-      'Smoke Det Present': sd ? (sd.present ? 'Yes' : 'No') : '—',
-      'Smoke Det Beeped': sd?.present ? (sd.beeped ? 'Yes' : 'No') : '—',
-      'Smoke Det Needs Visit': sd?.present ? (sd.needsInspection ? 'YES' : 'No') : '—',
-      'Stove Sensor Present': sv ? (sv.present ? 'Yes' : 'No') : '—',
-      'Stove Sensor Beeped': sv?.present ? (sv.beeped ? 'Yes' : 'No') : '—',
-      'Stove Sensor Needs Visit': sv?.present ? (sv.needsInspection ? 'YES' : 'No') : '—',
+      '🧯 Fire Ext': s ? (s.fe.pass === true ? 'Pass' : s.fe.pass === false ? `Fail — ${s.fe.reason}` : '—') : '—',
+      '🔔 Smoke Det': s ? (s.sd.pass === true ? 'Pass' : s.sd.pass === false ? `Fail — ${s.sd.reason}` : '—') : '—',
+      '🍳 Stove Sensor': s ? (s.sv.pass === true ? 'Pass' : s.sv.pass === false ? `Fail — ${s.sv.reason}` : '—') : '—',
     };
   });
   const ws = XLSX.utils.json_to_sheet(data);
   ws['!cols'] = Object.keys(data[0] || {}).map(k => ({ wch: Math.max(k.length, ...data.map(r => String(r[k] || '').length)) + 2 }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Results');
-  XLSX.writeFile(wb, `inspection-${label.replace(/\s/g, '-')}.xlsx`);
+  XLSX.writeFile(wb, `inspection-${label.replace(/[\s/]/g, '-')}.xlsx`);
   toast.success('Excel downloaded');
 }
 
 function exportWord(rows, label) {
-  const headers = ['Tenant', 'Building', 'Unit', 'Status', 'Issues'];
   const tableRows = [
-    `<tr>${headers.map(h => `<th style="background:#f3f4f6;padding:6px 10px;font-size:11px;border:1px solid #e5e7eb">${h}</th>`).join('')}</tr>`,
+    `<tr>${['Tenant','Building','Unit','Fire Ext','Smoke Det','Stove','Overall'].map(h => `<th style="background:#f3f4f6;padding:6px 10px;font-size:11px;border:1px solid #e5e7eb">${h}</th>`).join('')}</tr>`,
     ...rows.map(row => {
-      const status = overallStatus(row.response);
-      const issues = getIssues(row.response).join('; ');
+      const s = getItemStatuses(row.response);
+      const cell = (st) => st ? (st.pass === true ? '✅ Pass' : st.pass === false ? `❌ ${st.reason}` : '—') : '—';
       return `<tr>
         <td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${row.tenant.name}</td>
         <td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${row.tenant.unit || ''}</td>
         <td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${row.tenant.building || ''}</td>
-        <td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${status === 'passed' ? 'Passed' : status === 'issues' ? 'Has Issues' : 'Pending'}</td>
-        <td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${issues || '—'}</td>
+        <td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${s ? cell(s.fe) : '—'}</td>
+        <td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${s ? cell(s.sd) : '—'}</td>
+        <td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${s ? cell(s.sv) : '—'}</td>
+        <td style="padding:5px 10px;font-size:11px;border:1px solid #e5e7eb">${overallCategory(row.response) === 'passed' ? '✅ Passed' : overallCategory(row.response) === 'issues' ? '❌ Issues' : '⏳ Pending'}</td>
       </tr>`;
     }),
   ].join('');
@@ -106,10 +122,8 @@ function exportWord(rows, label) {
     <table style="border-collapse:collapse;font-family:Arial;width:100%">${tableRows}</table>
   </body></html>`;
   const blob = new Blob([html], { type: 'application/msword' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `inspection-${label.replace(/\s/g, '-')}.doc`; a.click();
-  URL.revokeObjectURL(url);
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `inspection-${label.replace(/[\s/]/g, '-')}.doc` });
+  a.click(); URL.revokeObjectURL(a.href);
   toast.success('Word downloaded');
 }
 
@@ -125,50 +139,275 @@ function ExportMenu({ rows, label }) {
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg text-sm transition-colors">
+        className="flex items-center gap-1 border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg text-sm transition-colors">
         ⬇ Export ▾
       </button>
       {open && (
         <div className="absolute right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 w-40 py-1">
           <button onClick={() => { exportExcel(rows, label); setOpen(false); }}
-            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex gap-2">📊 Excel (.xlsx)</button>
+            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">📊 Excel (.xlsx)</button>
           <button onClick={() => { exportWord(rows, label); setOpen(false); }}
-            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex gap-2">📄 Word (.doc)</button>
+            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">📄 Word (.doc)</button>
         </div>
       )}
     </div>
   );
 }
 
-// ── Issue detail expandable ───────────────────────────────────────────────────
+// ── Overview table ────────────────────────────────────────────────────────────
 
-function IssueDetail({ response }) {
-  const fe = response?.fireExtinguisher;
-  const sd = response?.smokeDetector;
-  const sv = response?.stoveSensor;
+function OverviewTab({ rows, onDeleteResponse }) {
+  const [expanded, setExpanded] = useState(null);
+  if (!rows.length) return <Empty text="No tenants yet." />;
   return (
-    <div className="mt-2 pt-2 border-t border-red-100 grid grid-cols-3 gap-3 text-xs">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* Header */}
+      <div className="grid grid-cols-[1fr_120px_120px_120px_90px] gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <span>Tenant</span>
+        <span className="text-center">🧯 Fire Ext</span>
+        <span className="text-center">🔔 Smoke Det</span>
+        <span className="text-center">🍳 Stove</span>
+        <span>Overall</span>
+      </div>
+      {rows.map(row => {
+        const s = getItemStatuses(row.response);
+        const cat = overallCategory(row.response);
+        const isOpen = expanded === row.tenant._id;
+        return (
+          <div key={row.tenant._id} className="border-b border-gray-100 last:border-0">
+            <div className="grid grid-cols-[1fr_120px_120px_120px_90px] gap-2 items-center px-4 py-3 hover:bg-gray-50 cursor-pointer"
+              onClick={() => setExpanded(isOpen ? null : row.tenant._id)}>
+              <div>
+                <p className="text-sm font-medium text-gray-800">{row.tenant.name}</p>
+                <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · Unit ${row.tenant.building}` : ''}</p>
+              </div>
+              <OverviewCell status={s?.fe} />
+              <OverviewCell status={s?.sd} />
+              <OverviewCell status={s?.sv} />
+              <div className="flex items-center gap-2">
+                <OverallBadge cat={cat} />
+                {row.response && onDeleteResponse && (
+                  <button onClick={e => { e.stopPropagation(); onDeleteResponse(row.tenant._id); }}
+                    className="text-gray-300 hover:text-red-400 text-xs" title="Reset">🗑</button>
+                )}
+              </div>
+            </div>
+            {isOpen && row.response && (
+              <div className="px-4 pb-4 border-t border-gray-50">
+                <FullDetail response={row.response} />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function OverviewCell({ status }) {
+  if (!status || status.pass === null) return <div className="text-center text-gray-300 text-lg">—</div>;
+  if (status.pass) return <div className="text-center text-lg">✅</div>;
+  return (
+    <div className="text-center">
+      <div className="text-lg">❌</div>
+      {status.reason && <p className="text-xs text-red-500 leading-tight mt-0.5">{status.reason}</p>}
+    </div>
+  );
+}
+
+// ── Needs Inspection tab ──────────────────────────────────────────────────────
+
+function NeedsInspectionTab({ rows, onDeleteResponse }) {
+  const problemRows = rows.filter(r => overallCategory(r.response) === 'issues');
+  if (!problemRows.length) return (
+    <div className="bg-white rounded-xl border border-dashed border-gray-300 p-16 text-center">
+      <p className="text-3xl mb-2">✅</p>
+      <p className="text-gray-600 font-medium">No issues — all submitted responses passed</p>
+    </div>
+  );
+
+  const groups = problemRows.reduce((acc, row) => {
+    const key = row.tenant.unit || 'Unknown Building';
+    (acc[key] = acc[key] || []).push(row);
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-500">
+        {problemRows.length} {problemRows.length === 1 ? 'tenant has' : 'tenants have'} one or more items that failed.
+      </p>
+      {Object.keys(groups).sort().map(building => (
+        <div key={building} className="bg-white rounded-xl border border-red-100 overflow-hidden">
+          <div className="px-5 py-3 bg-red-50 border-b border-red-100 flex items-center gap-2">
+            <span>🏢</span>
+            <span className="font-semibold text-gray-800">{building}</span>
+            <span className="text-xs text-red-400 ml-auto">{groups[building].length} {groups[building].length === 1 ? 'tenant' : 'tenants'}</span>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {groups[building].map(row => {
+              const s = getItemStatuses(row.response);
+              return (
+                <div key={row.tenant._id} className="px-5 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-800">
+                        {row.tenant.name}
+                        {row.tenant.building && <span className="text-gray-400 font-normal ml-1.5">Unit {row.tenant.building}</span>}
+                      </p>
+                      {/* All 3 items shown clearly — pass or fail with reason */}
+                      <div className="mt-2.5 space-y-1.5">
+                        <IssueItemRow label="🧯 Fire Extinguisher" status={s.fe} />
+                        <IssueItemRow label="🔔 Smoke Detector" status={s.sd} />
+                        <IssueItemRow label="🍳 Stove Heat Sensor" status={s.sv} />
+                      </div>
+                    </div>
+                    {onDeleteResponse && (
+                      <button onClick={() => onDeleteResponse(row.tenant._id)}
+                        className="text-gray-300 hover:text-red-400 text-xs mt-0.5" title="Reset response">🗑</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function IssueItemRow({ label, status }) {
+  if (status.pass === null) return null; // item not in response
+  if (status.pass) {
+    return (
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-emerald-500">✅</span>
+        <span className="text-gray-500">{label}</span>
+        <span className="text-xs text-emerald-500 font-medium">Passed</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-start gap-2 text-sm">
+      <span className="text-red-500 mt-0.5">❌</span>
+      <div>
+        <span className="text-gray-800 font-medium">{label}</span>
+        {status.reason && <p className="text-xs text-red-500 mt-0.5">{status.reason}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ── Passed tab ────────────────────────────────────────────────────────────────
+
+function PassedTab({ rows, onDeleteResponse }) {
+  const passedRows = rows.filter(r => overallCategory(r.response) === 'passed');
+  if (!passedRows.length) return <Empty text="No passed responses yet." />;
+  return (
+    <div className="bg-white rounded-xl border border-emerald-200 overflow-hidden">
+      <div className="divide-y divide-gray-100">
+        {passedRows.map(row => (
+          <div key={row.tenant._id} className="px-5 py-3.5 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-800">{row.tenant.name}</p>
+              <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · Unit ${row.tenant.building}` : ''}</p>
+              <div className="flex gap-1.5 mt-1.5">
+                <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">🧯 ✅</span>
+                <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">🔔 ✅</span>
+                <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">🍳 ✅</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              {row.response?.completedAt && (
+                <span className="text-xs text-gray-400">
+                  {new Date(row.response.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                </span>
+              )}
+              {onDeleteResponse && (
+                <button onClick={() => onDeleteResponse(row.tenant._id)}
+                  className="text-gray-300 hover:text-red-400 text-xs" title="Reset">🗑</button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Pending tab ───────────────────────────────────────────────────────────────
+
+function PendingTab({ rows }) {
+  const pendingRows = rows.filter(r => overallCategory(r.response) === 'pending');
+  if (!pendingRows.length) return (
+    <div className="bg-white rounded-xl border border-dashed border-gray-300 p-16 text-center">
+      <p className="text-3xl mb-2">🎉</p>
+      <p className="text-gray-600 font-medium">All tenants have responded</p>
+    </div>
+  );
+  const groups = pendingRows.reduce((acc, row) => {
+    const key = row.tenant.unit || 'Unknown Building';
+    (acc[key] = acc[key] || []).push(row);
+    return acc;
+  }, {});
+  return (
+    <div className="space-y-3">
+      {Object.keys(groups).sort().map(building => (
+        <div key={building} className="bg-white rounded-xl border border-amber-100 overflow-hidden">
+          <div className="px-5 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
+            <span>🏢</span>
+            <span className="font-semibold text-gray-800">{building}</span>
+            <span className="text-xs text-amber-500 ml-auto">{groups[building].length} pending</span>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {groups[building].map(row => (
+              <div key={row.tenant._id} className="px-5 py-3 flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">{row.tenant.name}</p>
+                  <p className="text-xs text-gray-400">{row.tenant.email}</p>
+                </div>
+                <span className="text-xs text-amber-500 font-medium bg-amber-50 px-2 py-0.5 rounded-full">Not submitted</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Full detail (expandable in overview) ─────────────────────────────────────
+
+function FullDetail({ response }) {
+  const fe = response.fireExtinguisher;
+  const sd = response.smokeDetector;
+  const sv = response.stoveSensor;
+  return (
+    <div className="grid md:grid-cols-3 gap-4 pt-3">
       {[
-        { label: '🧯 Fire Ext', data: fe, type: 'fireExt' },
-        { label: '🔔 Smoke Det', data: sd, type: 'det' },
-        { label: '🍳 Stove Sensor', data: sv, type: 'det' },
+        { label: '🧯 Fire Extinguisher', data: fe, type: 'fe' },
+        { label: '🔔 Smoke Detector', data: sd, type: 'det' },
+        { label: '🍳 Stove Heat Sensor', data: sv, type: 'det' },
       ].map(({ label, data, type }) => (
-        <div key={label}>
-          <p className="font-semibold text-gray-600 mb-1">{label}</p>
-          {!data ? <p className="text-gray-400">No data</p> : (
-            <div className="space-y-0.5 text-gray-600">
-              <p>Present: {data.present ? '✅' : '❌'}{!data.present && data.notPresentReason ? ` ${data.notPresentReason}` : ''}</p>
-              {type === 'fireExt' && data.present && <>
-                <p>Gauge: {data.gaugeGreen ? '✅' : '❌'}{!data.gaugeGreen && data.gaugeReason ? ` ${data.gaugeReason}` : ''}</p>
-                <p>Pin: {data.pinIntact ? '✅' : '❌'}{!data.pinIntact && data.pinReason ? ` ${data.pinReason}` : ''}</p>
+        <div key={label} className="bg-gray-50 rounded-lg p-3 space-y-1">
+          <p className="text-xs font-semibold text-gray-700 mb-2">{label}</p>
+          {!data ? <p className="text-xs text-gray-400">No data</p> : (
+            <>
+              <DetailLine label="Present" val={data.present} reason={!data.present ? data.notPresentReason : null} />
+              {type === 'fe' && data.present && <>
+                <DetailLine label="Gauge green" val={data.gaugeGreen} reason={!data.gaugeGreen ? data.gaugeReason : null} />
+                <DetailLine label="Pin intact" val={data.pinIntact} reason={!data.pinIntact ? data.pinReason : null} />
               </>}
               {type === 'det' && data.present && <>
-                <p>Beeped: {data.beeped ? '✅' : '❌'}</p>
-                {data.beeped === false && <p>After battery: {data.beepedAfterBattery ? '✅' : '❌'}</p>}
-                {data.needsInspection && <p className="text-red-600 font-semibold">Needs visit</p>}
+                <DetailLine label="Beeped" val={data.beeped} />
+                {data.beeped === false && <DetailLine label="After battery" val={data.beepedAfterBattery} />}
               </>}
-              {data.photo && <img src={data.photo} alt="" className="mt-1 h-16 rounded object-cover cursor-pointer" onClick={() => window.open(data.photo)} />}
-            </div>
+              {data.photo && (
+                <img src={data.photo} alt="" onClick={() => window.open(data.photo)}
+                  className="mt-2 h-20 w-full object-cover rounded cursor-pointer hover:opacity-90" />
+              )}
+            </>
           )}
         </div>
       ))}
@@ -176,7 +415,36 @@ function IssueDetail({ response }) {
   );
 }
 
+function DetailLine({ label, val, reason }) {
+  return (
+    <div className="flex items-start justify-between text-xs gap-2">
+      <span className="text-gray-500 shrink-0">{label}</span>
+      <span className={`text-right ${val ? 'text-emerald-600' : 'text-red-500'}`}>
+        {val ? '✅ Yes' : '❌ No'}{reason ? ` — ${reason}` : ''}
+      </span>
+    </div>
+  );
+}
+
+// ── Shared ────────────────────────────────────────────────────────────────────
+
+function OverallBadge({ cat }) {
+  if (cat === 'passed') return <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full whitespace-nowrap">✅ Passed</span>;
+  if (cat === 'issues') return <span className="text-xs font-semibold text-red-700 bg-red-100 px-2 py-0.5 rounded-full whitespace-nowrap">❌ Issues</span>;
+  return <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap">⏳ Pending</span>;
+}
+
+function Empty({ text }) {
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
+      <p className="text-gray-400">{text}</p>
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
+
+const TABS = ['Overview', 'Needs Inspection', 'Passed', 'Pending'];
 
 export default function AdminInspections() {
   const [inspections, setInspections] = useState([]);
@@ -186,7 +454,7 @@ export default function AdminInspections() {
   const [creating, setCreating] = useState(false);
   const [dueDate, setDueDate] = useState('');
   const [closing, setClosing] = useState(false);
-  const [expandedIssue, setExpandedIssue] = useState(null);
+  const [tab, setTab] = useState('Overview');
 
   useEffect(() => {
     api.get('/inspections').then(r => {
@@ -198,7 +466,6 @@ export default function AdminInspections() {
   useEffect(() => {
     if (!selected) return;
     setLoadingRows(true);
-    setExpandedIssue(null);
     api.get(`/inspections/${selected._id}/responses`)
       .then(r => setRows(r.data.tenants))
       .catch(console.error)
@@ -214,12 +481,10 @@ export default function AdminInspections() {
       setInspections(prev => [res.data, ...prev.map(i => ({ ...i, status: 'closed' }))]);
       setSelected(res.data);
       setDueDate('');
-      toast.success('Inspection started');
+      toast.success('Inspection started — tenants are now blocked until they respond.');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed');
-    } finally {
-      setCreating(false);
-    }
+    } finally { setCreating(false); }
   };
 
   const handleClose = async () => {
@@ -229,12 +494,12 @@ export default function AdminInspections() {
       const res = await api.put(`/inspections/${selected._id}/close`);
       setInspections(prev => prev.map(i => i._id === selected._id ? res.data : i));
       setSelected(res.data);
-      toast.success('Inspection closed');
+      toast.success('Closed');
     } catch { toast.error('Failed'); } finally { setClosing(false); }
   };
 
   const handleDeleteInspection = async (ins) => {
-    if (!confirm(`Delete this inspection and all responses?`)) return;
+    if (!confirm('Delete this inspection and all its responses?')) return;
     try {
       await api.delete(`/inspections/${ins._id}`);
       const updated = inspections.filter(i => i._id !== ins._id);
@@ -254,31 +519,24 @@ export default function AdminInspections() {
     } catch { toast.error('Failed'); }
   };
 
-  const passed = rows.filter(r => overallStatus(r.response) === 'passed');
-  const issues = rows.filter(r => overallStatus(r.response) === 'issues');
-  const pending = rows.filter(r => overallStatus(r.response) === 'pending');
+  const passed = rows.filter(r => overallCategory(r.response) === 'passed').length;
+  const issues = rows.filter(r => overallCategory(r.response) === 'issues').length;
+  const pending = rows.filter(r => overallCategory(r.response) === 'pending').length;
 
-  // Group issues by building
-  const issuesByBuilding = issues.reduce((acc, row) => {
-    const key = row.tenant.unit || 'Unknown Building';
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(row);
-    return acc;
-  }, {});
+  const tabCounts = { 'Overview': rows.length, 'Needs Inspection': issues, 'Passed': passed, 'Pending': pending };
+  const tabColors = { 'Needs Inspection': issues > 0 ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-500', 'Pending': pending > 0 ? 'bg-amber-400 text-white' : 'bg-gray-200 text-gray-500' };
 
-  const minDate = new Date();
-  minDate.setDate(minDate.getDate() + 1);
+  const minDate = new Date(); minDate.setDate(minDate.getDate() + 1);
   const inspLabel = selected ? new Date(selected.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 
   return (
     <Layout>
-      <div className="max-w-4xl">
-
+      <div className="max-w-5xl">
         {/* Header */}
         <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">🔥 Safety Inspections</h1>
-            <p className="text-gray-500 text-sm mt-1">Fire extinguisher · Smoke detector · Stove heat detector</p>
+            <p className="text-gray-500 text-sm mt-1">Fire extinguisher · Smoke detector · Stove heat sensor</p>
           </div>
           <form onSubmit={handleCreate} className="flex items-center gap-2">
             <input type="date" value={dueDate} min={minDate.toISOString().split('T')[0]}
@@ -286,12 +544,12 @@ export default function AdminInspections() {
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
             <button type="submit" disabled={creating || !dueDate}
               className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60">
-              {creating ? '…' : '+ New'}
+              {creating ? '…' : '+ New Inspection'}
             </button>
           </form>
         </div>
 
-        {/* Inspection picker */}
+        {/* Inspection selector */}
         {inspections.length > 0 && (
           <div className="flex gap-2 flex-wrap mb-6">
             {inspections.map(ins => (
@@ -304,7 +562,7 @@ export default function AdminInspections() {
                   </span>
                 </button>
                 <button onClick={() => handleDeleteInspection(ins)}
-                  className={`pr-2.5 text-sm hover:text-red-400 transition-colors ${selected?._id === ins._id ? 'text-gray-500' : 'text-gray-300'}`}>🗑</button>
+                  className={`pr-2.5 hover:text-red-400 text-sm transition-colors ${selected?._id === ins._id ? 'text-gray-500' : 'text-gray-300'}`}>🗑</button>
               </div>
             ))}
           </div>
@@ -312,18 +570,31 @@ export default function AdminInspections() {
 
         {selected && (
           <>
-            {/* Progress bar */}
-            <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="text-gray-500">
-                    <span className="font-bold text-gray-800 text-lg">{passed.length + issues.length}</span>
-                    <span className="text-gray-400">/{rows.length}</span>
-                    <span className="ml-1">responded</span>
-                  </span>
-                  <span className="text-emerald-600 font-medium">✅ {passed.length} passed</span>
-                  <span className="text-red-500 font-medium">🔴 {issues.length} issues</span>
-                  <span className="text-gray-400">⏳ {pending.length} pending</span>
+            {/* Stats + progress */}
+            <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+              <div className="grid grid-cols-4 gap-4 mb-4">
+                {[
+                  { label: 'Total', val: rows.length, color: 'text-gray-800' },
+                  { label: '✅ Passed', val: passed, color: 'text-emerald-600' },
+                  { label: '❌ Issues', val: issues, color: 'text-red-600' },
+                  { label: '⏳ Pending', val: pending, color: 'text-amber-500' },
+                ].map(s => (
+                  <div key={s.label} className="text-center">
+                    <p className={`text-3xl font-bold ${s.color}`}>{s.val}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="h-3 bg-gray-100 rounded-full overflow-hidden flex">
+                <div className="h-full bg-emerald-500 transition-all" style={{ width: `${rows.length ? (passed / rows.length) * 100 : 0}%` }} />
+                <div className="h-full bg-red-400 transition-all" style={{ width: `${rows.length ? (issues / rows.length) * 100 : 0}%` }} />
+                <div className="h-full bg-amber-300 transition-all" style={{ width: `${rows.length ? (pending / rows.length) * 100 : 0}%` }} />
+              </div>
+              <div className="flex items-center justify-between mt-3">
+                <div className="flex gap-3 text-xs text-gray-400">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500 inline-block"/>Passed</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-400 inline-block"/>Issues</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-300 inline-block"/>Pending</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <ExportMenu rows={rows} label={inspLabel} />
@@ -335,116 +606,33 @@ export default function AdminInspections() {
                   )}
                 </div>
               </div>
-              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden flex">
-                <div className="h-full bg-emerald-500 transition-all" style={{ width: `${rows.length ? (passed.length / rows.length) * 100 : 0}%` }} />
-                <div className="h-full bg-red-400 transition-all" style={{ width: `${rows.length ? (issues.length / rows.length) * 100 : 0}%` }} />
-              </div>
-              <div className="flex gap-4 mt-1.5 text-xs text-gray-400">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500 inline-block"/>Passed</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-400 inline-block"/>Issues</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-gray-200 inline-block"/>Pending</span>
-              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit mb-5">
+              {TABS.map(t => (
+                <button key={t} onClick={() => setTab(t)}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${tab === t ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                  {t}
+                  {tabCounts[t] > 0 && (
+                    <span className={`text-xs rounded-full px-1.5 py-0.5 font-semibold ${tabColors[t] || 'bg-gray-200 text-gray-500'}`}>
+                      {tabCounts[t]}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
 
             {loadingRows ? (
-              <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-xl border border-gray-200 animate-pulse" />)}</div>
+              <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-xl border border-gray-200 animate-pulse" />)}</div>
+            ) : tab === 'Overview' ? (
+              <OverviewTab rows={rows} onDeleteResponse={handleDeleteResponse} />
+            ) : tab === 'Needs Inspection' ? (
+              <NeedsInspectionTab rows={rows} onDeleteResponse={handleDeleteResponse} />
+            ) : tab === 'Passed' ? (
+              <PassedTab rows={rows} onDeleteResponse={handleDeleteResponse} />
             ) : (
-              <div className="space-y-4">
-
-                {/* ── Issues ── */}
-                {issues.length > 0 && (
-                  <div className="bg-white border border-red-200 rounded-xl overflow-hidden">
-                    <div className="px-5 py-3 bg-red-50 border-b border-red-100 flex items-center justify-between">
-                      <p className="font-semibold text-red-700">🔴 Needs Attention — {issues.length} {issues.length === 1 ? 'tenant' : 'tenants'}</p>
-                      <p className="text-xs text-red-400">These buildings need a physical visit</p>
-                    </div>
-                    {Object.keys(issuesByBuilding).sort().map(building => (
-                      <div key={building} className="border-b border-red-50 last:border-0">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-5 pt-3 pb-1">🏢 {building}</p>
-                        {issuesByBuilding[building].map(row => {
-                          const issueList = getIssues(row.response);
-                          const isOpen = expandedIssue === row.tenant._id;
-                          return (
-                            <div key={row.tenant._id} className="px-5 pb-3">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1">
-                                  <button onClick={() => setExpandedIssue(isOpen ? null : row.tenant._id)}
-                                    className="text-sm font-medium text-gray-800 hover:text-red-600 text-left">
-                                    {row.tenant.name}
-                                    {row.tenant.building && <span className="text-gray-400 font-normal ml-1">· Unit {row.tenant.building}</span>}
-                                    <span className="text-gray-400 text-xs ml-2">{isOpen ? '▲' : '▼'}</span>
-                                  </button>
-                                  <ul className="mt-1 space-y-0.5">
-                                    {issueList.map((issue, i) => (
-                                      <li key={i} className="text-xs text-red-600">{issue}</li>
-                                    ))}
-                                  </ul>
-                                  {isOpen && <IssueDetail response={row.response} />}
-                                </div>
-                                <button onClick={() => handleDeleteResponse(row.tenant._id)}
-                                  className="text-gray-300 hover:text-red-400 text-xs mt-0.5 shrink-0" title="Reset response">🗑</button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* ── Pending ── */}
-                {pending.length > 0 && (
-                  <div className="bg-white border border-amber-200 rounded-xl overflow-hidden">
-                    <div className="px-5 py-3 bg-amber-50 border-b border-amber-100">
-                      <p className="font-semibold text-amber-700">⏳ Waiting for Response — {pending.length} {pending.length === 1 ? 'tenant' : 'tenants'}</p>
-                    </div>
-                    <div className="divide-y divide-gray-100">
-                      {pending.map(row => (
-                        <div key={row.tenant._id} className="px-5 py-3 flex items-center justify-between">
-                          <div>
-                            <p className="text-sm text-gray-700">{row.tenant.name}</p>
-                            <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · Unit ${row.tenant.building}` : ''}</p>
-                          </div>
-                          <span className="text-xs text-amber-500 font-medium">Not submitted</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* ── Passed ── */}
-                {passed.length > 0 && (
-                  <div className="bg-white border border-emerald-200 rounded-xl overflow-hidden">
-                    <div className="px-5 py-3 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between">
-                      <p className="font-semibold text-emerald-700">✅ Passed — {passed.length} {passed.length === 1 ? 'tenant' : 'tenants'}</p>
-                      <p className="text-xs text-emerald-500">Everything checked out</p>
-                    </div>
-                    <div className="divide-y divide-gray-100">
-                      {passed.map(row => (
-                        <div key={row.tenant._id} className="px-5 py-3 flex items-center justify-between">
-                          <div>
-                            <p className="text-sm text-gray-700">{row.tenant.name}</p>
-                            <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · Unit ${row.tenant.building}` : ''}</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            {row.response?.completedAt && (
-                              <span className="text-xs text-gray-400">{new Date(row.response.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
-                            )}
-                            <button onClick={() => handleDeleteResponse(row.tenant._id)}
-                              className="text-gray-300 hover:text-red-400 text-xs transition-colors" title="Reset response">🗑</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {rows.length === 0 && (
-                  <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
-                    <p className="text-gray-400">No tenants found for this inspection.</p>
-                  </div>
-                )}
-              </div>
+              <PendingTab rows={rows} />
             )}
           </>
         )}

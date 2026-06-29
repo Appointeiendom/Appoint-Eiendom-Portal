@@ -416,7 +416,7 @@ function ExportButton({ rows, inspectionDate }) {
 
 const TABS = [
   { id: 'overview',   label: 'Overview' },
-  { id: 'submitted',  label: 'Submitted' },
+  { id: 'submitted',  label: 'Compliant' },
   { id: 'needs',      label: 'Needs Inspection' },
   { id: 'pending',    label: 'Pending' },
 ];
@@ -483,14 +483,15 @@ export default function AdminInspections() {
   const completed = rows.filter(r => r.response).length;
   const pendingCount = rows.filter(r => !r.response).length;
   const issueCount = rows.filter(r => ['needs', 'issue', 'absent'].includes(overallStatus(r.response))).length;
-  const submittedRows = rows.filter(r => r.response);
+  const submittedRows = rows.filter(r => overallStatus(r.response) === 'ok');
   const minDate = new Date();
   minDate.setDate(minDate.getDate() + 1);
   const inspectionDateLabel = selected ? new Date(selected.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 
+  const compliantCount = rows.filter(r => overallStatus(r.response) === 'ok').length;
   const tabCounts = {
     overview: rows.length,
-    submitted: completed,
+    submitted: compliantCount,
     needs: issueCount,
     pending: pendingCount,
   };
@@ -536,7 +537,7 @@ export default function AdminInspections() {
             <div className="grid grid-cols-4 gap-3 mb-5">
               {[
                 { label: 'Total', value: rows.length, color: 'text-gray-800' },
-                { label: 'Submitted', value: completed, color: 'text-emerald-600' },
+                { label: 'Compliant', value: compliantCount, color: 'text-emerald-600' },
                 { label: 'Pending', value: pendingCount, color: 'text-amber-600' },
                 { label: 'Needs Inspection', value: issueCount, color: 'text-red-600' },
               ].map(s => (
@@ -595,7 +596,7 @@ export default function AdminInspections() {
             ) : tab === 'overview' ? (
               <ComplianceTable rows={rows} expanded={expanded} setExpanded={setExpanded} emptyMessage="No tenants yet." />
             ) : tab === 'submitted' ? (
-              <ComplianceTable rows={submittedRows} expanded={expanded} setExpanded={setExpanded} emptyMessage="No submissions yet." />
+              <ComplianceTable rows={submittedRows} expanded={expanded} setExpanded={setExpanded} emptyMessage="No compliant responses yet." />
             ) : tab === 'needs' ? (
               <NeedsInspectionTab rows={rows} />
             ) : (

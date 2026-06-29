@@ -278,16 +278,7 @@ function NeedsInspectionTab({ rows, onDeleteResponse }) {
 }
 
 function IssueItemRow({ label, status }) {
-  if (status.pass === null) return null; // item not in response
-  if (status.pass) {
-    return (
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-emerald-500">✅</span>
-        <span className="text-gray-500">{label}</span>
-        <span className="text-xs text-emerald-500 font-medium">Passed</span>
-      </div>
-    );
-  }
+  if (status.pass === null || status.pass === true) return null;
   return (
     <div className="flex items-start gap-2 text-sm">
       <span className="text-red-500 mt-0.5">❌</span>

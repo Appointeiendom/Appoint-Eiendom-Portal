@@ -104,6 +104,27 @@ router.get('/:id/responses', protect, adminOnly, async (req, res) => {
   }
 });
 
+// DELETE /api/inspections/:id — admin deletes inspection + all responses
+router.delete('/:id', protect, adminOnly, async (req, res) => {
+  try {
+    await InspectionResponse.deleteMany({ inspectionId: req.params.id });
+    await Inspection.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// DELETE /api/inspections/:id/responses/:tenantId — admin deletes one tenant's response
+router.delete('/:id/responses/:tenantId', protect, adminOnly, async (req, res) => {
+  try {
+    await InspectionResponse.findOneAndDelete({ inspectionId: req.params.id, tenantId: req.params.tenantId });
+    res.json({ message: 'Response deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // PUT /api/inspections/:id/close — admin closes inspection
 router.put('/:id/close', protect, adminOnly, async (req, res) => {
   try {

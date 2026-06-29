@@ -106,7 +106,7 @@ function TenantDetail({ row }) {
 }
 
 // Compliance table rows — used by Overview and Submitted tabs
-function ComplianceTable({ rows, expanded, setExpanded, emptyMessage }) {
+function ComplianceTable({ rows, expanded, setExpanded, emptyMessage, onDeleteResponse }) {
   if (rows.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
@@ -142,9 +142,17 @@ function ComplianceTable({ rows, expanded, setExpanded, emptyMessage }) {
               <div className="w-10 text-center"><StatusIcon status={feStatus} /></div>
               <div className="w-10 text-center"><StatusIcon status={sdStatus} /></div>
               <div className="w-10 text-center"><StatusIcon status={svStatus} /></div>
-              <div>
-                <StatusBadge status={overall} />
-                {r?.completedAt && <p className="text-xs text-gray-400 mt-0.5">{new Date(r.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>}
+              <div className="flex items-center gap-2">
+                <div>
+                  <StatusBadge status={overall} />
+                  {r?.completedAt && <p className="text-xs text-gray-400 mt-0.5">{new Date(r.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>}
+                </div>
+                {r && onDeleteResponse && (
+                  <button onClick={e => { e.stopPropagation(); onDeleteResponse(row.tenant._id); }}
+                    className="text-gray-300 hover:text-red-400 text-xs transition-colors" title="Delete response">
+                    🗑
+                  </button>
+                )}
               </div>
             </button>
             {isExpanded && <div className="px-4 pb-4"><TenantDetail row={row} /></div>}
@@ -431,6 +439,7 @@ export default function AdminInspections() {
   const [expanded, setExpanded] = useState(null);
   const [closing, setClosing] = useState(false);
   const [tab, setTab] = useState('overview');
+  const [deletingInspection, setDeletingInspection] = useState(false);
 
   useEffect(() => {
     api.get('/inspections').then(r => {
@@ -462,6 +471,34 @@ export default function AdminInspections() {
       toast.error(err.response?.data?.message || 'Failed to create');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDeleteInspection = async (ins) => {
+    if (!confirm(`Delete inspection (${new Date(ins.dueDate).toLocaleDateString('en-GB')}) and all its responses? This cannot be undone.`)) return;
+    setDeletingInspection(ins._id);
+    try {
+      await api.delete(`/inspections/${ins._id}`);
+      const updated = inspections.filter(i => i._id !== ins._id);
+      setInspections(updated);
+      setSelected(updated[0] || null);
+      setRows([]);
+      toast.success('Inspection deleted');
+    } catch {
+      toast.error('Failed to delete');
+    } finally {
+      setDeletingInspection(false);
+    }
+  };
+
+  const handleDeleteResponse = async (tenantId) => {
+    if (!confirm('Delete this tenant\'s response? They will need to fill it in again.')) return;
+    try {
+      await api.delete(`/inspections/${selected._id}/responses/${tenantId}`);
+      setRows(prev => prev.map(r => r.tenant._id === tenantId ? { ...r, response: null } : r));
+      toast.success('Response deleted');
+    } catch {
+      toast.error('Failed to delete response');
     }
   };
 
@@ -519,14 +556,20 @@ export default function AdminInspections() {
         {inspections.length > 0 && (
           <div className="flex gap-2 flex-wrap mb-6">
             {inspections.map(ins => (
-              <button key={ins._id} onClick={() => setSelected(ins)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${selected?._id === ins._id ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}>
-                {new Date(ins.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                {' '}
-                <span className={`text-xs ${ins.status === 'active' ? 'text-emerald-400' : 'text-gray-400'}`}>
-                  {ins.status === 'active' ? '● Active' : '○ Closed'}
-                </span>
-              </button>
+              <div key={ins._id} className={`flex items-center gap-1 rounded-lg border text-sm font-medium transition-colors ${selected?._id === ins._id ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200'}`}>
+                <button onClick={() => setSelected(ins)} className="px-3 py-1.5">
+                  {new Date(ins.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {' '}
+                  <span className={`text-xs ${ins.status === 'active' ? 'text-emerald-400' : selected?._id === ins._id ? 'text-gray-400' : 'text-gray-400'}`}>
+                    {ins.status === 'active' ? '● Active' : '○ Closed'}
+                  </span>
+                </button>
+                <button onClick={() => handleDeleteInspection(ins)} disabled={deletingInspection === ins._id}
+                  className={`pr-2 text-xs hover:text-red-400 transition-colors disabled:opacity-40 ${selected?._id === ins._id ? 'text-gray-400' : 'text-gray-300'}`}
+                  title="Delete inspection">
+                  🗑
+                </button>
+              </div>
             ))}
           </div>
         )}
@@ -594,9 +637,9 @@ export default function AdminInspections() {
             {loadingRows ? (
               <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="bg-white rounded-xl border border-gray-200 h-14 animate-pulse" />)}</div>
             ) : tab === 'overview' ? (
-              <ComplianceTable rows={rows} expanded={expanded} setExpanded={setExpanded} emptyMessage="No tenants yet." />
+              <ComplianceTable rows={rows} expanded={expanded} setExpanded={setExpanded} emptyMessage="No tenants yet." onDeleteResponse={handleDeleteResponse} />
             ) : tab === 'submitted' ? (
-              <ComplianceTable rows={submittedRows} expanded={expanded} setExpanded={setExpanded} emptyMessage="No compliant responses yet." />
+              <ComplianceTable rows={submittedRows} expanded={expanded} setExpanded={setExpanded} emptyMessage="No passed responses yet." onDeleteResponse={handleDeleteResponse} />
             ) : tab === 'needs' ? (
               <NeedsInspectionTab rows={rows} />
             ) : (

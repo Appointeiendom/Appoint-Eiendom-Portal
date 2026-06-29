@@ -18,6 +18,7 @@ export default function Sidebar({ open, onClose }) {
     { to: '/admin/waste', label: t('nav.wasteReports'), icon: '♻️' },
     { to: '/admin/analytics', label: t('nav.analytics'), icon: '📊' },
     { to: '/admin/inspections', label: 'Inspections', icon: '🔥' },
+    { to: '/admin/buildings', label: 'Properties', icon: '🏢' },
     { to: '/admin/settings', label: t('nav.settings'), icon: '⚙️' },
     { to: '/admin/profile', label: t('nav.profile'), icon: '👤' },
   ];

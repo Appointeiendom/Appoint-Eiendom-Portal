@@ -31,6 +31,7 @@ import TenantWasteReport from './pages/TenantWasteReport';
 import AdminWasteReports from './pages/AdminWasteReports';
 import AdminSettings from './pages/AdminSettings';
 import AdminInspections from './pages/AdminInspections';
+import AdminBuildings from './pages/AdminBuildings';
 import TenantInspection from './pages/TenantInspection';
 
 // Blocks tenant portal access when an active inspection needs a response
@@ -109,6 +110,7 @@ export default function App() {
           <Route path="/admin/waste" element={<ProtectedRoute role="admin"><AdminWasteReports /></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute role="admin"><AdminSettings /></ProtectedRoute>} />
           <Route path="/admin/inspections" element={<ProtectedRoute role="admin"><AdminInspections /></ProtectedRoute>} />
+          <Route path="/admin/buildings" element={<ProtectedRoute role="admin"><AdminBuildings /></ProtectedRoute>} />
 
           {/* Maintenance */}
           <Route path="/maintenance/dashboard" element={<ProtectedRoute role="maintenance"><MaintenanceDashboard /></ProtectedRoute>} />

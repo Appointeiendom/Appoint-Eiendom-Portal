@@ -3,7 +3,18 @@ const router = express.Router();
 const { protect, adminOnly } = require('../middleware/auth');
 const { upload } = require('../config/cloudinary');
 const User = require('../models/User');
+const Building = require('../models/Building');
 const { sendWelcomeEmail } = require('../services/emailService');
+
+// Resolves buildingId+apartmentId into unit/building strings
+async function resolveBuilding(buildingId, apartmentId) {
+  if (!buildingId || !apartmentId) return {};
+  const b = await Building.findById(buildingId);
+  if (!b) return {};
+  const apt = b.apartments.id(apartmentId);
+  if (!apt) return {};
+  return { unit: b.name, building: apt.number, buildingId: b._id, apartmentId: apt._id };
+}
 
 // GET /api/users/profile
 router.get('/profile', protect, (req, res) => res.json(req.user));
@@ -27,15 +38,24 @@ router.put('/profile', protect, async (req, res) => {
 // POST /api/users  — admin creates a tenant account
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
-    const { name, email, unit, building, phone, password: customPassword, leaseStart, leaseEnd } = req.body;
-    if (!name || !email || !unit) {
-      return res.status(400).json({ message: 'Name, email and unit are required' });
+    const { name, email, phone, password: customPassword, leaseStart, leaseEnd, buildingId, apartmentId } = req.body;
+    let { unit, building } = req.body;
+
+    if (!name || !email) return res.status(400).json({ message: 'Name and email are required' });
+
+    // If using building system, resolve unit/building from building doc
+    if (buildingId && apartmentId) {
+      const resolved = await resolveBuilding(buildingId, apartmentId);
+      if (!resolved.unit) return res.status(400).json({ message: 'Invalid building or apartment' });
+      unit = resolved.unit;
+      building = resolved.building;
     }
+
+    if (!unit) return res.status(400).json({ message: 'Unit/building is required' });
 
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: 'Email already registered' });
 
-    // Use custom password if provided, otherwise auto-generate
     const rawPassword = customPassword && customPassword.length >= 6
       ? customPassword
       : Math.random().toString(36).slice(-8) + 'A1!';
@@ -43,14 +63,15 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const user = await User.create({
       name, email, password: rawPassword, role: 'tenant', unit, building, phone,
       leaseStart: leaseStart || null, leaseEnd: leaseEnd || null,
+      buildingId: buildingId || null, apartmentId: apartmentId || null,
     });
 
-    // Send welcome email in background (non-blocking)
     sendWelcomeEmail({ name, email, unit, building, phone }, rawPassword).catch(console.error);
 
     res.status(201).json({
-      _id: user._id, name: user.name, email: user.email,
-      role: user.role, unit: user.unit, building: user.building, phone: user.phone,
+      _id: user._id, name: user.name, email: user.email, role: user.role,
+      unit: user.unit, building: user.building, phone: user.phone,
+      buildingId: user.buildingId, apartmentId: user.apartmentId,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -60,7 +81,8 @@ router.post('/', protect, adminOnly, async (req, res) => {
 // PUT /api/users/:id (admin only — update tenant details)
 router.put('/:id', protect, adminOnly, async (req, res) => {
   try {
-    const { name, email, unit, building, phone } = req.body;
+    const { name, email, phone, buildingId, apartmentId } = req.body;
+    let { unit, building } = req.body;
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
     if (email && email !== user.email) {
@@ -69,13 +91,26 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
       user.email = email;
     }
     if (name) user.name = name;
-    if (unit !== undefined) user.unit = unit;
-    if (building !== undefined) user.building = building;
     if (phone !== undefined) user.phone = phone;
     if (req.body.leaseStart !== undefined) user.leaseStart = req.body.leaseStart || null;
     if (req.body.leaseEnd !== undefined) user.leaseEnd = req.body.leaseEnd || null;
+
+    // If using building system, resolve unit/building
+    if (buildingId && apartmentId) {
+      const resolved = await resolveBuilding(buildingId, apartmentId);
+      if (resolved.unit) {
+        user.unit = resolved.unit;
+        user.building = resolved.building;
+        user.buildingId = resolved.buildingId;
+        user.apartmentId = resolved.apartmentId;
+      }
+    } else {
+      if (unit !== undefined) user.unit = unit;
+      if (building !== undefined) user.building = building;
+    }
+
     await user.save();
-    res.json({ _id: user._id, name: user.name, email: user.email, role: user.role, unit: user.unit, building: user.building, phone: user.phone, photo: user.photo, leaseStart: user.leaseStart, leaseEnd: user.leaseEnd });
+    res.json({ _id: user._id, name: user.name, email: user.email, role: user.role, unit: user.unit, building: user.building, phone: user.phone, photo: user.photo, leaseStart: user.leaseStart, leaseEnd: user.leaseEnd, buildingId: user.buildingId, apartmentId: user.apartmentId });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

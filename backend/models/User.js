@@ -18,6 +18,8 @@ const userSchema = new mongoose.Schema(
     availability: [{ type: String }], // ISO date strings marked as available
     leaseStart: { type: Date, default: null },
     leaseEnd: { type: Date, default: null },
+    buildingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Building', default: null },
+    apartmentId: { type: mongoose.Schema.Types.ObjectId, default: null },
   },
   { timestamps: true }
 );

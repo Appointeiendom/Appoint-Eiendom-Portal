@@ -144,26 +144,90 @@ function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, on
   );
 }
 
-function EditModal({ tenant, onClose, onSaved, t }) {
+// Reusable building+apartment selector
+function BuildingApartmentPicker({ buildings, buildingId, apartmentId, onBuildingChange, onApartmentChange, excludeTenantId }) {
+  const [apts, setApts] = useState([]);
+  const [loadingApts, setLoadingApts] = useState(false);
+
+  useEffect(() => {
+    if (!buildingId) { setApts([]); return; }
+    setLoadingApts(true);
+    const url = `/buildings/${buildingId}/apartments${excludeTenantId ? `?excludeTenant=${excludeTenantId}` : ''}`;
+    api.get(url).then(r => setApts(r.data)).catch(() => setApts([])).finally(() => setLoadingApts(false));
+  }, [buildingId, excludeTenantId]);
+
+  if (buildings.length === 0) {
+    return (
+      <div className="col-span-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-sm text-amber-700">
+        No buildings registered yet. Add buildings in{' '}
+        <a href="/admin/buildings" className="underline font-medium">Properties</a> first.
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="col-span-2 sm:col-span-1">
+        <label className="block text-xs font-medium text-gray-600 mb-1">Building *</label>
+        <select required value={buildingId} onChange={e => { onBuildingChange(e.target.value); onApartmentChange(''); }}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+          <option value="">Select building…</option>
+          {buildings.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+        </select>
+      </div>
+      <div className="col-span-2 sm:col-span-1">
+        <label className="block text-xs font-medium text-gray-600 mb-1">Apartment *</label>
+        <select required value={apartmentId} onChange={e => onApartmentChange(e.target.value)}
+          disabled={!buildingId || loadingApts}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white disabled:bg-gray-50 disabled:text-gray-400">
+          <option value="">{loadingApts ? 'Loading…' : 'Select apartment…'}</option>
+          {apts.map(apt => (
+            <option key={apt._id} value={apt._id} disabled={apt.isOccupied}>
+              {apt.number}{apt.floor ? ` (${apt.floor})` : ''}{apt.type ? ` — ${apt.type}` : ''}{apt.isOccupied ? ` · Occupied by ${apt.occupantName}` : ''}
+            </option>
+          ))}
+        </select>
+        {buildingId && apts.length === 0 && !loadingApts && (
+          <p className="text-xs text-gray-400 mt-1">No apartments in this building yet.</p>
+        )}
+      </div>
+    </>
+  );
+}
+
+function EditModal({ tenant, buildings, onClose, onSaved, t }) {
   const toDateInput = (d) => d ? new Date(d).toISOString().split('T')[0] : '';
   const [form, setForm] = useState({
     name: tenant.name || '',
     email: tenant.email || '',
-    unit: tenant.unit || '',
-    building: tenant.building || '',
     phone: tenant.phone || '',
     leaseStart: toDateInput(tenant.leaseStart),
     leaseEnd: toDateInput(tenant.leaseEnd),
+    buildingId: tenant.buildingId || '',
+    apartmentId: tenant.apartmentId || '',
+    // Legacy fallbacks (used if no building system)
+    unit: tenant.unit || '',
+    building: tenant.building || '',
   });
   const [saving, setSaving] = useState(false);
   const up = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.unit) return toast.error(t('tenants.required'));
+    const hasBuilding = buildings.length > 0;
+    if (hasBuilding && (!form.buildingId || !form.apartmentId)) return toast.error('Please select a building and apartment');
+    if (!hasBuilding && !form.unit) return toast.error(t('tenants.required'));
     setSaving(true);
     try {
-      const res = await api.put(`/users/${tenant._id}`, form);
+      const payload = { name: form.name, email: form.email, phone: form.phone, leaseStart: form.leaseStart, leaseEnd: form.leaseEnd };
+      if (form.buildingId && form.apartmentId) {
+        payload.buildingId = form.buildingId;
+        payload.apartmentId = form.apartmentId;
+      } else {
+        payload.unit = form.unit;
+        payload.building = form.building;
+      }
+      const res = await api.put(`/users/${tenant._id}`, payload);
       toast.success(t('tenants.editSuccess'));
       onSaved(res.data);
     } catch (err) {
@@ -202,18 +266,33 @@ function EditModal({ tenant, onClose, onSaved, t }) {
               <input type="email" required value={form.email} onChange={up('email')}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
-            <div className="col-span-2 sm:col-span-1">
-              <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.unit')} *</label>
-              <input type="text" required value={form.unit} onChange={up('unit')}
-                placeholder={t('tenants.unitPlaceholder')}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.aptNumber')}</label>
-              <input type="text" value={form.building} onChange={up('building')}
-                placeholder={t('tenants.aptPlaceholder')}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-            </div>
+
+            {buildings.length > 0 ? (
+              <BuildingApartmentPicker
+                buildings={buildings}
+                buildingId={form.buildingId}
+                apartmentId={form.apartmentId}
+                excludeTenantId={tenant._id}
+                onBuildingChange={v => setForm(f => ({ ...f, buildingId: v }))}
+                onApartmentChange={v => setForm(f => ({ ...f, apartmentId: v }))}
+              />
+            ) : (
+              <>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.unit')} *</label>
+                  <input type="text" required value={form.unit} onChange={up('unit')}
+                    placeholder={t('tenants.unitPlaceholder')}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.aptNumber')}</label>
+                  <input type="text" value={form.building} onChange={up('building')}
+                    placeholder={t('tenants.aptPlaceholder')}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                </div>
+              </>
+            )}
+
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.phone')}</label>
               <input type="tel" value={form.phone} onChange={up('phone')}
@@ -250,10 +329,11 @@ function EditModal({ tenant, onClose, onSaved, t }) {
 export default function AdminTenants() {
   const { t } = useLanguage();
   const [tenants, setTenants] = useState([]);
+  const [buildings, setBuildings] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', unit: '', building: '', phone: '', password: '', leaseStart: '', leaseEnd: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', leaseStart: '', leaseEnd: '', buildingId: '', apartmentId: '', unit: '', building: '' });
   const [saving, setSaving] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
   const [lightbox, setLightbox] = useState(null);
@@ -268,7 +348,10 @@ export default function AdminTenants() {
     api.get('/users').then(res => { setTenants(res.data); setSelected(new Set()); }).catch(console.error).finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchTenants(); }, []);
+  useEffect(() => {
+    fetchTenants();
+    api.get('/buildings').then(r => setBuildings(r.data)).catch(() => setBuildings([]));
+  }, []);
 
   const toggleSelect = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
@@ -279,13 +362,15 @@ export default function AdminTenants() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.unit) return toast.error(t('tenants.required'));
+    const hasBuildings = buildings.length > 0;
+    if (hasBuildings && (!form.buildingId || !form.apartmentId)) return toast.error('Please select a building and apartment');
+    if (!hasBuildings && !form.unit) return toast.error(t('tenants.required'));
     if (form.password && form.password.length < 6) return toast.error(t('tenants.passwordMin'));
     setSaving(true);
     try {
       await api.post('/users', form);
       toast.success(t('tenants.addSuccess'));
-      setForm({ name: '', email: '', unit: '', building: '', phone: '', password: '', leaseStart: '', leaseEnd: '' });
+      setForm({ name: '', email: '', phone: '', password: '', leaseStart: '', leaseEnd: '', buildingId: '', apartmentId: '', unit: '', building: '' });
       setShowForm(false);
       fetchTenants();
     } catch (err) {
@@ -427,18 +512,30 @@ export default function AdminTenants() {
                 <input type="email" required value={form.email} onChange={update('email')}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
               </div>
-              <div className="col-span-2 sm:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('tenants.unit')} *</label>
-                <input type="text" required value={form.unit} onChange={update('unit')}
-                  placeholder={t('tenants.unitPlaceholder')}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-              </div>
-              <div className="col-span-2 sm:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('tenants.aptNumber')}</label>
-                <input type="text" value={form.building} onChange={update('building')}
-                  placeholder={t('tenants.aptPlaceholder')}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-              </div>
+              {buildings.length > 0 ? (
+                <BuildingApartmentPicker
+                  buildings={buildings}
+                  buildingId={form.buildingId}
+                  apartmentId={form.apartmentId}
+                  onBuildingChange={v => setForm(f => ({ ...f, buildingId: v, apartmentId: '' }))}
+                  onApartmentChange={v => setForm(f => ({ ...f, apartmentId: v }))}
+                />
+              ) : (
+                <>
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('tenants.unit')} *</label>
+                    <input type="text" value={form.unit} onChange={update('unit')}
+                      placeholder={t('tenants.unitPlaceholder')}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                  </div>
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('tenants.aptNumber')}</label>
+                    <input type="text" value={form.building} onChange={update('building')}
+                      placeholder={t('tenants.aptPlaceholder')}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                  </div>
+                </>
+              )}
               <div className="col-span-2 sm:col-span-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('tenants.phone')}</label>
                 <input type="tel" value={form.phone} onChange={update('phone')}
@@ -513,7 +610,7 @@ export default function AdminTenants() {
       )}
 
       {editTarget && (
-        <EditModal tenant={editTarget} t={t}
+        <EditModal tenant={editTarget} t={t} buildings={buildings}
           onClose={() => setEditTarget(null)}
           onSaved={handleSaved} />
       )}

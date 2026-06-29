@@ -112,6 +112,103 @@ function TenantDetail({ row }) {
   );
 }
 
+function getIssuesList(response) {
+  if (!response) return [{ icon: '⏳', text: 'No response submitted yet' }];
+  const issues = [];
+  const fe = response.fireExtinguisher;
+  const sd = response.smokeDetector;
+  const sv = response.stoveSensor;
+  if (fe) {
+    if (!fe.present) issues.push({ icon: '🧯', text: `Fire ext not present${fe.notPresentReason ? ` — ${fe.notPresentReason}` : ''}` });
+    else if (fe.gaugeGreen === false) issues.push({ icon: '🧯', text: `Gauge not green${fe.gaugeReason ? ` — ${fe.gaugeReason}` : ''}` });
+    else if (fe.pinIntact === false) issues.push({ icon: '🧯', text: `Pin not intact${fe.pinReason ? ` — ${fe.pinReason}` : ''}` });
+  }
+  if (sd) {
+    if (!sd.present) issues.push({ icon: '🔔', text: `Smoke detector not present${sd.notPresentReason ? ` — ${sd.notPresentReason}` : ''}` });
+    else if (sd.needsInspection) issues.push({ icon: '🔔', text: 'Smoke detector needs physical inspection' });
+  }
+  if (sv) {
+    if (!sv.present) issues.push({ icon: '🍳', text: `Stove sensor not present${sv.notPresentReason ? ` — ${sv.notPresentReason}` : ''}` });
+    else if (sv.needsInspection) issues.push({ icon: '🍳', text: 'Stove sensor needs physical inspection' });
+  }
+  return issues.length ? issues : [];
+}
+
+function NeedsAttentionTab({ rows }) {
+  const problemRows = rows.filter(r => overallStatus(r.response) !== 'ok');
+  if (problemRows.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-dashed border-gray-300 p-16 text-center">
+        <p className="text-3xl mb-2">✅</p>
+        <p className="text-gray-600 font-medium">All clear — no issues to report</p>
+        <p className="text-gray-400 text-sm mt-1">Every tenant who responded has passed all checks.</p>
+      </div>
+    );
+  }
+
+  // Group by building (tenant.unit)
+  const groups = {};
+  for (const row of problemRows) {
+    const key = row.tenant.unit || 'Unknown Building';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(row);
+  }
+
+  const sortedBuildings = Object.keys(groups).sort();
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-500">{problemRows.length} {problemRows.length === 1 ? 'tenant needs' : 'tenants need'} attention across {sortedBuildings.length} building{sortedBuildings.length !== 1 ? 's' : ''}.</p>
+
+      {sortedBuildings.map(building => {
+        const buildingRows = groups[building];
+        const hasNeedsInspection = buildingRows.some(r => overallStatus(r.response) === 'needs');
+        const hasPending = buildingRows.some(r => !r.response);
+        return (
+          <div key={building} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🏢</span>
+                <span className="font-semibold text-gray-800">{building}</span>
+                {hasNeedsInspection && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Physical visit needed</span>}
+                {hasPending && !hasNeedsInspection && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Awaiting responses</span>}
+              </div>
+              <span className="text-xs text-gray-400">{buildingRows.length} {buildingRows.length === 1 ? 'tenant' : 'tenants'}</span>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {buildingRows.map(row => {
+                const issues = getIssuesList(row.response);
+                const status = overallStatus(row.response);
+                return (
+                  <div key={row.tenant._id} className="px-5 py-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">
+                          {row.tenant.name}
+                          {row.tenant.building && <span className="text-gray-400 font-normal"> · Apt {row.tenant.building}</span>}
+                        </p>
+                        <ul className="mt-1.5 space-y-0.5">
+                          {issues.map((issue, i) => (
+                            <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
+                              <span className="shrink-0">{issue.icon}</span>
+                              <span>{issue.text}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <StatusBadge status={status} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function AdminInspections() {
   const [inspections, setInspections] = useState([]);
   const [selected, setSelected] = useState(null); // inspection object
@@ -122,6 +219,7 @@ export default function AdminInspections() {
   const [expanded, setExpanded] = useState(null); // tenantId
   const [closing, setClosing] = useState(false);
   const [filter, setFilter] = useState('all'); // all | pending | issues
+  const [tab, setTab] = useState('overview'); // overview | attention
 
   useEffect(() => {
     api.get('/inspections').then(r => {
@@ -251,78 +349,102 @@ export default function AdminInspections() {
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${rows.length ? (completed / rows.length) * 100 : 0}%` }} />
                 </div>
-                <div className="flex items-center justify-between mt-3">
-                  <div className="flex gap-2">
-                    {['all', 'pending', 'issues'].map(f => (
-                      <button key={f} onClick={() => setFilter(f)}
-                        className={`text-xs px-3 py-1 rounded-full border transition-colors capitalize ${filter === f ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-200 text-gray-500 hover:border-gray-400'}`}>
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-                  {selected.status === 'active' && (
+                {selected.status === 'active' && (
+                  <div className="flex justify-end mt-3">
                     <button onClick={handleClose} disabled={closing}
                       className="text-xs text-red-500 hover:text-red-700 hover:underline disabled:opacity-60">
                       {closing ? 'Closing…' : 'Close inspection'}
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Compliance table */}
+            {/* Tab switcher */}
+            <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-xl w-fit">
+              <button onClick={() => setTab('overview')}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'overview' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                Overview
+              </button>
+              <button onClick={() => setTab('attention')}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${tab === 'attention' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                Needs Attention
+                {rows.filter(r => overallStatus(r.response) !== 'ok').length > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                    {rows.filter(r => overallStatus(r.response) !== 'ok').length}
+                  </span>
+                )}
+              </button>
+            </div>
+
             {loadingRows ? (
               <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="bg-white rounded-xl border border-gray-200 h-14 animate-pulse" />)}</div>
-            ) : filteredRows.length === 0 ? (
-              <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
-                <p className="text-gray-400">{filter === 'pending' ? 'All tenants have responded.' : filter === 'issues' ? 'No issues found.' : 'No tenants yet.'}</p>
-              </div>
+            ) : tab === 'attention' ? (
+              <NeedsAttentionTab rows={rows} />
             ) : (
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                {/* Table header */}
-                <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  <span>Tenant</span>
-                  <span className="text-center w-10">🧯</span>
-                  <span className="text-center w-10">🔔</span>
-                  <span className="text-center w-10">🍳</span>
-                  <span>Status</span>
+              <>
+                {/* Filter buttons */}
+                <div className="flex gap-2 mb-3">
+                  {['all', 'pending', 'issues'].map(f => (
+                    <button key={f} onClick={() => setFilter(f)}
+                      className={`text-xs px-3 py-1 rounded-full border transition-colors capitalize ${filter === f ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-200 text-gray-500 hover:border-gray-400'}`}>
+                      {f}
+                    </button>
+                  ))}
                 </div>
 
-                {filteredRows.map(row => {
-                  const r = row.response;
-                  const feStatus = itemStatus(r?.fireExtinguisher, 'fireExt');
-                  const sdStatus = itemStatus(r?.smokeDetector, 'det');
-                  const svStatus = itemStatus(r?.stoveSensor, 'det');
-                  const overall = overallStatus(r);
-                  const isExpanded = expanded === row.tenant._id;
-
-                  return (
-                    <div key={row.tenant._id} className="border-b border-gray-100 last:border-0">
-                      <button
-                        onClick={() => setExpanded(isExpanded ? null : row.tenant._id)}
-                        className="w-full grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-4 py-3 hover:bg-gray-50 transition-colors text-left">
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">{row.tenant.name}</p>
-                          <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · ${row.tenant.building}` : ''}</p>
-                        </div>
-                        <div className="w-10 text-center"><StatusIcon status={feStatus} /></div>
-                        <div className="w-10 text-center"><StatusIcon status={sdStatus} /></div>
-                        <div className="w-10 text-center"><StatusIcon status={svStatus} /></div>
-                        <div>
-                          <StatusBadge status={overall} />
-                          {r?.completedAt && <p className="text-xs text-gray-400 mt-0.5">{new Date(r.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>}
-                        </div>
-                      </button>
-
-                      {isExpanded && (
-                        <div className="px-4 pb-4">
-                          <TenantDetail row={row} />
-                        </div>
-                      )}
+                {/* Compliance table */}
+                {filteredRows.length === 0 ? (
+                  <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
+                    <p className="text-gray-400">{filter === 'pending' ? 'All tenants have responded.' : filter === 'issues' ? 'No issues found.' : 'No tenants yet.'}</p>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      <span>Tenant</span>
+                      <span className="text-center w-10">🧯</span>
+                      <span className="text-center w-10">🔔</span>
+                      <span className="text-center w-10">🍳</span>
+                      <span>Status</span>
                     </div>
-                  );
-                })}
-              </div>
+
+                    {filteredRows.map(row => {
+                      const r = row.response;
+                      const feStatus = itemStatus(r?.fireExtinguisher, 'fireExt');
+                      const sdStatus = itemStatus(r?.smokeDetector, 'det');
+                      const svStatus = itemStatus(r?.stoveSensor, 'det');
+                      const overall = overallStatus(r);
+                      const isExpanded = expanded === row.tenant._id;
+
+                      return (
+                        <div key={row.tenant._id} className="border-b border-gray-100 last:border-0">
+                          <button
+                            onClick={() => setExpanded(isExpanded ? null : row.tenant._id)}
+                            className="w-full grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-4 py-3 hover:bg-gray-50 transition-colors text-left">
+                            <div>
+                              <p className="text-sm font-medium text-gray-800">{row.tenant.name}</p>
+                              <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · ${row.tenant.building}` : ''}</p>
+                            </div>
+                            <div className="w-10 text-center"><StatusIcon status={feStatus} /></div>
+                            <div className="w-10 text-center"><StatusIcon status={sdStatus} /></div>
+                            <div className="w-10 text-center"><StatusIcon status={svStatus} /></div>
+                            <div>
+                              <StatusBadge status={overall} />
+                              {r?.completedAt && <p className="text-xs text-gray-400 mt-0.5">{new Date(r.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>}
+                            </div>
+                          </button>
+
+                          {isExpanded && (
+                            <div className="px-4 pb-4">
+                              <TenantDetail row={row} />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

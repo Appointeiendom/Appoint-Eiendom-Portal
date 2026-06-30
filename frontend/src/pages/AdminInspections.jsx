@@ -162,12 +162,11 @@ function OverviewTab({ rows, onDeleteResponse }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Header */}
-      <div className="grid grid-cols-[1fr_120px_120px_120px_90px] gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+      <div className="grid grid-cols-[1fr_120px_120px_120px] gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
         <span>Tenant</span>
         <span className="text-center">🧯 Fire Ext</span>
         <span className="text-center">🔔 Smoke Det</span>
         <span className="text-center">🍳 Stove</span>
-        <span>Overall</span>
       </div>
       {rows.map(row => {
         const s = getItemStatuses(row.response);
@@ -175,7 +174,7 @@ function OverviewTab({ rows, onDeleteResponse }) {
         const isOpen = expanded === row.tenant._id;
         return (
           <div key={row.tenant._id} className="border-b border-gray-100 last:border-0">
-            <div className="grid grid-cols-[1fr_120px_120px_120px_90px] gap-2 items-center px-4 py-3 hover:bg-gray-50 cursor-pointer"
+            <div className="grid grid-cols-[1fr_120px_120px_120px] gap-2 items-center px-4 py-3 hover:bg-gray-50 cursor-pointer"
               onClick={() => setExpanded(isOpen ? null : row.tenant._id)}>
               <div>
                 <p className="text-sm font-medium text-gray-800">{row.tenant.name}</p>
@@ -183,12 +182,11 @@ function OverviewTab({ rows, onDeleteResponse }) {
               </div>
               <OverviewCell status={s?.fe} />
               <OverviewCell status={s?.sd} />
-              <OverviewCell status={s?.sv} />
               <div className="flex items-center gap-2">
-                <OverallBadge cat={cat} />
+                <OverviewCell status={s?.sv} />
                 {row.response && onDeleteResponse && (
                   <button onClick={e => { e.stopPropagation(); onDeleteResponse(row.tenant._id); }}
-                    className="text-gray-300 hover:text-red-400 text-xs" title="Reset">🗑</button>
+                    className="text-gray-300 hover:text-red-400 text-xs ml-auto" title="Reset">🗑</button>
                 )}
               </div>
             </div>

@@ -411,7 +411,7 @@ const sendInspectionReminderEmail = async (tenant, inspection) => {
         </div>
         <div style="background:white;padding:30px;border-radius:0 0 8px 8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
           <p style="color:#4B5563;margin-top:0;">Hi <strong>${tenant.name}</strong>,</p>
-          <p style="color:#4B5563;">This is a reminder that you have not yet completed your <strong>annual safety inspection</strong>.</p>
+          <p style="color:#4B5563;">This is a reminder that you have not yet completed your <strong>safety inspection</strong>.</p>
           <div style="background:#FEF2F2;border-left:4px solid #EF4444;padding:16px;border-radius:4px;margin:20px 0;">
             <p style="color:#991B1B;font-weight:bold;margin:0 0 6px 0;">⏳ Due date: ${due}</p>
             <p style="color:#7F1D1D;margin:0;font-size:14px;">Please log in and complete the safety check for your unit as soon as possible.</p>

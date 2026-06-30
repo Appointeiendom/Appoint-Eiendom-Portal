@@ -792,7 +792,7 @@ export default function TenantInspection({ inspection, onComplete }) {
           <div className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-4 py-1.5 rounded-full text-xs font-semibold mb-3">
             🔒 Required — Due {dueDate}
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Annual Safety Inspection</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Safety Inspection</h1>
           <p className="text-sm text-gray-500 mt-1">You must complete this inspection to access the portal.</p>
         </div>
 

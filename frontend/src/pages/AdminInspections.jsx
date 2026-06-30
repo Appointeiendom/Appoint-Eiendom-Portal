@@ -127,6 +127,50 @@ function exportWord(rows, label) {
   toast.success('Word downloaded');
 }
 
+// ── Request Redo Modal ────────────────────────────────────────────────────────
+
+function RequestRedoModal({ tenant, inspectionId, onDone, onClose }) {
+  const [reason, setReason] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const handle = async () => {
+    setSending(true);
+    try {
+      await api.post(`/inspections/${inspectionId}/responses/${tenant._id}/redo`, { reason });
+      toast.success(`Redo requested — ${tenant.name} has been notified by email`);
+      onDone(tenant._id);
+    } catch { toast.error('Failed to send redo request'); } finally { setSending(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-bold text-gray-800 mb-1">↺ Request Redo</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          This will reset <strong>{tenant.name}</strong>'s response and send them an email asking them to redo the inspection.
+        </p>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Reason <span className="text-gray-400 font-normal">(optional — shown to tenant)</span></label>
+        <textarea
+          rows={3}
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          placeholder="e.g. Photo was too blurry, could not see the gauge clearly."
+          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none mb-4"
+        />
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 hover:bg-gray-50 py-2.5 rounded-xl text-sm transition-colors">
+            Cancel
+          </button>
+          <button onClick={handle} disabled={sending}
+            className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors disabled:opacity-60">
+            {sending ? 'Sending…' : '↺ Send Redo Request'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ExportMenu({ rows, label }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -156,7 +200,7 @@ function ExportMenu({ rows, label }) {
 
 // ── Overview table ────────────────────────────────────────────────────────────
 
-function OverviewTab({ rows, onDeleteResponse }) {
+function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
   const [expanded, setExpanded] = useState(null);
   if (!rows.length) return <Empty text="No tenants yet." />;
   return (
@@ -184,9 +228,17 @@ function OverviewTab({ rows, onDeleteResponse }) {
               <OverviewCell status={s?.sd} />
               <div className="flex items-center gap-2">
                 <OverviewCell status={s?.sv} />
-                {row.response && onDeleteResponse && (
-                  <button onClick={e => { e.stopPropagation(); onDeleteResponse(row.tenant._id); }}
-                    className="text-gray-300 hover:text-red-400 text-xs ml-auto" title="Reset">🗑</button>
+                {row.response && (
+                  <div className="flex items-center gap-1 ml-auto">
+                    {onRequestRedo && (
+                      <button onClick={e => { e.stopPropagation(); onRequestRedo(row.tenant); }}
+                        className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 hover:border-amber-400 px-2 py-0.5 rounded-lg transition-colors" title="Request redo">↺ Redo</button>
+                    )}
+                    {onDeleteResponse && (
+                      <button onClick={e => { e.stopPropagation(); onDeleteResponse(row.tenant._id); }}
+                        className="text-gray-300 hover:text-red-400 text-xs" title="Reset silently">🗑</button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -215,7 +267,7 @@ function OverviewCell({ status }) {
 
 // ── Needs Inspection tab ──────────────────────────────────────────────────────
 
-function NeedsInspectionTab({ rows, onDeleteResponse }) {
+function NeedsInspectionTab({ rows, onDeleteResponse, onRequestRedo }) {
   const problemRows = rows.filter(r => overallCategory(r.response) === 'issues');
   if (!problemRows.length) return (
     <div className="bg-white rounded-xl border border-dashed border-gray-300 p-16 text-center">
@@ -260,10 +312,16 @@ function NeedsInspectionTab({ rows, onDeleteResponse }) {
                         <IssueItemRow label="🍳 Stove Heat Sensor" status={s.sv} />
                       </div>
                     </div>
-                    {onDeleteResponse && (
-                      <button onClick={() => onDeleteResponse(row.tenant._id)}
-                        className="text-gray-300 hover:text-red-400 text-xs mt-0.5" title="Reset response">🗑</button>
-                    )}
+                    <div className="flex items-center gap-1 mt-0.5">
+                      {onRequestRedo && (
+                        <button onClick={() => onRequestRedo(row.tenant)}
+                          className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 hover:border-amber-400 px-2 py-0.5 rounded-lg transition-colors">↺ Redo</button>
+                      )}
+                      {onDeleteResponse && (
+                        <button onClick={() => onDeleteResponse(row.tenant._id)}
+                          className="text-gray-300 hover:text-red-400 text-xs" title="Reset silently">🗑</button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -290,7 +348,7 @@ function IssueItemRow({ label, status }) {
 
 // ── Passed tab ────────────────────────────────────────────────────────────────
 
-function PassedTab({ rows, onDeleteResponse }) {
+function PassedTab({ rows, onDeleteResponse, onRequestRedo }) {
   // Show any tenant who has at least one passing item
   const passedRows = rows.filter(r => {
     const s = getItemStatuses(r.response);
@@ -326,9 +384,13 @@ function PassedTab({ rows, onDeleteResponse }) {
                   {new Date(row.response.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                 </span>
               )}
+              {onRequestRedo && (
+                <button onClick={() => onRequestRedo(row.tenant)}
+                  className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 hover:border-amber-400 px-2 py-0.5 rounded-lg transition-colors">↺ Redo</button>
+              )}
               {onDeleteResponse && (
                 <button onClick={() => onDeleteResponse(row.tenant._id)}
-                  className="text-gray-300 hover:text-red-400 text-xs" title="Reset">🗑</button>
+                  className="text-gray-300 hover:text-red-400 text-xs" title="Reset silently">🗑</button>
               )}
             </div>
           </div>
@@ -489,6 +551,7 @@ export default function AdminInspections() {
   const [closing, setClosing] = useState(false);
   const [tab, setTab] = useState('Overview');
   const [seenCounts, setSeenCounts] = useState({});
+  const [redoTarget, setRedoTarget] = useState(null); // { _id, name } of tenant
 
   useEffect(() => {
     api.get('/inspections').then(r => {
@@ -669,11 +732,11 @@ export default function AdminInspections() {
             {loadingRows ? (
               <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-xl border border-gray-200 animate-pulse" />)}</div>
             ) : tab === 'Overview' ? (
-              <OverviewTab rows={rows} onDeleteResponse={handleDeleteResponse} />
+              <OverviewTab rows={rows} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget} />
             ) : tab === 'Needs Inspection' ? (
-              <NeedsInspectionTab rows={rows} onDeleteResponse={handleDeleteResponse} />
+              <NeedsInspectionTab rows={rows} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget} />
             ) : tab === 'Passed' ? (
-              <PassedTab rows={rows} onDeleteResponse={handleDeleteResponse} />
+              <PassedTab rows={rows} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget} />
             ) : (
               <PendingTab rows={rows} inspectionId={selected._id} />
             )}
@@ -688,6 +751,18 @@ export default function AdminInspections() {
           </div>
         )}
       </div>
+
+      {redoTarget && (
+        <RequestRedoModal
+          tenant={redoTarget}
+          inspectionId={selected._id}
+          onClose={() => setRedoTarget(null)}
+          onDone={(tenantId) => {
+            setRows(prev => prev.map(r => r.tenant._id === tenantId ? { ...r, response: null } : r));
+            setRedoTarget(null);
+          }}
+        />
+      )}
     </Layout>
   );
 }

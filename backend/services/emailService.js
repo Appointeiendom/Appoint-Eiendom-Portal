@@ -367,6 +367,39 @@ const sendAnnouncementEmail = async (tenants, title, body) => {
   } catch (err) { console.error('sendAnnouncementEmail error:', err.message); }
 };
 
+const sendInspectionRedoEmail = async (tenant, inspection, reason) => {
+  try {
+    const due = new Date(inspection.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    const loginUrl = `${process.env.FRONTEND_URL}/login`;
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px;">
+        <div style="background:#F59E0B;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
+          <h1 style="color:white;margin:0;font-size:22px;">⚠️ Please Redo Your Safety Inspection</h1>
+        </div>
+        <div style="background:white;padding:30px;border-radius:0 0 8px 8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+          <p style="color:#4B5563;margin-top:0;">Hi <strong>${tenant.name}</strong>,</p>
+          <p style="color:#4B5563;">Your previous inspection submission has been reviewed and we need you to <strong>redo it</strong>.</p>
+          ${reason ? `
+          <div style="background:#FFFBEB;border-left:4px solid #F59E0B;padding:16px;border-radius:4px;margin:20px 0;">
+            <p style="color:#92400E;font-weight:bold;margin:0 0 6px 0;">Reason from the admin:</p>
+            <p style="color:#78350F;margin:0;">${reason}</p>
+          </div>` : ''}
+          <p style="color:#4B5563;font-size:14px;">Please log in and complete the inspection again by <strong>${due}</strong>. Make sure photos are clear and well-lit.</p>
+          <div style="text-align:center;margin-top:24px;">
+            <a href="${loginUrl}" style="background:#F59E0B;color:white;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">Redo Inspection Now</a>
+          </div>
+        </div>
+        <p style="text-align:center;color:#9CA3AF;font-size:12px;margin-top:20px;">Service Portal</p>
+      </div>
+    `;
+    await sgMail.send({ from: FROM, to: tenant.email, subject: `Action Required: Please redo your safety inspection`, html });
+    console.log(`Redo inspection email sent to ${tenant.email}`);
+  } catch (err) {
+    console.error('Email error (inspection redo):', err.message);
+    throw err;
+  }
+};
+
 const sendInspectionReminderEmail = async (tenant, inspection) => {
   try {
     const due = new Date(inspection.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -404,7 +437,7 @@ const sendInspectionReminderEmail = async (tenant, inspection) => {
   }
 };
 
-module.exports = { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail, sendWelcomeEmail, sendChatNotificationEmail, sendResponsibilityEmail, sendOtpEmail, sendAnnouncementEmail, sendInspectionReminderEmail };
+module.exports = { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail, sendWelcomeEmail, sendChatNotificationEmail, sendResponsibilityEmail, sendOtpEmail, sendAnnouncementEmail, sendInspectionReminderEmail, sendInspectionRedoEmail };
 
 // Welcome email sent to tenant when admin creates their account
 async function sendWelcomeEmail(tenant, rawPassword) {

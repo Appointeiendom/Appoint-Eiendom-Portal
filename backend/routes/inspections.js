@@ -7,7 +7,7 @@ const { cloudinary } = require('../config/cloudinary');
 const Inspection = require('../models/Inspection');
 const InspectionResponse = require('../models/InspectionResponse');
 const User = require('../models/User');
-const { sendInspectionReminderEmail } = require('../services/emailService');
+const { sendInspectionReminderEmail, sendInspectionRedoEmail } = require('../services/emailService');
 
 const storage = new CloudinaryStorage({
   cloudinary,
@@ -111,6 +111,21 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
     await InspectionResponse.deleteMany({ inspectionId: req.params.id });
     await Inspection.findByIdAndDelete(req.params.id);
     res.json({ message: 'Deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/inspections/:id/responses/:tenantId/redo — admin resets response and emails tenant
+router.post('/:id/responses/:tenantId/redo', protect, adminOnly, async (req, res) => {
+  try {
+    const inspection = await Inspection.findById(req.params.id);
+    if (!inspection) return res.status(404).json({ message: 'Not found' });
+    const tenant = await User.findById(req.params.tenantId).select('name email');
+    if (!tenant) return res.status(404).json({ message: 'Tenant not found' });
+    await InspectionResponse.findOneAndDelete({ inspectionId: req.params.id, tenantId: req.params.tenantId });
+    await sendInspectionRedoEmail(tenant, inspection, req.body.reason || '');
+    res.json({ message: 'Response reset and tenant notified' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -35,28 +35,61 @@ import AdminBuildings from './pages/AdminBuildings';
 import TenantInspection from './pages/TenantInspection';
 
 // Blocks tenant portal access when an active inspection needs a response
+// Also shows a "Redo" banner when already responded
 function InspectionGate({ children }) {
   const { user } = useAuth();
   const [activeInspection, setActiveInspection] = useState(null);
+  const [responded, setResponded] = useState(false);
+  const [redoing, setRedoing] = useState(false);
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     if (user?.role !== 'tenant') { setChecked(true); return; }
     api.get('/inspections/active').then(r => {
-      if (r.data && !r.data.responded) setActiveInspection(r.data.inspection);
+      if (r.data) {
+        setActiveInspection(r.data.inspection);
+        setResponded(r.data.responded);
+        if (!r.data.responded) setRedoing(false);
+      }
     }).catch(() => {}).finally(() => setChecked(true));
   }, [user?._id]);
 
   if (!checked) return null;
-  if (activeInspection) {
+
+  // Show form if not yet responded, OR if tenant chose to redo
+  if (activeInspection && (!responded || redoing)) {
     return (
       <>
         {children}
-        <TenantInspection inspection={activeInspection} onComplete={() => setActiveInspection(null)} />
+        <TenantInspection
+          inspection={activeInspection}
+          onComplete={() => { setResponded(true); setRedoing(false); }}
+        />
       </>
     );
   }
-  return children;
+
+  // Show a subtle redo banner if they've already responded to active inspection
+  return (
+    <>
+      {children}
+      {activeInspection && responded && (
+        <div className="fixed bottom-4 right-4 z-40 bg-white border border-emerald-200 rounded-2xl shadow-lg px-5 py-3 flex items-center gap-3 max-w-xs">
+          <span className="text-2xl">✅</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-800">Inspection submitted</p>
+            <p className="text-xs text-gray-400 truncate">Made a mistake?</p>
+          </div>
+          <button
+            onClick={() => setRedoing(true)}
+            className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 whitespace-nowrap border border-emerald-200 hover:border-emerald-400 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Redo
+          </button>
+        </div>
+      )}
+    </>
+  );
 }
 
 // Syncs language based on logged-in user's role, runs once per role change

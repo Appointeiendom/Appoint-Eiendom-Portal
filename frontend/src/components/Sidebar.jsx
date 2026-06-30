@@ -45,38 +45,42 @@ export default function Sidebar({ open, onClose }) {
   return (
     <>
       {open && (
-        <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={onClose} />
+        <div className="fixed inset-0 bg-black/20 z-20 md:hidden" onClick={onClose} />
       )}
 
       <aside className={`
-        fixed top-0 left-0 h-full w-56 bg-gray-900 text-white flex flex-col pt-16 z-30 transition-transform duration-300
-        md:static md:translate-x-0 md:z-auto md:min-h-screen md:pt-6
+        fixed top-0 left-0 h-full w-56 bg-white border-r border-gray-100 flex flex-col pt-16 z-30 transition-transform duration-300 shadow-sm
+        md:static md:translate-x-0 md:z-auto md:min-h-screen md:pt-4
         ${open ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white md:hidden" aria-label={t('nav.closeMenu')}>
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 md:hidden" aria-label={t('nav.closeMenu')}>
           ✕
         </button>
 
-        {links.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            onClick={onClose}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
-                isActive ? 'bg-emerald-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-              }`
-            }
-          >
-            <span>{link.icon}</span>
-            <span className="flex-1">{link.label}</span>
-            {link.badge > 0 && (
-              <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                {link.badge}
-              </span>
-            )}
-          </NavLink>
-        ))}
+        <div className="px-3 space-y-0.5">
+          {links.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              onClick={onClose}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                }`
+              }
+            >
+              <span className="text-base">{link.icon}</span>
+              <span className="flex-1">{link.label}</span>
+              {link.badge > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                  {link.badge}
+                </span>
+              )}
+            </NavLink>
+          ))}
+        </div>
       </aside>
     </>
   );

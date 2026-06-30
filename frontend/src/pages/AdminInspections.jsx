@@ -341,7 +341,8 @@ function PassedTab({ rows, onDeleteResponse }) {
 
 // ── Pending tab ───────────────────────────────────────────────────────────────
 
-function PendingTab({ rows }) {
+function PendingTab({ rows, inspectionId, onRemind }) {
+  const [sending, setSending] = useState(false);
   const pendingRows = rows.filter(r => overallCategory(r.response) === 'pending');
   if (!pendingRows.length) return (
     <div className="bg-white rounded-xl border border-dashed border-gray-300 p-16 text-center">
@@ -349,6 +350,25 @@ function PendingTab({ rows }) {
       <p className="text-gray-600 font-medium">All tenants have responded</p>
     </div>
   );
+
+  const handleRemindAll = async () => {
+    if (!confirm(`Send reminder emails to all ${pendingRows.length} pending tenants?`)) return;
+    setSending(true);
+    try {
+      const res = await api.post(`/inspections/${inspectionId}/remind`);
+      toast.success(`Reminder sent to ${res.data.sent} tenant${res.data.sent !== 1 ? 's' : ''}`);
+      if (onRemind) onRemind();
+    } catch { toast.error('Failed to send reminders'); } finally { setSending(false); }
+  };
+
+  const handleRemindOne = async (tenantId, name) => {
+    setSending(true);
+    try {
+      const res = await api.post(`/inspections/${inspectionId}/remind`, { tenantIds: [tenantId] });
+      toast.success(res.data.sent ? `Reminder sent to ${name}` : 'Already responded');
+    } catch { toast.error('Failed'); } finally { setSending(false); }
+  };
+
   const groups = pendingRows.reduce((acc, row) => {
     const key = row.tenant.unit || 'Unknown Building';
     (acc[key] = acc[key] || []).push(row);
@@ -356,6 +376,13 @@ function PendingTab({ rows }) {
   }, {});
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">{pendingRows.length} {pendingRows.length === 1 ? 'tenant has' : 'tenants have'} not responded yet.</p>
+        <button onClick={handleRemindAll} disabled={sending}
+          className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-60">
+          {sending ? '…' : '📧 Remind All'}
+        </button>
+      </div>
       {Object.keys(groups).sort().map(building => (
         <div key={building} className="bg-white rounded-xl border border-amber-100 overflow-hidden">
           <div className="px-5 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
@@ -370,7 +397,10 @@ function PendingTab({ rows }) {
                   <p className="text-sm text-gray-700">{row.tenant.name}</p>
                   <p className="text-xs text-gray-400">{row.tenant.email}</p>
                 </div>
-                <span className="text-xs text-amber-500 font-medium bg-amber-50 px-2 py-0.5 rounded-full">Not submitted</span>
+                <button onClick={() => handleRemindOne(row.tenant._id, row.tenant.name)} disabled={sending}
+                  className="text-xs text-amber-600 hover:text-amber-800 border border-amber-200 hover:border-amber-400 px-3 py-1 rounded-lg transition-colors disabled:opacity-50">
+                  📧 Remind
+                </button>
               </div>
             ))}
           </div>
@@ -645,7 +675,7 @@ export default function AdminInspections() {
             ) : tab === 'Passed' ? (
               <PassedTab rows={rows} onDeleteResponse={handleDeleteResponse} />
             ) : (
-              <PendingTab rows={rows} />
+              <PendingTab rows={rows} inspectionId={selected._id} />
             )}
           </>
         )}

@@ -7,6 +7,7 @@ const { cloudinary } = require('../config/cloudinary');
 const Inspection = require('../models/Inspection');
 const InspectionResponse = require('../models/InspectionResponse');
 const User = require('../models/User');
+const { sendInspectionReminderEmail } = require('../services/emailService');
 
 const storage = new CloudinaryStorage({
   cloudinary,
@@ -120,6 +121,30 @@ router.delete('/:id/responses/:tenantId', protect, adminOnly, async (req, res) =
   try {
     await InspectionResponse.findOneAndDelete({ inspectionId: req.params.id, tenantId: req.params.tenantId });
     res.json({ message: 'Response deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/inspections/:id/remind — send reminder emails to tenants who haven't responded
+router.post('/:id/remind', protect, adminOnly, async (req, res) => {
+  try {
+    const inspection = await Inspection.findById(req.params.id);
+    if (!inspection) return res.status(404).json({ message: 'Not found' });
+
+    const { tenantIds } = req.body; // optional array — if empty, remind all pending
+    const tenants = await User.find({ role: 'tenant', isActive: true, ...(tenantIds?.length ? { _id: { $in: tenantIds } } : {}) }).select('name email');
+    const responses = await InspectionResponse.find({ inspectionId: inspection._id }).select('tenantId');
+    const respondedIds = new Set(responses.map(r => r.tenantId.toString()));
+
+    const pending = tenants.filter(t => !respondedIds.has(t._id.toString()));
+    if (!pending.length) return res.json({ sent: 0, message: 'No pending tenants to remind' });
+
+    let sent = 0;
+    for (const tenant of pending) {
+      try { await sendInspectionReminderEmail(tenant, inspection); sent++; } catch {}
+    }
+    res.json({ sent, total: pending.length });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

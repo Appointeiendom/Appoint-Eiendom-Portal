@@ -460,6 +460,7 @@ export default function AdminInspections() {
   const [dueDate, setDueDate] = useState('');
   const [closing, setClosing] = useState(false);
   const [tab, setTab] = useState('Overview');
+  const [seenCounts, setSeenCounts] = useState({});
 
   useEffect(() => {
     api.get('/inspections').then(r => {
@@ -471,6 +472,7 @@ export default function AdminInspections() {
   useEffect(() => {
     if (!selected) return;
     setLoadingRows(true);
+    setSeenCounts({});
     api.get(`/inspections/${selected._id}/responses`)
       .then(r => setRows(r.data.tenants))
       .catch(console.error)
@@ -529,7 +531,15 @@ export default function AdminInspections() {
   const pending = rows.filter(r => overallCategory(r.response) === 'pending').length;
 
   const tabCounts = { 'Overview': rows.length, 'Needs Inspection': issues, 'Passed': passed, 'Pending': pending };
-  const tabColors = { 'Needs Inspection': issues > 0 ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-500', 'Pending': pending > 0 ? 'bg-amber-400 text-white' : 'bg-gray-200 text-gray-500' };
+  const tabColors = { 'Needs Inspection': 'bg-red-500 text-white', 'Pending': 'bg-amber-400 text-white' };
+
+  // Badge shows only if count is higher than when the tab was last visited
+  const showBadge = (t) => tab !== t && tabCounts[t] > 0 && tabCounts[t] > (seenCounts[t] ?? 0);
+
+  const switchTab = (t) => {
+    setTab(t);
+    setSeenCounts(prev => ({ ...prev, [t]: tabCounts[t] }));
+  };
 
   const minDate = new Date(); minDate.setDate(minDate.getDate() + 1);
   const inspLabel = selected ? new Date(selected.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
@@ -616,10 +626,10 @@ export default function AdminInspections() {
             {/* Tabs */}
             <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit mb-5">
               {TABS.map(t => (
-                <button key={t} onClick={() => setTab(t)}
+                <button key={t} onClick={() => switchTab(t)}
                   className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${tab === t ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                   {t}
-                  {tabCounts[t] > 0 && (
+                  {showBadge(t) && (
                     <span className={`text-xs rounded-full px-1.5 py-0.5 font-semibold ${tabColors[t] || 'bg-gray-200 text-gray-500'}`}>
                       {tabCounts[t]}
                     </span>

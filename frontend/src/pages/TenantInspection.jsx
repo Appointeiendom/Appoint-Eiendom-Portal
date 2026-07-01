@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../context/LanguageContext';
 
 // ── SVG Guide Illustrations ───────────────────────────────────────────────────
 
@@ -218,12 +219,6 @@ function HeatDetectorSVG() {
 // 14 stove: photo                →15
 // 15 summary + submit
 
-const SECTIONS = [
-  { label: 'Fire Extinguisher', icon: '🧯', steps: [0, 4] },
-  { label: 'Smoke Detector', icon: '🔔', steps: [5, 9] },
-  { label: 'Stove Heat Detector', icon: '🍳', steps: [10, 14] },
-];
-
 function sectionOf(step) {
   if (step <= 4) return 0;
   if (step <= 9) return 1;
@@ -231,10 +226,16 @@ function sectionOf(step) {
 }
 
 function ProgressBar({ step }) {
+  const { t } = useLanguage();
   const current = sectionOf(step);
+  const sections = [
+    { label: t('inspection.fireExt'), icon: '🧯' },
+    { label: t('inspection.smokeDet'), icon: '🔔' },
+    { label: t('inspection.stoveSensor'), icon: '🍳' },
+  ];
   return (
     <div className="flex gap-3 mb-8">
-      {SECTIONS.map((s, i) => (
+      {sections.map((s, i) => (
         <div key={i} className="flex-1 text-center">
           <div className={`h-1.5 rounded-full mb-1.5 ${i < current ? 'bg-emerald-500' : i === current ? 'bg-emerald-400' : 'bg-gray-200'}`} />
           <span className={`text-xs font-medium ${i === current ? 'text-gray-800' : 'text-gray-400'}`}>
@@ -247,25 +248,27 @@ function ProgressBar({ step }) {
 }
 
 function YNButtons({ onYes, onNo }) {
+  const { t } = useLanguage();
   return (
     <div className="flex gap-3 mt-5">
       <button onClick={onYes}
         className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-2xl text-lg transition-colors shadow-sm">
-        ✅ Yes
+        {t('inspection.yes')}
       </button>
       <button onClick={onNo}
         className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-bold py-4 rounded-2xl text-lg transition-colors">
-        ❌ No
+        {t('inspection.no')}
       </button>
     </div>
   );
 }
 
 function ReasonInput({ value, onChange, onContinue, label }) {
+  const { t } = useLanguage();
   return (
     <div className="mt-4 space-y-3">
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
-        Please describe why before continuing.
+        {t('inspection.describeWhy')}
       </div>
       <textarea
         rows={3}
@@ -276,13 +279,14 @@ function ReasonInput({ value, onChange, onContinue, label }) {
       />
       <button onClick={onContinue}
         className="w-full bg-gray-700 hover:bg-gray-800 text-white font-semibold py-3 rounded-xl transition-colors">
-        Continue →
+        {t('inspection.continueBtn')}
       </button>
     </div>
   );
 }
 
 function PhotoUpload({ label, file, preview, onChange, onNext, required }) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-600">{label}</p>
@@ -292,8 +296,8 @@ function PhotoUpload({ label, file, preview, onChange, onNext, required }) {
         ) : (
           <div className="flex flex-col items-center justify-center h-40 text-gray-400">
             <span className="text-4xl mb-2">📷</span>
-            <span className="text-sm font-medium">Tap to take a photo</span>
-            <span className="text-xs mt-1">Use camera or choose from gallery</span>
+            <span className="text-sm font-medium">{t('inspection.takePhoto')}</span>
+            <span className="text-xs mt-1">{t('inspection.useCamera')}</span>
           </div>
         )}
         <input type="file" accept="image/*" capture="environment" className="hidden" onChange={onChange} />
@@ -301,13 +305,13 @@ function PhotoUpload({ label, file, preview, onChange, onNext, required }) {
       {preview && (
         <button onClick={onNext}
           className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-2xl transition-colors">
-          Next →
+          {t('inspection.nextBtn')}
         </button>
       )}
       {!required && !preview && (
         <button onClick={onNext}
           className="w-full border border-gray-300 text-gray-500 hover:bg-gray-50 py-3 rounded-2xl text-sm transition-colors">
-          Skip photo
+          {t('inspection.skipPhoto')}
         </button>
       )}
     </div>
@@ -315,24 +319,23 @@ function PhotoUpload({ label, file, preview, onChange, onNext, required }) {
 }
 
 function BatteryStep({ item, onBeeped, onStillNo }) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-5">
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center">
         <p className="text-3xl mb-2">🔋</p>
-        <p className="font-semibold text-amber-800">Please change the batteries</p>
-        <p className="text-sm text-amber-700 mt-1">
-          Replace the batteries in your {item}, then press the test button again.
-        </p>
+        <p className="font-semibold text-amber-800">{t('inspection.batteryTitle')}</p>
+        <p className="text-sm text-amber-700 mt-1">{t('inspection.batteryBody')(item)}</p>
       </div>
-      <p className="text-sm font-medium text-gray-700 text-center">Did it beep after changing batteries?</p>
+      <p className="text-sm font-medium text-gray-700 text-center">{t('inspection.batteryQ')}</p>
       <div className="flex gap-3">
         <button onClick={onBeeped}
           className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-2xl text-lg transition-colors">
-          ✅ Yes, it beeped!
+          {t('inspection.yesBeep')}
         </button>
         <button onClick={onStillNo}
           className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-bold py-4 rounded-2xl text-lg transition-colors">
-          ❌ Still no beep
+          {t('inspection.stillNo')}
         </button>
       </div>
     </div>
@@ -340,40 +343,40 @@ function BatteryStep({ item, onBeeped, onStillNo }) {
 }
 
 function NeedsInspectionNotice({ item, onContinue }) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-5">
       <div className="bg-red-50 border border-red-200 rounded-2xl p-5 text-center">
         <p className="text-4xl mb-3">🚨</p>
-        <p className="font-bold text-red-800 text-lg">This needs a physical inspection</p>
-        <p className="text-sm text-red-700 mt-2">
-          Your {item} did not respond even after changing batteries. We will arrange for a technician to check it. Please do not ignore this.
-        </p>
+        <p className="font-bold text-red-800 text-lg">{t('inspection.needsTitle')}</p>
+        <p className="text-sm text-red-700 mt-2">{t('inspection.needsBody')(item)}</p>
       </div>
       <button onClick={onContinue}
         className="w-full bg-gray-700 hover:bg-gray-800 text-white font-semibold py-3 rounded-2xl transition-colors">
-        Understood, continue →
+        {t('inspection.understood')}
       </button>
     </div>
   );
 }
 
 function SummaryItem({ label, icon, data, type }) {
+  const { t } = useLanguage();
   if (!data) return null;
   const lines = [];
   if (type === 'fireExt') {
-    if (!data.present) lines.push({ text: `Not present: ${data.notPresentReason || '—'}`, color: 'text-amber-700' });
+    if (!data.present) lines.push({ text: t('inspection.notPresent')(data.notPresentReason), color: 'text-amber-700' });
     else {
-      lines.push({ text: `Pressure gauge: ${data.gaugeGreen ? '✅ Green' : `❌ Not green — ${data.gaugeReason || ''}`}`, color: data.gaugeGreen ? 'text-emerald-700' : 'text-red-700' });
-      lines.push({ text: `Safety pin: ${data.pinIntact ? '✅ Intact' : `❌ Not intact — ${data.pinReason || ''}`}`, color: data.pinIntact ? 'text-emerald-700' : 'text-red-700' });
-      lines.push({ text: data.photo ? '📷 Photo uploaded' : '📷 No photo', color: data.photo ? 'text-emerald-700' : 'text-gray-400' });
+      lines.push({ text: `Pressure gauge: ${data.gaugeGreen ? t('inspection.gaugeOk') : t('inspection.gaugeNo')(data.gaugeReason)}`, color: data.gaugeGreen ? 'text-emerald-700' : 'text-red-700' });
+      lines.push({ text: `Safety pin: ${data.pinIntact ? t('inspection.pinOk') : t('inspection.pinNo')(data.pinReason)}`, color: data.pinIntact ? 'text-emerald-700' : 'text-red-700' });
+      lines.push({ text: data.photo ? t('inspection.photoUploaded') : t('inspection.noPhoto'), color: data.photo ? 'text-emerald-700' : 'text-gray-400' });
     }
   } else {
-    if (!data.present) lines.push({ text: `Not present: ${data.notPresentReason || '—'}`, color: 'text-amber-700' });
-    else if (data.needsInspection) lines.push({ text: '🚨 Needs physical inspection — no beep after battery change', color: 'text-red-700' });
+    if (!data.present) lines.push({ text: t('inspection.notPresent')(data.notPresentReason), color: 'text-amber-700' });
+    else if (data.needsInspection) lines.push({ text: t('inspection.needsPhysical'), color: 'text-red-700' });
     else {
-      const beepSource = data.beeped ? 'on first test' : 'after battery change';
-      lines.push({ text: `✅ Beeped ${beepSource}`, color: 'text-emerald-700' });
-      lines.push({ text: data.photo ? '📷 Photo uploaded' : '📷 No photo', color: data.photo ? 'text-emerald-700' : 'text-gray-400' });
+      const beepSrc = data.beeped ? t('inspection.beepSrcFirst') : t('inspection.beepSrcAfter');
+      lines.push({ text: t('inspection.beepFirst')(beepSrc), color: 'text-emerald-700' });
+      lines.push({ text: data.photo ? t('inspection.photoUploaded') : t('inspection.noPhoto'), color: data.photo ? 'text-emerald-700' : 'text-gray-400' });
     }
   }
   return (
@@ -385,6 +388,7 @@ function SummaryItem({ label, icon, data, type }) {
 }
 
 export default function TenantInspection({ inspection, onComplete }) {
+  const { t } = useLanguage();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [answers, setAnswers] = useState({
@@ -435,10 +439,10 @@ export default function TenantInspection({ inspection, onComplete }) {
       await api.post(`/inspections/${inspection._id}/respond`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      toast.success('Inspection submitted! Thank you.');
+      toast.success(t('inspection.submitSuccess'));
       onComplete();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Submission failed. Please try again.');
+      toast.error(err.response?.data?.message || t('inspection.submitFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -452,19 +456,13 @@ export default function TenantInspection({ inspection, onComplete }) {
       case 0:
         return (
           <>
-            <h2 className="text-xl font-bold text-gray-800 mb-1">🧯 Fire Extinguisher Check</h2>
-            <p className="text-sm text-gray-500 mb-4">Follow these steps. The diagram shows exactly what to look for.</p>
+            <h2 className="text-xl font-bold text-gray-800 mb-1">{t('inspection.feIntroTitle')}</h2>
+            <p className="text-sm text-gray-500 mb-4">{t('inspection.feIntroSub')}</p>
             <div className="bg-gray-50 rounded-2xl p-4 mb-5 flex justify-center">
               <FireExtinguisherSVG />
             </div>
             <ol className="space-y-3 mb-6">
-              {[
-                'Find your fire extinguisher in the unit.',
-                'Check the pressure gauge — the needle must be in the GREEN zone.',
-                'Check that the safety pin is in place and the seal is unbroken.',
-                'Look for any visible damage, rust, or dents.',
-                'Prepare to take a clear photo of the entire extinguisher including the gauge.',
-              ].map((s, i) => (
+              {t('inspection.feSteps').map((s, i) => (
                 <li key={i} className="flex gap-3 text-sm text-gray-700">
                   <span className="shrink-0 w-6 h-6 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-bold text-xs">{i + 1}</span>
                   {s}
@@ -472,7 +470,7 @@ export default function TenantInspection({ inspection, onComplete }) {
               ))}
             </ol>
             <button onClick={next} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-2xl transition-colors">
-              Start →
+              {t('inspection.startBtn')}
             </button>
           </>
         );
@@ -480,8 +478,8 @@ export default function TenantInspection({ inspection, onComplete }) {
       case 1:
         return (
           <>
-            <h2 className="text-lg font-bold text-gray-800 mb-1">🧯 Fire Extinguisher</h2>
-            <p className="text-base text-gray-700 mt-3">Is a fire extinguisher present in your unit?</p>
+            <h2 className="text-lg font-bold text-gray-800 mb-1">🧯 {t('inspection.fireExt')}</h2>
+            <p className="text-base text-gray-700 mt-3">{t('inspection.feQ1')}</p>
             {fireExt.present === null && (
               <YNButtons
                 onYes={() => { upd('fireExt', { present: true }); go(2); }}
@@ -492,7 +490,7 @@ export default function TenantInspection({ inspection, onComplete }) {
               <ReasonInput
                 value={fireExt.notPresentReason}
                 onChange={v => upd('fireExt', { notPresentReason: v })}
-                label="Why is there no fire extinguisher?"
+                label={t('inspection.feNoReason')}
                 onContinue={() => go(5)}
               />
             )}
@@ -502,12 +500,12 @@ export default function TenantInspection({ inspection, onComplete }) {
       case 2:
         return (
           <>
-            <h2 className="text-lg font-bold text-gray-800 mb-1">🧯 Fire Extinguisher</h2>
-            <p className="text-sm text-gray-500 mb-3">Look at the circular pressure gauge on the front of the extinguisher.</p>
+            <h2 className="text-lg font-bold text-gray-800 mb-1">🧯 {t('inspection.fireExt')}</h2>
+            <p className="text-sm text-gray-500 mb-3">{t('inspection.feGaugeSub')}</p>
             <div className="bg-gray-50 rounded-2xl p-3 mb-3 flex justify-center">
               <GaugeSVG />
             </div>
-            <p className="text-base text-gray-700">Is the needle in the <strong>green zone</strong>?</p>
+            <p className="text-base text-gray-700">{t('inspection.feGaugeQ')}</p>
             {fireExt.gaugeGreen === null && (
               <YNButtons
                 onYes={() => { upd('fireExt', { gaugeGreen: true }); go(3); }}
@@ -518,7 +516,7 @@ export default function TenantInspection({ inspection, onComplete }) {
               <ReasonInput
                 value={fireExt.gaugeReason}
                 onChange={v => upd('fireExt', { gaugeReason: v })}
-                label="Describe what you see on the gauge"
+                label={t('inspection.feGaugeReason')}
                 onContinue={() => { upd('fireExt', { pinIntact: null }); go(3); }}
               />
             )}
@@ -528,12 +526,12 @@ export default function TenantInspection({ inspection, onComplete }) {
       case 3:
         return (
           <>
-            <h2 className="text-lg font-bold text-gray-800 mb-1">🧯 Fire Extinguisher</h2>
-            <p className="text-sm text-gray-500 mb-3">The safety pin is the small pin in the handle that prevents accidental discharge.</p>
+            <h2 className="text-lg font-bold text-gray-800 mb-1">🧯 {t('inspection.fireExt')}</h2>
+            <p className="text-sm text-gray-500 mb-3">{t('inspection.fePinSub')}</p>
             <div className="bg-gray-50 rounded-2xl p-3 mb-3 flex justify-center">
               <PinSVG />
             </div>
-            <p className="text-base text-gray-700">Is the <strong>safety pin and seal intact</strong>?</p>
+            <p className="text-base text-gray-700">{t('inspection.fePinQ')}</p>
             {fireExt.pinIntact === null && (
               <YNButtons
                 onYes={() => { upd('fireExt', { pinIntact: true }); go(4); }}
@@ -544,7 +542,7 @@ export default function TenantInspection({ inspection, onComplete }) {
               <ReasonInput
                 value={fireExt.pinReason}
                 onChange={v => upd('fireExt', { pinReason: v })}
-                label="What is wrong with the pin or seal?"
+                label={t('inspection.fePinReason')}
                 onContinue={() => go(4)}
               />
             )}
@@ -554,9 +552,9 @@ export default function TenantInspection({ inspection, onComplete }) {
       case 4:
         return (
           <>
-            <h2 className="text-lg font-bold text-gray-800 mb-4">🧯 Fire Extinguisher — Photo</h2>
+            <h2 className="text-lg font-bold text-gray-800 mb-4">{t('inspection.fePhotoTitle')}</h2>
             <PhotoUpload
-              label="Take a clear photo of the entire extinguisher, including the pressure gauge. Make sure it is in focus and well-lit."
+              label={t('inspection.fePhotoLabel')}
               file={fireExt.photo}
               preview={fireExt.preview}
               onChange={e => e.target.files[0] && setPhoto('fireExt', e.target.files[0])}
@@ -570,19 +568,13 @@ export default function TenantInspection({ inspection, onComplete }) {
       case 5:
         return (
           <>
-            <h2 className="text-xl font-bold text-gray-800 mb-1">🔔 Smoke Detector Check</h2>
-            <p className="text-sm text-gray-500 mb-4">Follow these steps. The diagram shows the test button to press.</p>
+            <h2 className="text-xl font-bold text-gray-800 mb-1">{t('inspection.sdIntroTitle')}</h2>
+            <p className="text-sm text-gray-500 mb-4">{t('inspection.sdIntroSub')}</p>
             <div className="bg-gray-50 rounded-2xl p-4 mb-5 flex justify-center">
               <SmokeDetectorSVG />
             </div>
             <ol className="space-y-3 mb-6">
-              {[
-                'Find your smoke detector — usually mounted on the ceiling.',
-                'Stand safely below it (use a step stool if needed).',
-                'Press and HOLD the test button until you hear a loud beep.',
-                'If it does not beep, you will be asked to change the batteries.',
-                'Take a photo of the detector after testing.',
-              ].map((s, i) => (
+              {t('inspection.sdSteps').map((s, i) => (
                 <li key={i} className="flex gap-3 text-sm text-gray-700">
                   <span className="shrink-0 w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-xs">{i + 1}</span>
                   {s}
@@ -590,7 +582,7 @@ export default function TenantInspection({ inspection, onComplete }) {
               ))}
             </ol>
             <button onClick={next} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl transition-colors">
-              Start →
+              {t('inspection.startBtn')}
             </button>
           </>
         );
@@ -598,8 +590,8 @@ export default function TenantInspection({ inspection, onComplete }) {
       case 6:
         return (
           <>
-            <h2 className="text-lg font-bold text-gray-800 mb-1">🔔 Smoke Detector</h2>
-            <p className="text-base text-gray-700 mt-3">Is a smoke detector present in your unit?</p>
+            <h2 className="text-lg font-bold text-gray-800 mb-1">🔔 {t('inspection.smokeDet')}</h2>
+            <p className="text-base text-gray-700 mt-3">{t('inspection.sdQ1')}</p>
             {smokeDet.present === null && (
               <YNButtons
                 onYes={() => { upd('smokeDet', { present: true }); go(7); }}
@@ -610,7 +602,7 @@ export default function TenantInspection({ inspection, onComplete }) {
               <ReasonInput
                 value={smokeDet.notPresentReason}
                 onChange={v => upd('smokeDet', { notPresentReason: v })}
-                label="Why is there no smoke detector?"
+                label={t('inspection.sdNoReason')}
                 onContinue={() => go(10)}
               />
             )}
@@ -620,12 +612,12 @@ export default function TenantInspection({ inspection, onComplete }) {
       case 7:
         return (
           <>
-            <h2 className="text-lg font-bold text-gray-800 mb-1">🔔 Smoke Detector</h2>
-            <p className="text-sm text-gray-500 mb-3">Press and hold the test button on your smoke detector for 3–5 seconds.</p>
+            <h2 className="text-lg font-bold text-gray-800 mb-1">🔔 {t('inspection.smokeDet')}</h2>
+            <p className="text-sm text-gray-500 mb-3">{t('inspection.sdBeepSub')}</p>
             <div className="bg-gray-50 rounded-2xl p-3 mb-3 flex justify-center">
               <SmokeDetectorSVG />
             </div>
-            <p className="text-base text-gray-700">Did it <strong>beep</strong>?</p>
+            <p className="text-base text-gray-700">{t('inspection.sdBeepQ')}</p>
             <YNButtons
               onYes={() => { upd('smokeDet', { beeped: true }); go(9); }}
               onNo={() => { upd('smokeDet', { beeped: false }); go(8); }}
@@ -636,24 +628,24 @@ export default function TenantInspection({ inspection, onComplete }) {
       case 8:
         return (
           <>
-            <h2 className="text-lg font-bold text-gray-800 mb-4">🔔 Smoke Detector</h2>
+            <h2 className="text-lg font-bold text-gray-800 mb-4">🔔 {t('inspection.smokeDet')}</h2>
             {smokeDet.beepedAfter === null ? (
               <BatteryStep
-                item="smoke detector"
+                item={t('inspection.smokeDet')}
                 onBeeped={() => { upd('smokeDet', { beepedAfter: true }); go(9); }}
                 onStillNo={() => { upd('smokeDet', { beepedAfter: false, needsInspection: true }); go(10); }}
               />
             ) : null}
-            {smokeDet.needsInspection && <NeedsInspectionNotice item="smoke detector" onContinue={() => go(10)} />}
+            {smokeDet.needsInspection && <NeedsInspectionNotice item={t('inspection.smokeDet')} onContinue={() => go(10)} />}
           </>
         );
 
       case 9:
         return (
           <>
-            <h2 className="text-lg font-bold text-gray-800 mb-4">🔔 Smoke Detector — Photo</h2>
+            <h2 className="text-lg font-bold text-gray-800 mb-4">{t('inspection.sdPhotoTitle')}</h2>
             <PhotoUpload
-              label="Take a clear photo of the smoke detector. Make sure the device is clearly visible and well-lit."
+              label={t('inspection.sdPhotoLabel')}
               file={smokeDet.photo}
               preview={smokeDet.preview}
               onChange={e => e.target.files[0] && setPhoto('smokeDet', e.target.files[0])}
@@ -667,18 +659,13 @@ export default function TenantInspection({ inspection, onComplete }) {
       case 10:
         return (
           <>
-            <h2 className="text-xl font-bold text-gray-800 mb-1">🍳 Stove Heat Detector Check</h2>
-            <p className="text-sm text-gray-500 mb-4">This detector is located near your stove and detects heat from fires.</p>
+            <h2 className="text-xl font-bold text-gray-800 mb-1">{t('inspection.svIntroTitle')}</h2>
+            <p className="text-sm text-gray-500 mb-4">{t('inspection.svIntroSub')}</p>
             <div className="bg-gray-50 rounded-2xl p-4 mb-5 flex justify-center">
               <HeatDetectorSVG />
             </div>
             <ol className="space-y-3 mb-6">
-              {[
-                'Find the heat detector near your stove or kitchen area.',
-                'Press and HOLD the test button until you hear a beep.',
-                'If it does not beep, you will be asked to change the batteries.',
-                'Take a photo of the detector after testing.',
-              ].map((s, i) => (
+              {t('inspection.svSteps').map((s, i) => (
                 <li key={i} className="flex gap-3 text-sm text-gray-700">
                   <span className="shrink-0 w-6 h-6 bg-orange-100 text-orange-700 rounded-full flex items-center justify-center font-bold text-xs">{i + 1}</span>
                   {s}
@@ -686,7 +673,7 @@ export default function TenantInspection({ inspection, onComplete }) {
               ))}
             </ol>
             <button onClick={next} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-2xl transition-colors">
-              Start →
+              {t('inspection.startBtn')}
             </button>
           </>
         );
@@ -694,8 +681,8 @@ export default function TenantInspection({ inspection, onComplete }) {
       case 11:
         return (
           <>
-            <h2 className="text-lg font-bold text-gray-800 mb-1">🍳 Stove Heat Detector</h2>
-            <p className="text-base text-gray-700 mt-3">Is a heat detector present near your stove?</p>
+            <h2 className="text-lg font-bold text-gray-800 mb-1">🍳 {t('inspection.stoveSensor')}</h2>
+            <p className="text-base text-gray-700 mt-3">{t('inspection.svQ1')}</p>
             {stoveSensor.present === null && (
               <YNButtons
                 onYes={() => { upd('stoveSensor', { present: true }); go(12); }}
@@ -706,7 +693,7 @@ export default function TenantInspection({ inspection, onComplete }) {
               <ReasonInput
                 value={stoveSensor.notPresentReason}
                 onChange={v => upd('stoveSensor', { notPresentReason: v })}
-                label="Why is there no heat detector?"
+                label={t('inspection.svNoReason')}
                 onContinue={() => go(15)}
               />
             )}
@@ -716,12 +703,12 @@ export default function TenantInspection({ inspection, onComplete }) {
       case 12:
         return (
           <>
-            <h2 className="text-lg font-bold text-gray-800 mb-1">🍳 Stove Heat Detector</h2>
-            <p className="text-sm text-gray-500 mb-3">Press and hold the test button on your heat detector for 3–5 seconds.</p>
+            <h2 className="text-lg font-bold text-gray-800 mb-1">🍳 {t('inspection.stoveSensor')}</h2>
+            <p className="text-sm text-gray-500 mb-3">{t('inspection.svBeepSub')}</p>
             <div className="bg-gray-50 rounded-2xl p-3 mb-3 flex justify-center">
               <HeatDetectorSVG />
             </div>
-            <p className="text-base text-gray-700">Did it <strong>beep</strong>?</p>
+            <p className="text-base text-gray-700">{t('inspection.svBeepQ')}</p>
             <YNButtons
               onYes={() => { upd('stoveSensor', { beeped: true }); go(14); }}
               onNo={() => { upd('stoveSensor', { beeped: false }); go(13); }}
@@ -732,24 +719,24 @@ export default function TenantInspection({ inspection, onComplete }) {
       case 13:
         return (
           <>
-            <h2 className="text-lg font-bold text-gray-800 mb-4">🍳 Stove Heat Detector</h2>
+            <h2 className="text-lg font-bold text-gray-800 mb-4">🍳 {t('inspection.stoveSensor')}</h2>
             {stoveSensor.beepedAfter === null ? (
               <BatteryStep
-                item="heat detector"
+                item={t('inspection.stoveSensor')}
                 onBeeped={() => { upd('stoveSensor', { beepedAfter: true }); go(14); }}
                 onStillNo={() => { upd('stoveSensor', { beepedAfter: false, needsInspection: true }); go(15); }}
               />
             ) : null}
-            {stoveSensor.needsInspection && <NeedsInspectionNotice item="heat detector" onContinue={() => go(15)} />}
+            {stoveSensor.needsInspection && <NeedsInspectionNotice item={t('inspection.stoveSensor')} onContinue={() => go(15)} />}
           </>
         );
 
       case 14:
         return (
           <>
-            <h2 className="text-lg font-bold text-gray-800 mb-4">🍳 Stove Heat Detector — Photo</h2>
+            <h2 className="text-lg font-bold text-gray-800 mb-4">{t('inspection.svPhotoTitle')}</h2>
             <PhotoUpload
-              label="Take a clear photo of the heat detector near your stove."
+              label={t('inspection.svPhotoLabel')}
               file={stoveSensor.photo}
               preview={stoveSensor.preview}
               onChange={e => e.target.files[0] && setPhoto('stoveSensor', e.target.files[0])}
@@ -763,16 +750,16 @@ export default function TenantInspection({ inspection, onComplete }) {
       case 15:
         return (
           <>
-            <h2 className="text-xl font-bold text-gray-800 mb-1">✅ Review & Submit</h2>
-            <p className="text-sm text-gray-500 mb-5">Check your answers before submitting. Once submitted you cannot change them.</p>
+            <h2 className="text-xl font-bold text-gray-800 mb-1">{t('inspection.summaryTitle')}</h2>
+            <p className="text-sm text-gray-500 mb-5">{t('inspection.summarySub')}</p>
             <div className="space-y-3 mb-6">
-              <SummaryItem label="Fire Extinguisher" icon="🧯" data={fireExt} type="fireExt" />
-              <SummaryItem label="Smoke Detector" icon="🔔" data={smokeDet} type="detector" />
-              <SummaryItem label="Stove Heat Detector" icon="🍳" data={stoveSensor} type="detector" />
+              <SummaryItem label={t('inspection.fireExt')} icon="🧯" data={fireExt} type="fireExt" />
+              <SummaryItem label={t('inspection.smokeDet')} icon="🔔" data={smokeDet} type="detector" />
+              <SummaryItem label={t('inspection.stoveSensor')} icon="🍳" data={stoveSensor} type="detector" />
             </div>
             <button onClick={submit} disabled={submitting}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl transition-colors disabled:opacity-60 text-lg">
-              {submitting ? 'Submitting…' : 'Submit Inspection ✅'}
+              {submitting ? t('inspection.submitting') : t('inspection.submitBtn')}
             </button>
           </>
         );
@@ -790,10 +777,10 @@ export default function TenantInspection({ inspection, onComplete }) {
         {/* Header */}
         <div className="w-full max-w-lg mb-6 text-center">
           <div className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-4 py-1.5 rounded-full text-xs font-semibold mb-3">
-            🔒 Required — Due {dueDate}
+            {t('inspection.required')(dueDate)}
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Safety Inspection</h1>
-          <p className="text-sm text-gray-500 mt-1">You must complete this inspection to access the portal.</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('inspection.title')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('inspection.subtitle')}</p>
         </div>
 
         <div className="w-full max-w-lg">

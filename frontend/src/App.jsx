@@ -38,6 +38,7 @@ import TenantInspection from './pages/TenantInspection';
 // Also shows a "Redo" banner when already responded
 function InspectionGate({ children }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [activeInspection, setActiveInspection] = useState(null);
   const [responded, setResponded] = useState(false);
   const [redoing, setRedoing] = useState(false);
@@ -77,14 +78,14 @@ function InspectionGate({ children }) {
         <div className="fixed bottom-4 right-4 z-40 bg-white border border-emerald-200 rounded-2xl shadow-lg px-5 py-3 flex items-center gap-3 max-w-xs">
           <span className="text-2xl">✅</span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-800">Inspection submitted</p>
-            <p className="text-xs text-gray-400 truncate">Made a mistake?</p>
+            <p className="text-sm font-semibold text-gray-800">{t('inspection.redoBannerTitle')}</p>
+            <p className="text-xs text-gray-400 truncate">{t('inspection.redoBannerSub')}</p>
           </div>
           <button
             onClick={() => setRedoing(true)}
             className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 whitespace-nowrap border border-emerald-200 hover:border-emerald-400 px-3 py-1.5 rounded-lg transition-colors"
           >
-            Redo
+            {t('inspection.redoBtn')}
           </button>
         </div>
       )}

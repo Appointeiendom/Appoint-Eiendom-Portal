@@ -52,11 +52,11 @@ export default function Sidebar({ open, onClose }) {
       )}
 
       <aside className={`
-        fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-100 flex flex-col pt-16 z-30 transition-transform duration-300 shadow-lg
+        fixed top-0 left-0 h-full w-64 bg-gray-900 border-r border-gray-800 flex flex-col pt-16 z-30 transition-transform duration-300 shadow-lg
         md:static md:w-56 md:translate-x-0 md:z-auto md:min-h-screen md:pt-4 md:shadow-sm
         ${open ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 md:hidden" aria-label={t('nav.closeMenu')}>
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-white md:hidden" aria-label={t('nav.closeMenu')}>
           ✕
         </button>
 
@@ -69,8 +69,8 @@ export default function Sidebar({ open, onClose }) {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800 active:bg-gray-100'
+                    ? 'bg-emerald-600 text-white'
+                    : 'text-gray-400 hover:bg-gray-800 hover:text-white active:bg-gray-700'
                 }`
               }
             >

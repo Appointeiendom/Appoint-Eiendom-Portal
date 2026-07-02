@@ -3,11 +3,6 @@ const User = require('../models/User');
 const Issue = require('../models/Issue');
 const Message = require('../models/Message');
 const DirectMessage = require('../models/DirectMessage');
-const { sendChatNotificationEmail } = require('../services/emailService');
-const getAdminEmail = async () => {
-  const admin = await User.findOne({ role: 'admin' }).select('email');
-  return admin?.email || process.env.ADMIN_EMAIL;
-};
 
 // Map of issueId -> Set of socket IDs in that room
 const issueRooms = new Map();
@@ -96,40 +91,6 @@ const initSocket = (io) => {
         // Broadcast notification to all other connected sockets for popup
         socket.broadcast.emit('new_message_notification', msgPayload);
 
-        // Send email only for admin-tenant chat (not maintenance threads)
-        if (!maintenanceId) {
-          try {
-            const issue = await Issue.findById(issueId).populate('tenantId', 'name email');
-            if (issue) {
-              if (socket.user.role === 'tenant') {
-                await sendChatNotificationEmail({
-                  toEmail: await getAdminEmail(),
-                  toName: 'Admin',
-                  fromName: socket.user.name,
-                  fromRole: 'tenant',
-                  issueTitle: issue.title,
-                  issueId,
-                  messageText: newMsg.message,
-                });
-              } else {
-                const tenant = issue.tenantId;
-                if (tenant?.email) {
-                  await sendChatNotificationEmail({
-                    toEmail: tenant.email,
-                    toName: tenant.name,
-                    fromName: socket.user.name,
-                    fromRole: 'admin',
-                    issueTitle: issue.title,
-                    issueId,
-                    messageText: newMsg.message,
-                  });
-                }
-              }
-            }
-          } catch (emailErr) {
-            console.error('Chat email notification error:', emailErr.message);
-          }
-        }
       } catch (error) {
         console.error('Socket send_message error:', error.message);
         socket.emit('error', { message: 'Failed to send message' });

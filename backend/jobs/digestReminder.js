@@ -99,12 +99,7 @@ const scheduleDigest = (time) => {
 };
 
 const initDigestReminder = async () => {
-  try {
-    const settings = await Settings.getGlobal();
-    scheduleDigest(settings.digestReminderTime);
-  } catch (err) {
-    console.error('Failed to init digest reminder:', err.message);
-  }
+  // Digest emails to admin are disabled
 };
 
 module.exports = { initDigestReminder, scheduleDigest };

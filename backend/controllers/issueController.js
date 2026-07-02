@@ -61,7 +61,6 @@ const createIssue = async (req, res) => {
 
     const populated = await issue.populate('tenantId', 'name email unit building');
 
-    sendNewIssueEmail(populated, req.user);
     sendTenantConfirmationEmail(populated, req.user);
 
     if (req.io) req.io.emit('new_issue', populated);
@@ -136,7 +135,6 @@ const updateIssue = async (req, res) => {
       .populate('assignedTo', 'name trade photo');
 
     if (status && status !== prevStatus) {
-      sendStatusChangeEmail(updated, updated.tenantId, req.user);
       sendTenantStatusEmail(updated, updated.tenantId);
       sendIssueStatusSMS(updated.tenantId, updated).catch(console.error);
       if (req.io) req.io.to(`issue:${issue._id}`).emit('issue_updated', updated);

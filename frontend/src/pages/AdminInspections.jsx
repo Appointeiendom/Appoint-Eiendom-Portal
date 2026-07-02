@@ -201,59 +201,112 @@ function ExportMenu({ rows, label }) {
 // ── Overview table ────────────────────────────────────────────────────────────
 
 function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
-  const [expanded, setExpanded] = useState(null);
+  const [expandedBuilding, setExpandedBuilding] = useState(null);
+  const [expandedTenant, setExpandedTenant] = useState(null);
+
   if (!rows.length) return <Empty text="No tenants yet." />;
-  const sorted = [...rows].sort((a, b) => {
-    const unitA = (a.tenant?.unit || '').toLowerCase();
-    const unitB = (b.tenant?.unit || '').toLowerCase();
-    if (unitA !== unitB) return unitA.localeCompare(unitB);
-    const aptA = (a.tenant?.building || '').toLowerCase();
-    const aptB = (b.tenant?.building || '').toLowerCase();
-    if (aptA !== aptB) return aptA.localeCompare(aptB, undefined, { numeric: true });
-    return (a.tenant?.name || '').localeCompare(b.tenant?.name || '');
+
+  // Group rows by building address (tenant.unit), sorted alphabetically
+  const buildingMap = {};
+  rows.forEach(row => {
+    const key = row.tenant?.unit || '(No building)';
+    if (!buildingMap[key]) buildingMap[key] = [];
+    buildingMap[key].push(row);
   });
+  const buildings = Object.keys(buildingMap).sort((a, b) => a.localeCompare(b));
+  // Sort tenants within each building by unit number then name
+  buildings.forEach(b => {
+    buildingMap[b].sort((a, b) => {
+      const aptA = (a.tenant?.building || '').toLowerCase();
+      const aptB = (b.tenant?.building || '').toLowerCase();
+      if (aptA !== aptB) return aptA.localeCompare(aptB, undefined, { numeric: true });
+      return (a.tenant?.name || '').localeCompare(b.tenant?.name || '');
+    });
+  });
+
+  // Auto-expand first building
+  const firstOpen = expandedBuilding ?? buildings[0];
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      {/* Header */}
-      <div className="grid grid-cols-[1fr_120px_120px_120px] gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-        <span>Tenant</span>
-        <span className="text-center">🧯 Fire Ext</span>
-        <span className="text-center">🔔 Smoke Det</span>
-        <span className="text-center">🍳 Stove</span>
-      </div>
-      {sorted.map(row => {
-        const s = getItemStatuses(row.response);
-        const cat = overallCategory(row.response);
-        const isOpen = expanded === row.tenant._id;
+    <div className="space-y-2">
+      {buildings.map(building => {
+        const buildingRows = buildingMap[building];
+        const isOpen = firstOpen === building || expandedBuilding === building;
+        const passed = buildingRows.filter(r => overallCategory(r.response) === 'pass').length;
+        const issues = buildingRows.filter(r => overallCategory(r.response) === 'issues').length;
+        const pending = buildingRows.filter(r => !r.response).length;
+
         return (
-          <div key={row.tenant._id} className="border-b border-gray-100 last:border-0">
-            <div className="grid grid-cols-[1fr_120px_120px_120px] gap-2 items-center px-4 py-3 hover:bg-gray-50 cursor-pointer"
-              onClick={() => setExpanded(isOpen ? null : row.tenant._id)}>
-              <div>
-                <p className="text-sm font-medium text-gray-800">{row.tenant.name}</p>
-                <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · Unit ${row.tenant.building}` : ''}</p>
+          <div key={building} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            {/* Building header row */}
+            <button
+              onClick={() => setExpandedBuilding(isOpen ? '__none__' : building)}
+              className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🏢</span>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{building}</p>
+                  <p className="text-xs text-gray-400">{buildingRows.length} unit{buildingRows.length !== 1 ? 's' : ''}</p>
+                </div>
               </div>
-              <OverviewCell status={s?.fe} />
-              <OverviewCell status={s?.sd} />
               <div className="flex items-center gap-2">
-                <OverviewCell status={s?.sv} />
-                {row.response && (
-                  <div className="flex items-center gap-1 ml-auto">
-                    {onRequestRedo && (
-                      <button onClick={e => { e.stopPropagation(); onRequestRedo(row.tenant); }}
-                        className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 hover:border-amber-400 px-2 py-0.5 rounded-lg transition-colors" title="Request redo">↺ Redo</button>
-                    )}
-                    {onDeleteResponse && (
-                      <button onClick={e => { e.stopPropagation(); onDeleteResponse(row.tenant._id); }}
-                        className="text-gray-300 hover:text-red-400 text-xs" title="Reset silently">🗑</button>
-                    )}
-                  </div>
-                )}
+                {passed > 0 && <span className="text-xs bg-emerald-100 text-emerald-700 font-medium px-2 py-0.5 rounded-full">{passed} passed</span>}
+                {issues > 0 && <span className="text-xs bg-red-100 text-red-700 font-medium px-2 py-0.5 rounded-full">{issues} issues</span>}
+                {pending > 0 && <span className="text-xs bg-amber-100 text-amber-700 font-medium px-2 py-0.5 rounded-full">{pending} pending</span>}
+                <span className="text-gray-400 text-sm ml-1">{isOpen ? '▾' : '▸'}</span>
               </div>
-            </div>
-            {isOpen && row.response && (
-              <div className="px-4 pb-4 border-t border-gray-50">
-                <FullDetail response={row.response} />
+            </button>
+
+            {/* Tenant rows */}
+            {isOpen && (
+              <div className="border-t border-gray-100">
+                {/* Column headers */}
+                <div className="grid grid-cols-[1fr_100px_100px_100px] gap-2 px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  <span>Tenant</span>
+                  <span className="text-center">🧯 Fire Ext</span>
+                  <span className="text-center">🔔 Smoke Det</span>
+                  <span className="text-center">🍳 Stove</span>
+                </div>
+                {buildingRows.map(row => {
+                  const s = getItemStatuses(row.response);
+                  const tenantOpen = expandedTenant === row.tenant._id;
+                  return (
+                    <div key={row.tenant._id} className="border-t border-gray-100 first:border-0">
+                      <div
+                        className="grid grid-cols-[1fr_100px_100px_100px] gap-2 items-center px-4 py-3 hover:bg-gray-50 cursor-pointer"
+                        onClick={() => setExpandedTenant(tenantOpen ? null : row.tenant._id)}
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">{row.tenant.name}</p>
+                          {row.tenant.building && <p className="text-xs text-gray-400">Unit {row.tenant.building}</p>}
+                        </div>
+                        <OverviewCell status={s?.fe} />
+                        <OverviewCell status={s?.sd} />
+                        <div className="flex items-center gap-1">
+                          <OverviewCell status={s?.sv} />
+                          {row.response && (
+                            <div className="flex items-center gap-1 ml-auto">
+                              {onRequestRedo && (
+                                <button onClick={e => { e.stopPropagation(); onRequestRedo(row.tenant); }}
+                                  className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 hover:border-amber-400 px-2 py-0.5 rounded-lg transition-colors" title="Request redo">↺ Redo</button>
+                              )}
+                              {onDeleteResponse && (
+                                <button onClick={e => { e.stopPropagation(); onDeleteResponse(row.tenant._id); }}
+                                  className="text-gray-300 hover:text-red-400 text-xs" title="Reset silently">🗑</button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {tenantOpen && row.response && (
+                        <div className="px-4 pb-4 border-t border-gray-50">
+                          <FullDetail response={row.response} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -46,7 +46,12 @@ router.post('/bulk-import', protect, adminOnly, memUpload.single('file'), async 
       const name  = get('name', 'full name', 'fullname', 'navn');
       const email = get('email', 'e-mail', 'gmail', 'epost', 'e-post');
       const phone = get('phone', 'phone number', 'telefon', 'mob', 'mobile');
-      const unit  = get('unit', 'apartment', 'apt', 'building', 'leilighet', 'enhet');
+      const address = get('address', 'adresse');
+      const unitNo  = get('unit no', 'unit no.', 'unit number', 'unit#', 'unitno');
+      const unitRaw = get('unit', 'apartment', 'apt', 'building', 'leilighet', 'enhet');
+      // Combine address + unit number if both present, otherwise use whichever exists
+      const unit = address && unitNo ? `${address}, Unit ${unitNo}`
+                 : unitRaw || address || unitNo;
 
       if (!name || !email) { errors.push({ row: name || email || JSON.stringify(row), reason: 'Missing name or email' }); continue; }
       if (!unit) { errors.push({ row: email, reason: 'Missing unit/apartment' }); continue; }

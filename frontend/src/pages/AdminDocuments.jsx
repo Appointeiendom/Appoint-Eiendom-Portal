@@ -111,7 +111,9 @@ export default function AdminDocuments() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-800 text-sm">{doc.title}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {doc.tenantId ? t('docs.onlyFor')(doc.tenantId.name) : t('docs.allTenants')} · {new Date(doc.createdAt).toLocaleDateString()}
+                    {doc.tenantId
+                      ? `${t('docs.onlyFor')(doc.tenantId.name)}${doc.tenantId.unit ? ` · ${doc.tenantId.unit}` : ''}${doc.tenantId.building ? ` · Unit ${doc.tenantId.building}` : ''}`
+                      : t('docs.allTenants')} · {new Date(doc.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <a href={doc.fileUrl} target="_blank" rel="noreferrer"

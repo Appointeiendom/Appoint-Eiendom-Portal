@@ -14,7 +14,7 @@ router.get('/', protect, async (req, res) => {
       query = { $or: [{ tenantId: null }, { tenantId: req.user._id }] };
     }
     const docs = await Document.find(query)
-      .populate('tenantId', 'name')
+      .populate('tenantId', 'name unit building')
       .sort({ createdAt: -1 });
     res.json(docs);
   } catch (err) {
@@ -36,7 +36,7 @@ router.post('/', protect, adminOnly, upload.single('file'), async (req, res) => 
       tenantId: tenantId || null,
     });
 
-    const populated = await Document.findById(doc._id).populate('tenantId', 'name');
+    const populated = await Document.findById(doc._id).populate('tenantId', 'name unit building');
 
     // SMS notification
     if (tenantId) {

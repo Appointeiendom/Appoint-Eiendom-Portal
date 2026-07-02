@@ -44,6 +44,7 @@ function InspectionGate({ children }) {
   const [activeInspection, setActiveInspection] = useState(null);
   const [responded, setResponded] = useState(false);
   const [redoing, setRedoing] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
@@ -76,8 +77,8 @@ function InspectionGate({ children }) {
   return (
     <>
       {children}
-      {activeInspection && responded && (
-        <div className="fixed bottom-4 right-4 z-40 bg-white border border-emerald-200 rounded-2xl shadow-lg px-5 py-3 flex items-center gap-3 max-w-xs">
+      {activeInspection && responded && !bannerDismissed && (
+        <div className="fixed bottom-4 right-4 z-40 bg-white border border-emerald-200 rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3 max-w-xs">
           <span className="text-2xl">✅</span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-gray-800">{t('inspection.redoBannerTitle')}</p>
@@ -89,6 +90,11 @@ function InspectionGate({ children }) {
           >
             {t('inspection.redoBtn')}
           </button>
+          <button
+            onClick={() => setBannerDismissed(true)}
+            className="text-gray-300 hover:text-gray-500 transition-colors text-lg leading-none ml-1"
+            aria-label="Dismiss"
+          >✕</button>
         </div>
       )}
     </>

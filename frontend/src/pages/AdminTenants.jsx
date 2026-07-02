@@ -394,6 +394,11 @@ export default function AdminTenants() {
   const [editTarget, setEditTarget] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [importModal, setImportModal] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importPreview, setImportPreview] = useState(null);
+  const [importResult, setImportResult] = useState(null);
+  const [importing, setImporting] = useState(false);
 
   const fetchTenants = () => {
     api.get('/users').then(res => { setTenants(res.data); setSelected(new Set()); }).catch(console.error).finally(() => setLoading(false));
@@ -518,6 +523,29 @@ export default function AdminTenants() {
     setEditTarget(null);
   };
 
+  const handleImportFile = (file) => {
+    if (!file) return;
+    setImportFile(file);
+    setImportResult(null);
+    setImportPreview(null);
+  };
+
+  const handleImportSubmit = async () => {
+    if (!importFile) return;
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', importFile);
+      const res = await api.post('/users/bulk-import', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setImportResult(res.data);
+      fetchTenants();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Import failed');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
   return (
@@ -535,6 +563,10 @@ export default function AdminTenants() {
                 {bulkDeleting ? '...' : `🗑 Delete ${selected.size}`}
               </button>
             )}
+            <button onClick={() => { setImportModal(true); setImportFile(null); setImportPreview(null); setImportResult(null); }}
+              className="border border-emerald-400 text-emerald-600 hover:bg-emerald-50 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+              📥 Import
+            </button>
             <button onClick={() => setShowForm(!showForm)}
               className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
               {showForm ? t('tenants.cancel') : t('tenants.addTenant')}
@@ -672,6 +704,99 @@ export default function AdminTenants() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {importModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-gray-800">📥 Import Tenants</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Upload a CSV or Excel file with columns: name, email, phone, unit</p>
+              </div>
+              <button onClick={() => setImportModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {!importResult ? (
+                <>
+                  <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-colors ${importFile ? 'border-emerald-400 bg-emerald-50' : 'border-gray-300 hover:border-emerald-400'}`}>
+                    <span className="text-3xl mb-2">{importFile ? '📄' : '📁'}</span>
+                    <span className="text-sm font-medium text-gray-700">{importFile ? importFile.name : 'Click to choose file'}</span>
+                    <span className="text-xs text-gray-400 mt-1">.xlsx, .xls, or .csv</span>
+                    <input type="file" accept=".xlsx,.xls,.csv" className="hidden"
+                      onChange={e => handleImportFile(e.target.files[0])} />
+                  </label>
+
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
+                    <p className="font-semibold mb-1">Required columns (any order, case-insensitive):</p>
+                    <p><span className="font-mono bg-blue-100 px-1 rounded">name</span> · <span className="font-mono bg-blue-100 px-1 rounded">email</span> · <span className="font-mono bg-blue-100 px-1 rounded">unit</span> · <span className="font-mono bg-blue-100 px-1 rounded">phone</span> (optional)</p>
+                    <p className="mt-1 text-blue-600">Each tenant gets a welcome email with a random password. Duplicates are skipped.</p>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={() => setImportModal(false)}
+                      className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition-colors">
+                      Cancel
+                    </button>
+                    <button onClick={handleImportSubmit} disabled={!importFile || importing}
+                      className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50">
+                      {importing ? 'Importing…' : 'Import Tenants'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                      <p className="text-2xl font-bold text-emerald-700">{importResult.created.length}</p>
+                      <p className="text-xs text-emerald-600 mt-0.5">Created</p>
+                    </div>
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                      <p className="text-2xl font-bold text-amber-700">{importResult.skipped.length}</p>
+                      <p className="text-xs text-amber-600 mt-0.5">Skipped (existing)</p>
+                    </div>
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                      <p className="text-2xl font-bold text-red-700">{importResult.errors.length}</p>
+                      <p className="text-xs text-red-600 mt-0.5">Errors</p>
+                    </div>
+                  </div>
+
+                  {importResult.created.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 mb-1">✅ Created:</p>
+                      <div className="max-h-32 overflow-y-auto space-y-1">
+                        {importResult.created.map((u, i) => (
+                          <div key={i} className="text-xs text-gray-700 bg-emerald-50 px-2 py-1 rounded flex justify-between">
+                            <span>{u.name}</span><span className="text-gray-400">{u.email} · {u.unit}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {importResult.errors.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 mb-1">❌ Errors:</p>
+                      <div className="max-h-24 overflow-y-auto space-y-1">
+                        {importResult.errors.map((e, i) => (
+                          <div key={i} className="text-xs text-red-700 bg-red-50 px-2 py-1 rounded">
+                            {e.row} — {e.reason}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <button onClick={() => setImportModal(false)}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                    Done
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

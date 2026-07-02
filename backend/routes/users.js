@@ -1,10 +1,14 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const XLSX = require('xlsx');
 const { protect, adminOnly } = require('../middleware/auth');
 const { upload } = require('../config/cloudinary');
 const User = require('../models/User');
 const Building = require('../models/Building');
 const { sendWelcomeEmail } = require('../services/emailService');
+
+const memUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 // Resolves buildingId+apartmentId into unit/building strings
 async function resolveBuilding(buildingId, apartmentId) {
@@ -15,6 +19,52 @@ async function resolveBuilding(buildingId, apartmentId) {
   if (!apt) return {};
   return { unit: b.name, building: apt.number, buildingId: b._id, apartmentId: apt._id };
 }
+
+// POST /api/users/bulk-import — parse CSV/Excel and create tenant accounts
+router.post('/bulk-import', protect, adminOnly, memUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    if (!rows.length) return res.status(400).json({ message: 'File is empty or unreadable' });
+
+    const created = [], skipped = [], errors = [];
+
+    for (const row of rows) {
+      // Normalise column names (case-insensitive)
+      const get = (...keys) => {
+        for (const k of keys) {
+          const found = Object.keys(row).find(rk => rk.toLowerCase().trim() === k.toLowerCase());
+          if (found && String(row[found]).trim()) return String(row[found]).trim();
+        }
+        return '';
+      };
+
+      const name  = get('name', 'full name', 'fullname', 'navn');
+      const email = get('email', 'e-mail', 'gmail', 'epost', 'e-post');
+      const phone = get('phone', 'phone number', 'telefon', 'mob', 'mobile');
+      const unit  = get('unit', 'apartment', 'apt', 'building', 'leilighet', 'enhet');
+
+      if (!name || !email) { errors.push({ row: name || email || JSON.stringify(row), reason: 'Missing name or email' }); continue; }
+      if (!unit) { errors.push({ row: email, reason: 'Missing unit/apartment' }); continue; }
+
+      const exists = await User.findOne({ email: email.toLowerCase() });
+      if (exists) { skipped.push(email); continue; }
+
+      const rawPassword = Math.random().toString(36).slice(-8) + 'A1!';
+      const user = await User.create({ name, email: email.toLowerCase(), password: rawPassword, role: 'tenant', unit, phone });
+      sendWelcomeEmail({ name, email: email.toLowerCase(), unit, phone }, rawPassword).catch(() => {});
+      created.push({ name, email: email.toLowerCase(), unit });
+    }
+
+    res.json({ created, skipped, errors });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 // GET /api/users/profile
 router.get('/profile', protect, (req, res) => res.json(req.user));

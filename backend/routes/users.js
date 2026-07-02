@@ -92,6 +92,16 @@ router.post('/bulk-import', protect, adminOnly, memUpload.single('file'), async 
   }
 });
 
+// POST /api/users/promote-admin — temporary, admin only
+router.post('/promote-admin', protect, adminOnly, async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  user.role = 'admin';
+  await user.save();
+  res.json({ message: `${user.email} promoted to admin` });
+});
+
 // GET /api/users/profile
 router.get('/profile', protect, (req, res) => res.json(req.user));
 

@@ -48,10 +48,10 @@ router.post('/bulk-import', protect, adminOnly, memUpload.single('file'), async 
       const phone = get('phone', 'phone number', 'telefon', 'mob', 'mobile');
       const address = get('address', 'adresse');
       const unitNo  = get('unit no', 'unit no.', 'unit number', 'unit#', 'unitno');
-      const unitRaw = get('unit', 'apartment', 'apt', 'building', 'leilighet', 'enhet');
-      // Combine address + unit number if both present, otherwise use whichever exists
-      const unit = address && unitNo ? `${address}, Unit ${unitNo}`
-                 : unitRaw || address || unitNo;
+      const unitRaw = get('unit', 'apartment', 'apt', 'leilighet', 'enhet');
+      // unit = the building/address grouping; building = the door/apt number
+      const unit     = unitRaw || address;
+      const buildingVal = unitNo || get('building');
 
       if (!name || !email) { errors.push({ row: name || email || JSON.stringify(row), reason: 'Missing name or email' }); continue; }
       if (!unit) { errors.push({ row: email, reason: 'Missing unit/apartment' }); continue; }
@@ -60,7 +60,7 @@ router.post('/bulk-import', protect, adminOnly, memUpload.single('file'), async 
       if (exists) { skipped.push(email); continue; }
 
       const rawPassword = Math.random().toString(36).slice(-8) + 'A1!';
-      const user = await User.create({ name, email: email.toLowerCase(), password: rawPassword, role: 'tenant', unit, phone });
+      const user = await User.create({ name, email: email.toLowerCase(), password: rawPassword, role: 'tenant', unit, building: buildingVal || '', phone });
       sendWelcomeEmail({ name, email: email.toLowerCase(), unit, phone }, rawPassword).catch(() => {});
       created.push({ name, email: email.toLowerCase(), unit });
     }

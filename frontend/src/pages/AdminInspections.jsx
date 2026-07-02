@@ -246,7 +246,7 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
               <div className="flex items-center gap-3">
                 <span className="text-lg">🏢</span>
                 <div>
-                  <p className="text-sm font-semibold text-gray-800">{building}</p>
+                  <p className="text-sm font-semibold text-emerald-700">{building}</p>
                   <p className="text-xs text-gray-400">{buildingRows.length} unit{buildingRows.length !== 1 ? 's' : ''}</p>
                 </div>
               </div>

@@ -1,15 +1,21 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
 import { useAuth } from './AuthContext';
-import { getSocket } from '../services/socketService';
+import { getSocket, onSocketConnect } from '../services/socketService';
 
-const UnreadContext = createContext({ unreadCount: 0, markAllRead: () => {}, maintenanceUnread: 0, clearMaintenanceUnread: () => {}, directUnread: 0, clearDirectUnread: () => {} });
+const UnreadContext = createContext({
+  unreadCount: 0, markAllRead: () => {}, refresh: () => {},
+  maintenanceUnread: 0, clearMaintenanceUnread: () => {},
+  directUnread: 0, clearDirectUnread: () => {},
+  setViewingDirect: () => {},
+});
 
 export function UnreadProvider({ children }) {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [maintenanceUnread, setMaintenanceUnread] = useState(0);
   const [directUnread, setDirectUnread] = useState(0);
+  const viewingDirect = useRef(false);
 
   const storageKey = user?._id ? `read_announcements_${user._id}` : null;
   const maintStorageKey = user?._id ? `maintenance_unread_${user._id}` : null;
@@ -37,40 +43,53 @@ export function UnreadProvider({ children }) {
     const stored = parseInt(localStorage.getItem(maintStorageKey) || '0', 10);
     setMaintenanceUnread(stored);
 
-    const interval = setInterval(() => {
-      const socket = getSocket();
-      if (!socket) return;
-      const onMsg = () => {
-        setMaintenanceUnread(prev => {
-          const next = prev + 1;
-          localStorage.setItem(maintStorageKey, String(next));
-          return next;
-        });
-      };
-      socket.on('new_message_notification', onMsg);
-      clearInterval(interval);
-      return () => socket.off('new_message_notification', onMsg);
-    }, 500);
+    const onMsg = () => {
+      setMaintenanceUnread(prev => {
+        const next = prev + 1;
+        localStorage.setItem(maintStorageKey, String(next));
+        return next;
+      });
+    };
 
-    return () => clearInterval(interval);
+    const cleanup = onSocketConnect((sock) => {
+      sock.off('new_message_notification', onMsg);
+      sock.on('new_message_notification', onMsg);
+    });
+
+    return () => {
+      cleanup();
+      getSocket()?.off('new_message_notification', onMsg);
+    };
   }, [user?.role, maintStorageKey]);
 
-  // Direct message unread count (tenant, maintenance, admin)
+  // Direct message unread — fetch initial count, then listen via socket
   useEffect(() => {
-    if (!user) return;
+    if (!user?._id) return;
     api.get('/direct/unread').then(r => setDirectUnread(r.data.count || 0)).catch(() => {});
-    const socket = getSocket();
-    if (!socket) return;
+
     const onDirect = (msg) => {
-      if (String(msg.senderId) !== String(user._id)) {
+      if (String(msg.senderId) !== String(user._id) && !viewingDirect.current) {
         setDirectUnread(prev => prev + 1);
       }
     };
-    socket.on('direct_message', onDirect);
-    return () => socket.off('direct_message', onDirect);
+
+    const cleanup = onSocketConnect((sock) => {
+      sock.off('direct_message', onDirect);
+      sock.on('direct_message', onDirect);
+    });
+
+    return () => {
+      cleanup();
+      getSocket()?.off('direct_message', onDirect);
+    };
   }, [user?._id]);
 
   const clearDirectUnread = useCallback(() => setDirectUnread(0), []);
+
+  const setViewingDirect = useCallback((val) => {
+    viewingDirect.current = val;
+    if (val) setDirectUnread(0);
+  }, []);
 
   const markAllRead = useCallback((announcements) => {
     if (!storageKey) return;
@@ -86,7 +105,11 @@ export function UnreadProvider({ children }) {
   }, [maintStorageKey]);
 
   return (
-    <UnreadContext.Provider value={{ unreadCount, markAllRead, refresh, maintenanceUnread, clearMaintenanceUnread, directUnread, clearDirectUnread }}>
+    <UnreadContext.Provider value={{
+      unreadCount, markAllRead, refresh,
+      maintenanceUnread, clearMaintenanceUnread,
+      directUnread, clearDirectUnread, setViewingDirect,
+    }}>
       {children}
     </UnreadContext.Provider>
   );

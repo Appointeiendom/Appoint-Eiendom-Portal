@@ -208,7 +208,7 @@ function ChatPanel({ thread, onNewMessage, onBack, t, lang }) {
 
 export default function AdminDirectChats() {
   const { t, lang } = useLanguage();
-  const { clearDirectUnread } = useUnread();
+  const { setViewingDirect } = useUnread();
   const [threads, setThreads] = useState([]);
   const [activeThread, setActiveThread] = useState(null);
   const [unreadMap, setUnreadMap] = useState({});
@@ -224,9 +224,10 @@ export default function AdminDirectChats() {
       setUnreadMap(map);
     }).catch(console.error).finally(() => setLoading(false));
 
-    clearDirectUnread();
+    setViewingDirect(true);
     const socket = getSocket();
     if (socket) socket.emit('join_direct');
+    return () => setViewingDirect(false);
   }, []);
 
   const handleSelect = (th) => {

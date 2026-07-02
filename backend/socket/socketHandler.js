@@ -31,6 +31,12 @@ const initSocket = (io) => {
   io.on('connection', (socket) => {
     // Each user joins their own personal room for notifications
     socket.join(`user:${socket.user._id}`);
+    // Auto-join direct-chat room so notifications arrive without visiting the chat page
+    if (socket.user.role === 'admin') {
+      socket.join('admin_direct');
+    } else {
+      socket.join(`direct:${socket.user._id}`);
+    }
     console.log(`Socket connected: ${socket.user.name} (${socket.user.role})`);
 
     // Join issue room (admin-tenant chat)

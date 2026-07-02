@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getSocket } from '../services/socketService';
+import { getSocket, onSocketConnect } from '../services/socketService';
 
 const DISMISS_MS = 5000;
 
@@ -20,44 +20,34 @@ export default function MessagePopup() {
   useEffect(() => {
     if (!user) return;
 
-    const tryListen = () => {
-      const socket = getSocket();
-      if (!socket) return;
+    const onNotification = (msg) => {
+      const senderId = String(msg.senderId?._id || msg.senderId);
+      if (senderId === String(user._id)) return;
 
-      const onNotification = (msg) => {
-        // Ignore messages sent by ourselves
-        const senderId = String(msg.senderId?._id || msg.senderId);
-        if (senderId === String(user._id)) return;
+      const path = user.role === 'admin'
+        ? `/admin/issues/${msg.issueId}`
+        : `/tenant/issues/${msg.issueId}`;
 
-        // Only show to admin or the specific tenant who owns the issue
-        // (server broadcasts to all, client filters)
-        const path = user.role === 'admin'
-          ? `/admin/issues/${msg.issueId}`
-          : `/tenant/issues/${msg.issueId}`;
+      if (locationRef.current === path) return;
 
-        // Don't show if already on that issue page
-        if (locationRef.current === path) return;
+      const preview = msg.messageType === 'quote'
+        ? `💰 ${msg.quoteAmount?.toLocaleString()} kr`
+        : msg.message?.length > 60 ? msg.message.slice(0, 60) + '…' : msg.message;
 
-        const preview = msg.messageType === 'quote'
-          ? `💰 ${msg.quoteAmount?.toLocaleString()} kr`
-          : msg.message?.length > 60 ? msg.message.slice(0, 60) + '…' : msg.message;
-
-        setPopup({ senderName: msg.senderRole === 'admin' ? 'Admin' : msg.senderName, message: preview, path });
-
-        clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => setPopup(null), DISMISS_MS);
-      };
-
-      socket.on('new_message_notification', onNotification);
-      return () => socket.off('new_message_notification', onNotification);
+      setPopup({ senderName: msg.senderRole === 'admin' ? 'Admin' : msg.senderName, message: preview, path });
+      clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setPopup(null), DISMISS_MS);
     };
 
-    // Try immediately, retry after 1s in case socket isn't ready yet
-    const cleanup = tryListen();
-    if (cleanup) return cleanup;
+    const cleanup = onSocketConnect((sock) => {
+      sock.off('new_message_notification', onNotification);
+      sock.on('new_message_notification', onNotification);
+    });
 
-    const retry = setTimeout(() => tryListen(), 1000);
-    return () => clearTimeout(retry);
+    return () => {
+      cleanup();
+      getSocket()?.off('new_message_notification', onNotification);
+    };
   }, [user]);
 
   // Dismiss when navigating to the issue

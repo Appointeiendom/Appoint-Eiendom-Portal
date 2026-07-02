@@ -36,17 +36,18 @@ router.post('/', protect, adminOnly, upload.single('file'), async (req, res) => 
       tenantId: tenantId || null,
     });
 
+    const populated = await Document.findById(doc._id).populate('tenantId', 'name');
+
     // SMS notification
     if (tenantId) {
       const tenant = await User.findById(tenantId).select('phone name');
       if (tenant) sendDocumentSMS(tenant, title).catch(console.error);
     } else {
-      // Notify all tenants
       const tenants = await User.find({ role: 'tenant' }).select('phone');
       for (const t of tenants) sendDocumentSMS(t, title).catch(console.error);
     }
 
-    res.status(201).json(doc);
+    res.status(201).json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

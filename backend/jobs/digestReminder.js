@@ -6,7 +6,7 @@ const sgMail = require('@sendgrid/mail');
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-const FROM = process.env.EMAIL_FROM || 'Sameer.karki63@gmail.com';
+const FROM = process.env.EMAIL_FROM || 'no-reply@rentservice.no';
 
 const getAdminEmail = async () => {
   const admin = await User.findOne({ role: 'admin' }).select('email');

@@ -92,9 +92,10 @@ router.post('/bulk-import', protect, adminOnly, memUpload.single('file'), async 
   }
 });
 
-// POST /api/users/promote-admin — temporary, admin only
-router.post('/promote-admin', protect, adminOnly, async (req, res) => {
-  const { email } = req.body;
+// POST /api/users/promote-admin — temporary bootstrap route
+router.post('/promote-admin', async (req, res) => {
+  const { email, secret } = req.body;
+  if (secret !== process.env.JWT_SECRET) return res.status(403).json({ message: 'Forbidden' });
   const user = await User.findOne({ email });
   if (!user) return res.status(404).json({ message: 'User not found' });
   user.role = 'admin';

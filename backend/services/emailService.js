@@ -143,7 +143,7 @@ const sendTenantConfirmationEmail = async (issue, tenant) => {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
         <div style="background: #10B981; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">We've Received Your Issue ✅</h1>
+          <h1 style="color: white; margin: 0; font-size: 24px;">We've received your issue ✅</h1>
         </div>
         <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
           <p style="color: #4B5563; margin-top: 0;">Hi <strong>${tenant.name}</strong>,</p>
@@ -171,7 +171,7 @@ const sendTenantConfirmationEmail = async (issue, tenant) => {
             </table>
           </div>
 
-          <p style="color: #4B5563; font-size: 14px;">You'll receive another email when the status of your issue is updated. You can also track progress and chat with the team directly in the portal.</p>
+          <p style="color: #4B5563; font-size: 14px;">You'll receive an update when the status of your issue changes. You can also track progress and chat with our team directly in the portal.</p>
 
           <div style="text-align: center; margin-top: 24px;">
             <a href="${issueUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View My Issue</a>
@@ -184,7 +184,7 @@ const sendTenantConfirmationEmail = async (issue, tenant) => {
     await sgMail.send({
       from: FROM,
       to: tenant.email,
-      subject: `Issue Received: ${issue.title}`,
+      subject: `Issue received: ${issue.title}`,
       html,
     });
 
@@ -239,7 +239,7 @@ const sendTenantStatusEmail = async (issue, tenant) => {
     await sgMail.send({
       from: FROM,
       to: tenant.email,
-      subject: `Issue Update: "${issue.title}" is now ${issue.status.replace('-', ' ')}`,
+      subject: `Issue update: "${issue.title}" is now ${issue.status.replace('-', ' ')}`,
       html,
     });
 
@@ -256,7 +256,7 @@ const sendResponsibilityEmail = async (issue, tenant) => {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
         <div style="background: #F59E0B; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 22px;">⚠️ Action Required: Maintenance Responsibility</h1>
+          <h1 style="color: white; margin: 0; font-size: 22px;">⚠️ Action required: maintenance responsibility</h1>
         </div>
         <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
           <p style="color: #4B5563; margin-top: 0;">Hi <strong>${tenant.name}</strong>,</p>
@@ -281,7 +281,7 @@ const sendResponsibilityEmail = async (issue, tenant) => {
     await sgMail.send({
       from: FROM,
       to: tenant.email,
-      subject: `Action Required: "${issue.title}" is your responsibility`,
+      subject: `Action required: "${issue.title}" is your responsibility`,
       html,
     });
 

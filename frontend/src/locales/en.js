@@ -371,6 +371,11 @@ export default {
     resendCode: 'Resend code',
     wrongCode: 'Wrong code. Try again.',
     emailUpdated: 'Email updated',
+    changePhone: 'Change Phone Number',
+    changePhoneBtn: 'Change phone number',
+    newPhone: 'New phone number',
+    savePhone: 'Save phone number',
+    phoneUpdated: 'Phone number updated',
   },
 
   status: {

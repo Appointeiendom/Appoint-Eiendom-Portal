@@ -381,6 +381,11 @@ export default {
     resendCode: 'Send kode på nytt',
     wrongCode: 'Feil kode. Prøv igjen.',
     emailUpdated: 'E-post oppdatert',
+    changePhone: 'Endre telefonnummer',
+    changePhoneBtn: 'Endre telefonnummer',
+    newPhone: 'Nytt telefonnummer',
+    savePhone: 'Lagre telefonnummer',
+    phoneUpdated: 'Telefonnummer oppdatert',
   },
 
   // Status

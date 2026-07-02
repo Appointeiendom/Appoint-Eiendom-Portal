@@ -315,7 +315,7 @@ export default {
     reactivated: (name) => `${name} reactivated`,
     accessExpired: (name) => `${name}'s access expired`,
     search: 'Search by name or email...',
-    apartment: (building) => `Unit ${building}`,
+    apartment: (building) => `Unit ${building}`, // unit label
     required: 'Name, email and address are required',
     passwordMin: 'Password must be at least 6 characters',
     editSuccess: 'Profile updated',

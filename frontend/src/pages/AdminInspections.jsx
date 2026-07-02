@@ -203,6 +203,15 @@ function ExportMenu({ rows, label }) {
 function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
   const [expanded, setExpanded] = useState(null);
   if (!rows.length) return <Empty text="No tenants yet." />;
+  const sorted = [...rows].sort((a, b) => {
+    const unitA = (a.tenant?.unit || '').toLowerCase();
+    const unitB = (b.tenant?.unit || '').toLowerCase();
+    if (unitA !== unitB) return unitA.localeCompare(unitB);
+    const aptA = (a.tenant?.building || '').toLowerCase();
+    const aptB = (b.tenant?.building || '').toLowerCase();
+    if (aptA !== aptB) return aptA.localeCompare(aptB, undefined, { numeric: true });
+    return (a.tenant?.name || '').localeCompare(b.tenant?.name || '');
+  });
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Header */}
@@ -212,7 +221,7 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
         <span className="text-center">🔔 Smoke Det</span>
         <span className="text-center">🍳 Stove</span>
       </div>
-      {rows.map(row => {
+      {sorted.map(row => {
         const s = getItemStatuses(row.response);
         const cat = overallCategory(row.response);
         const isOpen = expanded === row.tenant._id;

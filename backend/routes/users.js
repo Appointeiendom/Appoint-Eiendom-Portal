@@ -54,15 +54,36 @@ router.post('/bulk-import', protect, adminOnly, memUpload.single('file'), async 
       const buildingVal = unitNo || get('building');
 
       if (!name || !email) { errors.push({ row: name || email || JSON.stringify(row), reason: 'Missing name or email' }); continue; }
-      if (!unit) { errors.push({ row: email, reason: 'Missing unit/apartment' }); continue; }
+      if (!unit) { errors.push({ row: email, reason: 'Missing address/unit' }); continue; }
 
       const exists = await User.findOne({ email: email.toLowerCase() });
       if (exists) { skipped.push(email); continue; }
 
+      // Find or create building by name/address
+      let building = await Building.findOne({ name: { $regex: `^${unit}$`, $options: 'i' } });
+      if (!building) building = await Building.create({ name: unit, address: unit });
+
+      // Find or create apartment within building
+      let apt = buildingVal
+        ? building.apartments.find(a => a.number === String(buildingVal))
+        : null;
+      if (buildingVal && !apt) {
+        building.apartments.push({ number: String(buildingVal) });
+        await building.save();
+        apt = building.apartments[building.apartments.length - 1];
+      }
+
       const rawPassword = Math.random().toString(36).slice(-8) + 'A1!';
-      const user = await User.create({ name, email: email.toLowerCase(), password: rawPassword, role: 'tenant', unit, building: buildingVal || '', phone });
-      sendWelcomeEmail({ name, email: email.toLowerCase(), unit, phone }, rawPassword).catch(() => {});
-      created.push({ name, email: email.toLowerCase(), unit });
+      await User.create({
+        name, email: email.toLowerCase(), password: rawPassword, role: 'tenant',
+        unit: building.name,
+        building: apt ? apt.number : '',
+        buildingId: building._id,
+        apartmentId: apt ? apt._id : null,
+        phone,
+      });
+      sendWelcomeEmail({ name, email: email.toLowerCase(), unit: building.name, building: apt?.number, phone }, rawPassword).catch(() => {});
+      created.push({ name, email: email.toLowerCase(), unit: building.name, aptNumber: apt?.number });
     }
 
     res.json({ created, skipped, errors });

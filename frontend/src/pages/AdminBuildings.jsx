@@ -26,7 +26,7 @@ function ApartmentGrid({ building, onRemove }) {
         </div>
       ))}
       {building.apartments.length === 0 && (
-        <p className="col-span-full text-sm text-gray-400 py-3">No apartments yet. Add one below.</p>
+        <p className="col-span-full text-sm text-gray-400 py-3">No units yet. Add one below.</p>
       )}
     </div>
   );
@@ -44,9 +44,9 @@ function AddApartmentForm({ buildingId, onAdded }) {
       const res = await api.post(`/buildings/${buildingId}/apartments`, form);
       onAdded(res.data);
       setForm({ number: '', floor: '', type: '' });
-      toast.success('Apartment added');
+      toast.success('Unit added');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to add apartment');
+      toast.error(err.response?.data?.message || 'Failed to add unit');
     } finally {
       setSaving(false);
     }
@@ -56,7 +56,7 @@ function AddApartmentForm({ buildingId, onAdded }) {
     <form onSubmit={handleSubmit} className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
       <input
         required value={form.number} onChange={e => setForm(f => ({ ...f, number: e.target.value }))}
-        placeholder="Apt number *  e.g. 1A"
+        placeholder="Unit number *  e.g. 1A"
         className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 w-36"
       />
       <input
@@ -137,12 +137,12 @@ export default function AdminBuildings() {
   };
 
   const handleRemoveApt = async (buildingId, aptId) => {
-    if (!confirm('Remove this apartment?')) return;
+    if (!confirm('Remove this unit?')) return;
     try {
       const res = await api.delete(`/buildings/${buildingId}/apartments/${aptId}`);
       setBuildings(prev => prev.map(b => b._id === buildingId ? res.data : b));
       await refreshApts(buildingId);
-      toast.success('Apartment removed');
+      toast.success('Unit removed');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to remove');
     }
@@ -168,7 +168,7 @@ export default function AdminBuildings() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">🏢 Properties</h1>
-            <p className="text-gray-500 text-sm mt-1">Manage buildings and apartments before registering tenants</p>
+            <p className="text-gray-500 text-sm mt-1">Manage buildings and units before registering tenants</p>
           </div>
           <button onClick={() => setShowForm(s => !s)}
             className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
@@ -244,7 +244,7 @@ export default function AdminBuildings() {
                           <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">{occupiedCount(b._id)} occupied</span>
                         </div>
                       ) : (
-                        <span className="text-xs text-gray-400">{b.apartments.length} apts</span>
+                        <span className="text-xs text-gray-400">{b.apartments.length} units</span>
                       )}
                       {!isEditing && (
                         <button onClick={() => { setEditId(b._id); setEditForm({ name: b.name, address: b.address || '' }); }}

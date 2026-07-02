@@ -283,7 +283,7 @@ function EditModal({ tenant, buildings, onClose, onSaved, t }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const hasBuilding = buildings.length > 0;
-    if (hasBuilding && (!form.buildingId || !form.apartmentId)) return toast.error('Please select a building and apartment');
+    if (hasBuilding && (!form.buildingId || !form.apartmentId)) return toast.error('Please select a building and unit');
     if (!hasBuilding && !form.unit) return toast.error(t('tenants.required'));
     setSaving(true);
     try {
@@ -419,7 +419,7 @@ export default function AdminTenants() {
   const handleCreate = async (e) => {
     e.preventDefault();
     const hasBuildings = buildings.length > 0;
-    if (hasBuildings && (!form.buildingId || !form.apartmentId)) return toast.error('Please select a building and apartment');
+    if (hasBuildings && (!form.buildingId || !form.apartmentId)) return toast.error('Please select a building and unit');
     if (!hasBuildings && !form.unit) return toast.error(t('tenants.required'));
     if (form.password && form.password.length < 6) return toast.error(t('tenants.passwordMin'));
     setSaving(true);

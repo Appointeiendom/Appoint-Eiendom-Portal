@@ -118,7 +118,7 @@ const policy = {
         heading: '2. What Personal Data We Collect',
         list: [
           'Full name, email address, phone number',
-          'Residential address and apartment number',
+          'Residential address and unit number',
           'Lease period (move-in and move-out dates)',
           'Login credentials (encrypted password)',
           'Maintenance issues: title, description, category, photos',

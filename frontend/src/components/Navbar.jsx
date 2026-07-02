@@ -54,7 +54,7 @@ export default function Navbar({ onMenuClick }) {
 
         <div className="text-right">
           <p className="text-xs sm:text-sm font-medium text-gray-800 truncate max-w-[120px] sm:max-w-none">{user?.role === 'admin' ? 'Admin' : user?.name}</p>
-          <p className="text-xs text-gray-500 capitalize truncate max-w-[120px] sm:max-w-none">{user?.role}{user?.unit ? ` · ${user.unit}` : ''}{user?.building ? ` · ${user.building}` : ''}</p>
+          <p className="text-xs text-gray-500 truncate max-w-[120px] sm:max-w-none">{user?.unit || <span className="capitalize">{user?.role}</span>}{user?.building ? ` · ${t('profile.building')} ${user.building}` : ''}</p>
         </div>
         <button
           onClick={handleLogout}

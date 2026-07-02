@@ -6,7 +6,7 @@ import { useUnread } from '../context/UnreadContext';
 export default function Sidebar({ open, onClose }) {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { unreadCount, maintenanceUnread } = useUnread();
+  const { unreadCount, maintenanceUnread, directUnread } = useUnread();
 
   const adminLinks = [
     { to: '/admin/dashboard', label: t('nav.dashboard'), icon: '🏠' },
@@ -19,6 +19,7 @@ export default function Sidebar({ open, onClose }) {
     { to: '/admin/analytics', label: t('nav.analytics'), icon: '📊' },
     { to: '/admin/inspections', label: 'Inspections', icon: '🔥' },
     { to: '/admin/buildings', label: 'Properties', icon: '🏢' },
+    { to: '/admin/messages', label: 'Messages', icon: '💬', badge: directUnread },
     { to: '/admin/settings', label: t('nav.settings'), icon: '⚙️' },
     { to: '/admin/profile', label: t('nav.profile'), icon: '👤' },
   ];
@@ -28,6 +29,7 @@ export default function Sidebar({ open, onClose }) {
     { to: '/tenant/issues', label: t('nav.myIssues'), icon: '📋' },
     { to: '/tenant/issues/new', label: t('nav.reportIssue'), icon: '➕' },
     { to: '/tenant/notices', label: t('nav.noticesDocs'), icon: '📢', badge: unreadCount },
+    { to: '/tenant/chat', label: 'Chat with Admin', icon: '💬', badge: directUnread },
     { to: '/tenant/waste', label: t('nav.wasteEnv'), icon: '♻️' },
     { to: '/tenant/profile', label: t('nav.profile'), icon: '👤' },
   ];
@@ -35,6 +37,7 @@ export default function Sidebar({ open, onClose }) {
   const maintenanceLinks = [
     { to: '/maintenance/dashboard', label: t('nav.dashboard'), icon: '🏠' },
     { to: '/maintenance/inbox', label: t('maintenance.inbox'), icon: '💬', badge: maintenanceUnread },
+    { to: '/maintenance/chat', label: 'Chat with Admin', icon: '📩', badge: directUnread },
     { to: '/maintenance/jobs', label: t('maintenance.jobHistory'), icon: '📋' },
   ];
 

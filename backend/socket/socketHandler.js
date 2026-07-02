@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Issue = require('../models/Issue');
 const Message = require('../models/Message');
+const DirectMessage = require('../models/DirectMessage');
 const { sendChatNotificationEmail } = require('../services/emailService');
 const getAdminEmail = async () => {
   const admin = await User.findOne({ role: 'admin' }).select('email');
@@ -142,6 +143,56 @@ const initSocket = (io) => {
       socket.to(`issue:${issueId}`).emit('user_stopped_typing', {
         userId: socket.user._id,
       });
+    });
+
+    // ── Direct chat rooms ──────────────────────────────────────────
+    socket.on('join_direct', () => {
+      if (socket.user.role === 'admin') {
+        socket.join('admin_direct');
+      } else {
+        socket.join(`direct:${socket.user._id}`);
+      }
+    });
+
+    socket.on('send_direct_message', async ({ message, toUserId }) => {
+      try {
+        if (!message?.trim()) return;
+        const threadUserId = socket.user.role === 'admin' ? toUserId : String(socket.user._id);
+        if (!threadUserId) return;
+
+        const msg = await DirectMessage.create({
+          threadUserId,
+          senderId: socket.user._id,
+          senderRole: socket.user.role,
+          senderName: socket.user.name,
+          message: message.trim(),
+        });
+
+        const payload = {
+          _id: msg._id, threadUserId,
+          senderId: socket.user._id,
+          senderRole: socket.user.role,
+          senderName: socket.user.name,
+          message: msg.message,
+          isRead: false,
+          createdAt: msg.createdAt,
+        };
+
+        io.to(`direct:${threadUserId}`).emit('direct_message', payload);
+        io.to('admin_direct').emit('direct_message', payload);
+      } catch (err) {
+        console.error('send_direct_message error:', err.message);
+      }
+    });
+
+    socket.on('direct_typing_start', ({ threadUserId }) => {
+      const room = socket.user.role === 'admin' ? `direct:${threadUserId}` : 'admin_direct';
+      socket.to(room).emit('direct_typing', { userId: socket.user._id, name: socket.user.name, threadUserId });
+    });
+
+    socket.on('direct_typing_stop', ({ threadUserId }) => {
+      const room = socket.user.role === 'admin' ? `direct:${threadUserId}` : 'admin_direct';
+      socket.to(room).emit('direct_stop_typing', { userId: socket.user._id, threadUserId });
     });
 
     socket.on('disconnect', () => {

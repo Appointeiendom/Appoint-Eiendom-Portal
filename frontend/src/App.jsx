@@ -33,6 +33,8 @@ import AdminSettings from './pages/AdminSettings';
 import AdminInspections from './pages/AdminInspections';
 import AdminBuildings from './pages/AdminBuildings';
 import TenantInspection from './pages/TenantInspection';
+import DirectChat from './pages/DirectChat';
+import AdminDirectChats from './pages/AdminDirectChats';
 
 // Blocks tenant portal access when an active inspection needs a response
 // Also shows a "Redo" banner when already responded
@@ -145,11 +147,14 @@ export default function App() {
           <Route path="/admin/settings" element={<ProtectedRoute role="admin"><AdminSettings /></ProtectedRoute>} />
           <Route path="/admin/inspections" element={<ProtectedRoute role="admin"><AdminInspections /></ProtectedRoute>} />
           <Route path="/admin/buildings" element={<ProtectedRoute role="admin"><AdminBuildings /></ProtectedRoute>} />
+          <Route path="/admin/messages" element={<ProtectedRoute role="admin"><AdminDirectChats /></ProtectedRoute>} />
 
           {/* Maintenance */}
           <Route path="/maintenance/dashboard" element={<ProtectedRoute role="maintenance"><MaintenanceDashboard /></ProtectedRoute>} />
           <Route path="/maintenance/inbox" element={<ProtectedRoute role="maintenance"><MaintenanceInbox /></ProtectedRoute>} />
           <Route path="/maintenance/jobs" element={<ProtectedRoute role="maintenance"><MaintenanceJobHistory /></ProtectedRoute>} />
+          <Route path="/maintenance/chat" element={<ProtectedRoute role="maintenance"><DirectChat /></ProtectedRoute>} />
+          <Route path="/tenant/chat" element={<ProtectedRoute role="tenant"><DirectChat /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

@@ -3,12 +3,13 @@ import api from '../services/api';
 import { useAuth } from './AuthContext';
 import { getSocket } from '../services/socketService';
 
-const UnreadContext = createContext({ unreadCount: 0, markAllRead: () => {}, maintenanceUnread: 0, clearMaintenanceUnread: () => {} });
+const UnreadContext = createContext({ unreadCount: 0, markAllRead: () => {}, maintenanceUnread: 0, clearMaintenanceUnread: () => {}, directUnread: 0, clearDirectUnread: () => {} });
 
 export function UnreadProvider({ children }) {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [maintenanceUnread, setMaintenanceUnread] = useState(0);
+  const [directUnread, setDirectUnread] = useState(0);
 
   const storageKey = user?._id ? `read_announcements_${user._id}` : null;
   const maintStorageKey = user?._id ? `maintenance_unread_${user._id}` : null;
@@ -54,6 +55,23 @@ export function UnreadProvider({ children }) {
     return () => clearInterval(interval);
   }, [user?.role, maintStorageKey]);
 
+  // Direct message unread count (tenant, maintenance, admin)
+  useEffect(() => {
+    if (!user) return;
+    api.get('/direct/unread').then(r => setDirectUnread(r.data.count || 0)).catch(() => {});
+    const socket = getSocket();
+    if (!socket) return;
+    const onDirect = (msg) => {
+      if (String(msg.senderId) !== String(user._id)) {
+        setDirectUnread(prev => prev + 1);
+      }
+    };
+    socket.on('direct_message', onDirect);
+    return () => socket.off('direct_message', onDirect);
+  }, [user?._id]);
+
+  const clearDirectUnread = useCallback(() => setDirectUnread(0), []);
+
   const markAllRead = useCallback((announcements) => {
     if (!storageKey) return;
     const ids = announcements.map(a => a._id);
@@ -68,7 +86,7 @@ export function UnreadProvider({ children }) {
   }, [maintStorageKey]);
 
   return (
-    <UnreadContext.Provider value={{ unreadCount, markAllRead, refresh, maintenanceUnread, clearMaintenanceUnread }}>
+    <UnreadContext.Provider value={{ unreadCount, markAllRead, refresh, maintenanceUnread, clearMaintenanceUnread, directUnread, clearDirectUnread }}>
       {children}
     </UnreadContext.Provider>
   );

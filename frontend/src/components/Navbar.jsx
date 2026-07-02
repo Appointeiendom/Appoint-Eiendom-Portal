@@ -52,9 +52,9 @@ export default function Navbar({ onMenuClick }) {
           {lang === 'no' ? '🇬🇧 EN' : '🇳🇴 NO'}
         </button>
 
-        <div className="text-right hidden sm:block">
-          <p className="text-sm font-medium text-gray-800">{user?.role === 'admin' ? 'Admin' : user?.name}</p>
-          <p className="text-xs text-gray-500 capitalize">{user?.role}{user?.unit ? ` · ${user.unit}` : ''}{user?.building ? ` · ${user.building}` : ''}</p>
+        <div className="text-right">
+          <p className="text-xs sm:text-sm font-medium text-gray-800 truncate max-w-[120px] sm:max-w-none">{user?.role === 'admin' ? 'Admin' : user?.name}</p>
+          <p className="text-xs text-gray-500 capitalize truncate max-w-[120px] sm:max-w-none">{user?.role}{user?.unit ? ` · ${user.unit}` : ''}{user?.building ? ` · ${user.building}` : ''}</p>
         </div>
         <button
           onClick={handleLogout}

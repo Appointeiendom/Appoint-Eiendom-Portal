@@ -44,8 +44,11 @@ function InspectionGate({ children }) {
   const [activeInspection, setActiveInspection] = useState(null);
   const [responded, setResponded] = useState(false);
   const [redoing, setRedoing] = useState(false);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [checked, setChecked] = useState(false);
+
+  const dismissKey = (id) => `inspection_banner_dismissed_${id}`;
+  const bannerDismissed = activeInspection ? !!localStorage.getItem(dismissKey(activeInspection._id)) : false;
+  const dismissBanner = () => { if (activeInspection) localStorage.setItem(dismissKey(activeInspection._id), '1'); setActiveInspection(i => ({ ...i, _dismissed: Date.now() })); };
 
   useEffect(() => {
     if (user?.role !== 'tenant') { setChecked(true); return; }
@@ -91,7 +94,7 @@ function InspectionGate({ children }) {
             {t('inspection.redoBtn')}
           </button>
           <button
-            onClick={() => setBannerDismissed(true)}
+            onClick={dismissBanner}
             className="text-gray-300 hover:text-gray-500 transition-colors text-lg leading-none ml-1"
             aria-label="Dismiss"
           >✕</button>

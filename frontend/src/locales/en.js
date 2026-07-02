@@ -573,6 +573,7 @@ export default {
     redoBannerTitle: 'Inspection submitted',
     redoBannerSub: 'Made a mistake?',
     redoBtn: 'Redo',
+    backBtn: 'Back',
   },
 
   months: ['January','February','March','April','May','June','July','August','September','October','November','December'],

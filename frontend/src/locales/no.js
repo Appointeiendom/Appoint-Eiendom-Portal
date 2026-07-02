@@ -586,6 +586,7 @@ export default {
     redoBannerTitle: 'Sjekk sendt inn',
     redoBannerSub: 'Gjorde du en feil?',
     redoBtn: 'Gjenta',
+    backBtn: 'Tilbake',
   },
 
   months: ['Januar','Februar','Mars','April','Mai','Juni','Juli','August','September','Oktober','November','Desember'],

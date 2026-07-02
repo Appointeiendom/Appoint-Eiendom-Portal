@@ -388,8 +388,9 @@ function SummaryItem({ label, icon, data, type }) {
 }
 
 export default function TenantInspection({ inspection, onComplete }) {
-  const { t } = useLanguage();
+  const { t, lang, toggleLang } = useLanguage();
   const [step, setStep] = useState(0);
+  const [stepHistory, setStepHistory] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [answers, setAnswers] = useState({
     fireExt: { present: null, notPresentReason: '', gaugeGreen: null, gaugeReason: '', pinIntact: null, pinReason: '', photo: null, preview: null },
@@ -397,9 +398,33 @@ export default function TenantInspection({ inspection, onComplete }) {
     stoveSensor: { present: null, notPresentReason: '', beeped: null, beepedAfter: null, needsInspection: false, photo: null, preview: null },
   });
 
-  const go = (n) => setStep(n);
-  const next = () => setStep(s => s + 1);
   const upd = (key, val) => setAnswers(a => ({ ...a, [key]: { ...a[key], ...val } }));
+
+  // Reset answer state when navigating back to a step so questions re-appear
+  const stepResets = {
+    1: () => setAnswers(a => ({ ...a, fireExt: { ...a.fireExt, present: null, notPresentReason: '' } })),
+    2: () => setAnswers(a => ({ ...a, fireExt: { ...a.fireExt, gaugeGreen: null, gaugeReason: '' } })),
+    3: () => setAnswers(a => ({ ...a, fireExt: { ...a.fireExt, pinIntact: null, pinReason: '' } })),
+    4: () => setAnswers(a => ({ ...a, fireExt: { ...a.fireExt, photo: null, preview: null } })),
+    6: () => setAnswers(a => ({ ...a, smokeDet: { ...a.smokeDet, present: null, notPresentReason: '' } })),
+    7: () => setAnswers(a => ({ ...a, smokeDet: { ...a.smokeDet, beeped: null } })),
+    8: () => setAnswers(a => ({ ...a, smokeDet: { ...a.smokeDet, beepedAfter: null, needsInspection: false } })),
+    9: () => setAnswers(a => ({ ...a, smokeDet: { ...a.smokeDet, photo: null, preview: null } })),
+    11: () => setAnswers(a => ({ ...a, stoveSensor: { ...a.stoveSensor, present: null, notPresentReason: '' } })),
+    12: () => setAnswers(a => ({ ...a, stoveSensor: { ...a.stoveSensor, beeped: null } })),
+    13: () => setAnswers(a => ({ ...a, stoveSensor: { ...a.stoveSensor, beepedAfter: null, needsInspection: false } })),
+    14: () => setAnswers(a => ({ ...a, stoveSensor: { ...a.stoveSensor, photo: null, preview: null } })),
+  };
+
+  const go = (n) => { setStepHistory(h => [...h, step]); setStep(n); };
+  const next = () => { setStepHistory(h => [...h, step]); setStep(s => s + 1); };
+  const goBack = () => {
+    if (stepHistory.length === 0) return;
+    const prev = stepHistory[stepHistory.length - 1];
+    setStepHistory(h => h.slice(0, -1));
+    stepResets[prev]?.();
+    setStep(prev);
+  };
   const setPhoto = (key, file) => {
     const preview = URL.createObjectURL(file);
     upd(key, { photo: file, preview });
@@ -775,12 +800,31 @@ export default function TenantInspection({ inspection, onComplete }) {
     <div className="fixed inset-0 z-50 bg-gradient-to-br from-slate-50 to-gray-100 overflow-auto">
       <div className="min-h-full flex flex-col items-center py-8 px-4">
         {/* Header */}
-        <div className="w-full max-w-lg mb-6 text-center">
-          <div className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-4 py-1.5 rounded-full text-xs font-semibold mb-3">
-            {t('inspection.required')(dueDate)}
+        <div className="w-full max-w-lg mb-6">
+          {/* Top bar: back + lang toggle */}
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={goBack}
+              disabled={stepHistory.length === 0}
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-800 disabled:opacity-0 disabled:pointer-events-none transition-all px-3 py-2 rounded-xl hover:bg-white"
+            >
+              <span className="text-lg leading-none">‹</span>
+              {t('inspection.backBtn')}
+            </button>
+            <button
+              onClick={toggleLang}
+              className="text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors shadow-sm"
+            >
+              {lang === 'no' ? '🇬🇧 EN' : '🇳🇴 NO'}
+            </button>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('inspection.title')}</h1>
-          <p className="text-sm text-gray-500 mt-1">{t('inspection.subtitle')}</p>
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-4 py-1.5 rounded-full text-xs font-semibold mb-3">
+              {t('inspection.required')(dueDate)}
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">{t('inspection.title')}</h1>
+            <p className="text-sm text-gray-500 mt-1">{t('inspection.subtitle')}</p>
+          </div>
         </div>
 
         <div className="w-full max-w-lg">

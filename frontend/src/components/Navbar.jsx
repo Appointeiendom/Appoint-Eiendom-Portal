@@ -54,7 +54,7 @@ export default function Navbar({ onMenuClick }) {
 
         <div className="text-right hidden sm:block">
           <p className="text-sm font-medium text-gray-800">{user?.role === 'admin' ? 'Admin' : user?.name}</p>
-          <p className="text-xs text-gray-500 capitalize">{user?.role}{user?.unit ? ` · ${user.unit}` : ''}</p>
+          <p className="text-xs text-gray-500 capitalize">{user?.role}{user?.unit ? ` · ${user.unit}` : ''}{user?.building ? ` · ${user.building}` : ''}</p>
         </div>
         <button
           onClick={handleLogout}

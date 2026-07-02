@@ -18,6 +18,8 @@ export default function DirectChat() {
   const [typing, setTyping] = useState(false);
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
+  // Cache: key = `${messageId}_${lang}` → translated text
+  const translationCache = useRef(new Map());
 
   useEffect(() => {
     api.get('/direct').then(r => setMessages(r.data)).catch(console.error).finally(() => setLoading(false));
@@ -48,13 +50,24 @@ export default function DirectChat() {
     };
   }, []);
 
-  // Translate messages when lang or messages change
+  // Translate only uncached messages when lang or messages change
   useEffect(() => {
     if (messages.length === 0) { setDisplayed([]); return; }
+    const cache = translationCache.current;
+    const needsTranslation = messages.filter(m => !cache.has(`${m._id}_${lang}`));
+    if (needsTranslation.length === 0) {
+      setDisplayed(messages.map(m => ({ ...m, _text: cache.get(`${m._id}_${lang}`) || m.message })));
+      return;
+    }
     setTranslating(true);
-    api.post('/translate', { texts: messages.map(m => m.message), target: lang })
-      .then(res => setDisplayed(messages.map((m, i) => ({ ...m, _text: res.data.translations[i] || m.message }))))
-      .catch(() => setDisplayed(messages.map(m => ({ ...m, _text: m.message }))))
+    api.post('/translate', { texts: needsTranslation.map(m => m.message), target: lang })
+      .then(res => {
+        needsTranslation.forEach((m, i) => {
+          cache.set(`${m._id}_${lang}`, res.data.translations[i] || m.message);
+        });
+        setDisplayed(messages.map(m => ({ ...m, _text: cache.get(`${m._id}_${lang}`) || m.message })));
+      })
+      .catch(() => setDisplayed(messages.map(m => ({ ...m, _text: cache.get(`${m._id}_${lang}`) || m.message }))))
       .finally(() => setTranslating(false));
   }, [messages, lang]);
 

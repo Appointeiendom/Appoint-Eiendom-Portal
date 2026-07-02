@@ -27,15 +27,9 @@ const io = new Server(server, {
 });
 
 // Connect to MongoDB
-connectDB().then(async () => {
+connectDB().then(() => {
   const { initDigestReminder } = require('./jobs/digestReminder');
   initDigestReminder();
-  // One-time: ensure guru@lmc.as is an admin
-  try {
-    const User = require('./models/User');
-    const u = await User.findOne({ email: 'guru@lmc.as' });
-    if (u && u.role !== 'admin') { u.role = 'admin'; await u.save(); console.log('guru@lmc.as promoted to admin'); }
-  } catch {}
 });
 
 // Middleware

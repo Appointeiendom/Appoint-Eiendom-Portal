@@ -42,11 +42,11 @@ export default function Navbar({ onMenuClick }) {
         </Link>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {/* Language toggle */}
         <button
           onClick={toggleLang}
-          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+          className="text-xs font-semibold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors"
           title={lang === 'no' ? 'Switch to English' : 'Bytt til norsk'}
         >
           {lang === 'no' ? '🇬🇧 EN' : '🇳🇴 NO'}
@@ -58,7 +58,7 @@ export default function Navbar({ onMenuClick }) {
         </div>
         <button
           onClick={handleLogout}
-          className="text-sm border border-gray-200 hover:bg-gray-50 text-gray-500 px-3 py-1.5 rounded-lg transition-colors"
+          className="text-xs sm:text-sm border border-gray-200 hover:bg-gray-50 active:bg-gray-100 text-gray-500 px-2.5 sm:px-3 py-2 rounded-lg transition-colors"
         >
           {t('common.logout')}
         </button>

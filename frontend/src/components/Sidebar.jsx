@@ -19,7 +19,7 @@ export default function Sidebar({ open, onClose }) {
     { to: '/admin/analytics', label: t('nav.analytics'), icon: '📊' },
     { to: '/admin/inspections', label: 'Inspections', icon: '🔥' },
     { to: '/admin/buildings', label: 'Properties', icon: '🏢' },
-    { to: '/admin/messages', label: 'Messages', icon: '💬', badge: directUnread },
+    { to: '/admin/messages', label: t('nav.directMessages'), icon: '💬', badge: directUnread },
     { to: '/admin/settings', label: t('nav.settings'), icon: '⚙️' },
     { to: '/admin/profile', label: t('nav.profile'), icon: '👤' },
   ];
@@ -29,7 +29,7 @@ export default function Sidebar({ open, onClose }) {
     { to: '/tenant/issues', label: t('nav.myIssues'), icon: '📋' },
     { to: '/tenant/issues/new', label: t('nav.reportIssue'), icon: '➕' },
     { to: '/tenant/notices', label: t('nav.noticesDocs'), icon: '📢', badge: unreadCount },
-    { to: '/tenant/chat', label: 'Chat with Admin', icon: '💬', badge: directUnread },
+    { to: '/tenant/chat', label: t('nav.chatWithAdmin'), icon: '💬', badge: directUnread },
     { to: '/tenant/waste', label: t('nav.wasteEnv'), icon: '♻️' },
     { to: '/tenant/profile', label: t('nav.profile'), icon: '👤' },
   ];
@@ -37,7 +37,7 @@ export default function Sidebar({ open, onClose }) {
   const maintenanceLinks = [
     { to: '/maintenance/dashboard', label: t('nav.dashboard'), icon: '🏠' },
     { to: '/maintenance/inbox', label: t('maintenance.inbox'), icon: '💬', badge: maintenanceUnread },
-    { to: '/maintenance/chat', label: 'Chat with Admin', icon: '📩', badge: directUnread },
+    { to: '/maintenance/chat', label: t('nav.chatWithAdmin'), icon: '💬', badge: directUnread },
     { to: '/maintenance/jobs', label: t('maintenance.jobHistory'), icon: '📋' },
   ];
 
@@ -52,8 +52,8 @@ export default function Sidebar({ open, onClose }) {
       )}
 
       <aside className={`
-        fixed top-0 left-0 h-full w-56 bg-white border-r border-gray-100 flex flex-col pt-16 z-30 transition-transform duration-300 shadow-sm
-        md:static md:translate-x-0 md:z-auto md:min-h-screen md:pt-4
+        fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-100 flex flex-col pt-16 z-30 transition-transform duration-300 shadow-lg
+        md:static md:w-56 md:translate-x-0 md:z-auto md:min-h-screen md:pt-4 md:shadow-sm
         ${open ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 md:hidden" aria-label={t('nav.closeMenu')}>
@@ -67,10 +67,10 @@ export default function Sidebar({ open, onClose }) {
               to={link.to}
               onClick={onClose}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                `flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl text-sm font-medium transition-colors ${
                   isActive
                     ? 'bg-emerald-50 text-emerald-700'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800 active:bg-gray-100'
                 }`
               }
             >

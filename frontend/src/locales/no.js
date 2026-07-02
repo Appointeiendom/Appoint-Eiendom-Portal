@@ -70,6 +70,8 @@ export default {
     wasteEnv: 'Avfall & miljø',
     noticesDocs: 'Meldinger & dok.',
     settings: 'Innstillinger',
+    chatWithAdmin: 'Chat med Admin',
+    directMessages: 'Meldinger',
   },
 
   // Dashboard
@@ -165,6 +167,20 @@ export default {
     cancel: 'Avbryt',
     contact: '💬 Kontakt',
     closeChat: 'Lukk chat',
+    directTitle: 'Chat med Admin',
+    directSubtitle: 'Send melding direkte til eiendomsforvalteren',
+    directNoMessages: 'Ingen meldinger ennå. Send en melding for å starte samtalen.',
+    adminTyping: 'Admin skriver…',
+    messagesTitle: 'Meldinger',
+    messagesSubtitle: 'Samtaler med leietakere og håndverkere',
+    conversations: 'Samtaler',
+    noConversations: 'Ingen samtaler ennå',
+    noConversationsSub: 'Leietakere og håndverkere kan sende deg meldinger her',
+    selectConversation: 'Velg en samtale',
+    selectConversationSub: 'Klikk på en tråd til venstre for å åpne den',
+    noMessagesYet: 'Ingen meldinger ennå. Si hei!',
+    unread: (n) => `${n} ulest`,
+    backToList: '← Samtaler',
   },
 
   // Maintenance

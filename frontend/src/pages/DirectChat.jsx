@@ -1,20 +1,27 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useUnread } from '../context/UnreadContext';
 import { getSocket } from '../services/socketService';
 import api from '../services/api';
 import Layout from '../components/Layout';
 
 export default function DirectChat() {
   const { user } = useAuth();
+  const { t, lang } = useLanguage();
+  const { clearDirectUnread } = useUnread();
   const [messages, setMessages] = useState([]);
+  const [displayed, setDisplayed] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
+  const [translating, setTranslating] = useState(false);
   const [typing, setTyping] = useState(false);
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
 
   useEffect(() => {
     api.get('/direct').then(r => setMessages(r.data)).catch(console.error).finally(() => setLoading(false));
+    clearDirectUnread();
 
     const socket = getSocket();
     if (!socket) return;
@@ -28,13 +35,12 @@ export default function DirectChat() {
         return [...without, msg];
       });
     };
-    const onTyping = (d) => { if (d.senderRole === 'admin' || String(d.userId) !== String(user._id)) setTyping(true); };
+    const onTyping = (d) => { if (String(d.userId) !== String(user._id)) setTyping(true); };
     const onStop = () => setTyping(false);
 
     socket.on('direct_message', onMsg);
     socket.on('direct_typing', onTyping);
     socket.on('direct_stop_typing', onStop);
-
     return () => {
       socket.off('direct_message', onMsg);
       socket.off('direct_typing', onTyping);
@@ -42,7 +48,17 @@ export default function DirectChat() {
     };
   }, []);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  // Translate messages when lang or messages change
+  useEffect(() => {
+    if (messages.length === 0) { setDisplayed([]); return; }
+    setTranslating(true);
+    api.post('/translate', { texts: messages.map(m => m.message), target: lang })
+      .then(res => setDisplayed(messages.map((m, i) => ({ ...m, _text: res.data.translations[i] || m.message }))))
+      .catch(() => setDisplayed(messages.map(m => ({ ...m, _text: m.message }))))
+      .finally(() => setTranslating(false));
+  }, [messages, lang]);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [displayed]);
 
   const handleInput = (e) => {
     setInput(e.target.value);
@@ -57,8 +73,8 @@ export default function DirectChat() {
     e.preventDefault();
     if (!input.trim()) return;
     const socket = getSocket();
-    const optimistic = { _id: `temp-${Date.now()}`, senderId: user._id, senderRole: user.role, senderName: user.name, message: input.trim(), createdAt: new Date().toISOString() };
-    setMessages(prev => [...prev, optimistic]);
+    const optimistic = { _id: `temp-${Date.now()}`, senderId: user._id, senderRole: user.role, senderName: user.name, message: input.trim(), _text: input.trim(), createdAt: new Date().toISOString() };
+    setMessages(prev => [...prev, { ...optimistic }]);
     if (socket) {
       socket.emit('send_direct_message', { message: input.trim() });
       socket.emit('direct_typing_stop', { threadUserId: user._id });
@@ -68,40 +84,41 @@ export default function DirectChat() {
 
   return (
     <Layout>
-      <div className="max-w-2xl">
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-800">💬 Chat with Admin</h1>
-          <p className="text-sm text-gray-500 mt-1">Send a message directly to the property manager</p>
+      <div className="flex flex-col h-[calc(100vh-4rem)] md:h-auto md:max-w-2xl">
+        {/* Header */}
+        <div className="mb-3 px-1">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-800">{t('chat.directTitle')}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{t('chat.directSubtitle')}</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col" style={{ height: '70vh' }}>
-          {/* Header */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 md:h-[72vh]">
+          {/* Chat header */}
           <div className="bg-gray-50 border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-            <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm">A</div>
+            <div className="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">A</div>
             <div>
               <p className="text-sm font-semibold text-gray-800">Admin</p>
               <p className="text-xs text-emerald-600">Property Manager</p>
             </div>
+            {translating && <span className="ml-auto text-xs text-gray-400 animate-pulse">Translating…</span>}
           </div>
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {loading && <p className="text-center text-gray-400 text-sm py-8">Loading…</p>}
-            {!loading && messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <span className="text-4xl mb-3">💬</span>
-                <p className="text-gray-500 font-medium">No messages yet</p>
-                <p className="text-sm text-gray-400 mt-1">Send a message to start the conversation</p>
+            {loading && <p className="text-center text-gray-400 text-sm py-8">{t('common.loading')}</p>}
+            {!loading && displayed.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-center py-10">
+                <span className="text-5xl mb-3">💬</span>
+                <p className="text-gray-500 font-medium">{t('chat.directNoMessages')}</p>
               </div>
             )}
-            {messages.map(msg => {
+            {displayed.map(msg => {
               const isOwn = String(msg.senderId?._id || msg.senderId) === String(user._id);
               return (
                 <div key={msg._id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-xs lg:max-w-md flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+                  <div className={`max-w-[75%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
                     {!isOwn && <span className="text-xs text-gray-500 mb-1 px-1">Admin</span>}
-                    <div className={`px-4 py-2.5 rounded-2xl text-sm ${isOwn ? 'bg-emerald-500 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-800 rounded-tl-sm'}`}>
-                      {msg.message}
+                    <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isOwn ? 'bg-emerald-500 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-800 rounded-tl-sm'}`}>
+                      {msg._text || msg.message}
                     </div>
                     <span className="text-xs text-gray-400 mt-1 px-1">
                       {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -112,19 +129,19 @@ export default function DirectChat() {
             })}
             {typing && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 text-gray-500 text-xs px-3 py-2 rounded-full italic">Admin is typing…</div>
+                <div className="bg-gray-100 text-gray-500 text-xs px-4 py-2.5 rounded-2xl rounded-tl-sm italic">{t('chat.adminTyping')}</div>
               </div>
             )}
             <div ref={bottomRef} />
           </div>
 
           {/* Input */}
-          <form onSubmit={send} className="border-t border-gray-100 p-3 flex gap-2">
-            <input type="text" value={input} onChange={handleInput} placeholder="Type a message…"
-              className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+          <form onSubmit={send} className="border-t border-gray-100 p-3 flex gap-2 bg-white">
+            <input type="text" value={input} onChange={handleInput} placeholder={t('chat.placeholder')}
+              className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             <button type="submit" disabled={!input.trim()}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
-              Send
+              className="bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white px-5 py-3 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50">
+              {t('common.send')}
             </button>
           </form>
         </div>

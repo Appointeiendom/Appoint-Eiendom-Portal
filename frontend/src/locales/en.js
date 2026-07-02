@@ -69,6 +69,8 @@ export default {
     wasteEnv: 'Waste & Environment',
     noticesDocs: 'Notices & Docs',
     settings: 'Settings',
+    chatWithAdmin: 'Chat with Admin',
+    directMessages: 'Messages',
   },
 
   dashboard: {
@@ -160,6 +162,20 @@ export default {
     cancel: 'Cancel',
     contact: '💬 Contact',
     closeChat: 'Close Chat',
+    directTitle: 'Chat with Admin',
+    directSubtitle: 'Send a message directly to the property manager',
+    directNoMessages: 'No messages yet. Send a message to start the conversation.',
+    adminTyping: 'Admin is typing…',
+    messagesTitle: 'Messages',
+    messagesSubtitle: 'Conversations with tenants and maintenance workers',
+    conversations: 'Conversations',
+    noConversations: 'No conversations yet',
+    noConversationsSub: 'Tenants and maintenance workers can message you here',
+    selectConversation: 'Select a conversation',
+    selectConversationSub: 'Click a thread on the left to open it',
+    noMessagesYet: 'No messages yet. Say hello!',
+    unread: (n) => `${n} unread`,
+    backToList: '← Conversations',
   },
 
   maintenance: {

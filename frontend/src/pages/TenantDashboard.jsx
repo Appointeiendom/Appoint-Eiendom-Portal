@@ -46,7 +46,8 @@ export default function TenantDashboard() {
         <div className="mb-6 flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">{t('dashboard.welcome')(user?.name)}</h1>
-            <p className="text-gray-500 text-sm mt-1">{user?.unit}{user?.building ? ` · ${user.building}` : ''}</p>
+            <p className="text-gray-500 text-sm mt-1">{user?.unit}</p>
+            {user?.building && <p className="text-gray-500 text-sm">{t('profile.building')} {user.building}</p>}
           </div>
           <button onClick={() => navigate('/tenant/issues/new')}
             className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors text-sm">

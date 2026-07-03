@@ -292,7 +292,7 @@ function PhotoUpload({ label, file, preview, onChange, onNext, required }) {
       <p className="text-sm text-gray-600">{label}</p>
       <label className={`block w-full border-2 border-dashed rounded-2xl cursor-pointer overflow-hidden transition-colors ${preview ? 'border-emerald-400' : 'border-gray-300 hover:border-emerald-400'}`}>
         {preview ? (
-          <img src={preview} alt="preview" className="w-full h-52 object-cover" />
+          <img src={preview} alt="preview" className="w-full h-40 sm:h-52 object-cover" />
         ) : (
           <div className="flex flex-col items-center justify-center h-40 text-gray-400">
             <span className="text-4xl mb-2">📷</span>

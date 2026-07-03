@@ -56,7 +56,7 @@ export default function Sidebar({ open, onClose }) {
         md:static md:w-56 md:translate-x-0 md:z-auto md:min-h-screen md:pt-4 md:shadow-sm
         ${open ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-white md:hidden" aria-label={t('nav.closeMenu')}>
+        <button onClick={onClose} className="absolute top-3 right-3 text-gray-500 hover:text-white md:hidden p-2 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg" aria-label={t('nav.closeMenu')}>
           ✕
         </button>
 

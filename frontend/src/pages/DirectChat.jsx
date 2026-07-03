@@ -107,7 +107,7 @@ export default function DirectChat() {
 
   return (
     <Layout>
-      <div className="flex flex-col h-[calc(100vh-4rem)] md:h-auto md:max-w-2xl">
+      <div className="flex flex-col h-[calc(100dvh-4rem)] md:h-auto md:max-w-2xl">
         {/* Header */}
         <div className="mb-3 px-1">
           <h1 className="text-xl md:text-2xl font-bold text-gray-800">{t('chat.directTitle')}</h1>

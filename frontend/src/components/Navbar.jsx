@@ -38,7 +38,7 @@ export default function Navbar({ onMenuClick }) {
               <polyline points="9 22 9 12 15 12 15 22"/>
             </svg>
           </div>
-          <span className="font-semibold text-gray-800 text-lg">Service Portal</span>
+          <span className="font-semibold text-gray-800 text-lg hidden sm:inline">Rentservice</span>
         </Link>
       </div>
 

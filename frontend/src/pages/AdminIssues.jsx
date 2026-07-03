@@ -113,7 +113,7 @@ export default function AdminIssues() {
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-5">
           <div className="flex flex-wrap gap-3">
             <input type="text" placeholder={t('issues.search')} value={filters.search} onChange={update('search')}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 flex-1 min-w-40" />
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 flex-1 min-w-0 w-full sm:min-w-40" />
             <select value={filters.status} onChange={update('status')}
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
               <option value="">{t('issues.allStatuses')}</option>

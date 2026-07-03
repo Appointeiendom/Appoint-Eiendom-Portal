@@ -201,12 +201,12 @@ function ExportMenu({ rows, label }) {
 // ── Overview table ────────────────────────────────────────────────────────────
 
 function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
-  const [expandedBuilding, setExpandedBuilding] = useState(null);
+  const [closedBuildings, setClosedBuildings] = useState(new Set());
   const [expandedTenant, setExpandedTenant] = useState(null);
 
   if (!rows.length) return <Empty text="No tenants yet." />;
 
-  // Group rows by building address (tenant.unit), sorted alphabetically
+  // Group by building address (tenant.unit)
   const buildingMap = {};
   rows.forEach(row => {
     const key = row.tenant?.unit || '(No building)';
@@ -214,117 +214,124 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
     buildingMap[key].push(row);
   });
   const buildings = Object.keys(buildingMap).sort((a, b) => a.localeCompare(b));
-  // Sort tenants within each building by unit number then name
   buildings.forEach(b => {
-    buildingMap[b].sort((a, b) => {
-      // Vacant units always at bottom
-      if (a.tenant?.isVacant && !b.tenant?.isVacant) return 1;
-      if (!a.tenant?.isVacant && b.tenant?.isVacant) return -1;
+    buildingMap[b].sort((a, bRow) => {
+      if (a.tenant?.isVacant && !bRow.tenant?.isVacant) return 1;
+      if (!a.tenant?.isVacant && bRow.tenant?.isVacant) return -1;
       const aptA = (a.tenant?.building || '').toLowerCase();
-      const aptB = (b.tenant?.building || '').toLowerCase();
+      const aptB = (bRow.tenant?.building || '').toLowerCase();
       if (aptA !== aptB) return aptA.localeCompare(aptB, undefined, { numeric: true });
-      return (a.tenant?.name || '').localeCompare(b.tenant?.name || '');
+      return (a.tenant?.name || '').localeCompare(bRow.tenant?.name || '');
     });
   });
 
-  // Auto-expand first building
-  const firstOpen = expandedBuilding ?? buildings[0];
+  const toggleBuilding = (building) => {
+    setClosedBuildings(prev => {
+      const next = new Set(prev);
+      if (next.has(building)) next.delete(building); else next.add(building);
+      return next;
+    });
+  };
 
   return (
-    <div className="space-y-2">
-      {buildings.map(building => {
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* Global column headers */}
+      <div className="grid grid-cols-[2fr_1fr_1.5fr_90px_90px_90px] gap-0 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+        <span>Address</span>
+        <span>Unit</span>
+        <span>Tenant</span>
+        <span className="text-center">🧯 Fire</span>
+        <span className="text-center">🔔 Smoke</span>
+        <span className="text-center">🍳 Stove</span>
+      </div>
+
+      {buildings.map((building, bi) => {
         const buildingRows = buildingMap[building];
-        const isOpen = firstOpen === building || expandedBuilding === building;
+        const isOpen = !closedBuildings.has(building);
         const passed = buildingRows.filter(r => overallCategory(r.response) === 'passed').length;
         const issues = buildingRows.filter(r => overallCategory(r.response) === 'issues').length;
-        const pending = buildingRows.filter(r => !r.response).length;
+        const pending = buildingRows.filter(r => !r.response && !r.tenant?.isVacant).length;
         const vacant = buildingRows.filter(r => r.tenant?.isVacant).length;
 
         return (
-          <div key={building} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div key={building} className={bi > 0 ? 'border-t border-gray-200' : ''}>
             {/* Building header row */}
             <button
-              onClick={() => setExpandedBuilding(isOpen ? '__none__' : building)}
-              className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors text-left"
+              onClick={() => toggleBuilding(building)}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
             >
-              <div className="flex items-center gap-3">
-                <span className="text-lg">🏢</span>
-                <div>
-                  <p className="text-sm font-semibold text-emerald-700">{building}</p>
-                  <p className="text-xs text-gray-400">{buildingRows.length} unit{buildingRows.length !== 1 ? 's' : ''}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
+              <span className="text-gray-400 text-xs w-3">{isOpen ? '▾' : '▸'}</span>
+              <span className="text-sm font-semibold text-emerald-700 flex-1">🏢 {building}</span>
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
                 {passed > 0 && <span className="text-xs bg-emerald-100 text-emerald-700 font-medium px-2 py-0.5 rounded-full">{passed} passed</span>}
                 {issues > 0 && <span className="text-xs bg-red-100 text-red-700 font-medium px-2 py-0.5 rounded-full">{issues} issues</span>}
-                {pending > 0 && <span className="text-xs bg-amber-100 text-amber-700 font-medium px-2 py-0.5 rounded-full">{pending - vacant} pending</span>}
+                {pending > 0 && <span className="text-xs bg-amber-100 text-amber-700 font-medium px-2 py-0.5 rounded-full">{pending} pending</span>}
                 {vacant > 0 && <span className="text-xs bg-gray-100 text-gray-500 font-medium px-2 py-0.5 rounded-full">{vacant} vacant</span>}
-                <span className="text-gray-400 text-sm ml-1">{isOpen ? '▾' : '▸'}</span>
               </div>
             </button>
 
             {/* Tenant rows */}
-            {isOpen && (
-              <div className="border-t border-gray-100">
-                {/* Column headers */}
-                <div className="hidden sm:grid grid-cols-[1fr_100px_100px_100px] gap-2 px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                  <span>Tenant</span>
-                  <span className="text-center">🧯 Fire Ext</span>
-                  <span className="text-center">🔔 Smoke Det</span>
-                  <span className="text-center">🍳 Stove</span>
-                </div>
-                {buildingRows.map(row => {
-                  const s = getItemStatuses(row.response);
-                  const tenantOpen = expandedTenant === row.tenant._id;
-                  const isVacant = row.tenant.isVacant;
-                  return (
-                    <div key={row.tenant._id} className="border-t border-gray-100 first:border-0">
-                      <div
-                        className={`flex flex-col sm:grid sm:grid-cols-[1fr_100px_100px_100px] gap-2 items-start sm:items-center px-4 py-3 cursor-pointer ${isVacant ? 'bg-gray-50/50 hover:bg-gray-100/50' : 'hover:bg-gray-50'}`}
-                        onClick={() => !isVacant && setExpandedTenant(tenantOpen ? null : row.tenant._id)}
-                      >
-                        <div>
-                          <p className={`text-sm font-medium ${isVacant ? 'text-gray-400 italic' : 'text-gray-800'}`}>
-                            {isVacant ? '— Vacant —' : row.tenant.name}
-                          </p>
-                          {row.tenant.building && <p className="text-xs text-gray-400">Unit {row.tenant.building}</p>}
-                          {row.response?.completedAt && (
-                            <p className="text-xs text-gray-400">
-                              {new Date(row.response.completedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                            </p>
+            {isOpen && buildingRows.map(row => {
+              const s = getItemStatuses(row.response);
+              const tenantOpen = expandedTenant === row.tenant._id;
+              const isVacant = row.tenant.isVacant;
+
+              return (
+                <div key={row.tenant._id} className="border-t border-gray-100">
+                  <div
+                    className={`grid grid-cols-[2fr_1fr_1.5fr_90px_90px_90px] gap-0 items-center px-4 py-2.5 cursor-pointer ${isVacant ? 'bg-gray-50/50' : 'hover:bg-gray-50'}`}
+                    onClick={() => !isVacant && setExpandedTenant(tenantOpen ? null : row.tenant._id)}
+                  >
+                    {/* Address (same for all rows in building — shown lighter) */}
+                    <span className="text-xs text-gray-400 truncate pr-2">{building}</span>
+
+                    {/* Unit number */}
+                    <span className="text-xs text-gray-500 pr-2">
+                      {row.tenant.building ? `#${row.tenant.building}` : '—'}
+                    </span>
+
+                    {/* Tenant name */}
+                    <div className="pr-2 min-w-0">
+                      <p className={`text-sm font-medium truncate ${isVacant ? 'text-gray-400 italic' : 'text-gray-800'}`}>
+                        {isVacant ? '— Vacant —' : row.tenant.name}
+                      </p>
+                      {row.response?.completedAt && (
+                        <p className="text-xs text-gray-400">
+                          {new Date(row.response.completedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Fire Ext */}
+                    <OverviewCell status={s?.fe} />
+                    {/* Smoke Det */}
+                    <OverviewCell status={s?.sd} />
+                    {/* Stove */}
+                    <div className="flex items-center justify-center gap-1">
+                      <OverviewCell status={s?.sv} />
+                      {row.response && !isVacant && (
+                        <div className="flex items-center gap-0.5 ml-1">
+                          {onRequestRedo && (
+                            <button onClick={e => { e.stopPropagation(); onRequestRedo(row.tenant); }}
+                              className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 hover:border-amber-400 px-1.5 py-1 rounded-lg transition-colors" title="Request redo">↺</button>
                           )}
-                        </div>
-                        <div className="flex sm:contents gap-4 text-xs text-gray-500">
-                          <span className="sm:hidden">🧯</span><OverviewCell status={s?.fe} />
-                          <span className="sm:hidden">🔔</span><OverviewCell status={s?.sd} />
-                          <span className="sm:hidden">🍳</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <OverviewCell status={s?.sv} />
-                          {row.response && (
-                            <div className="flex items-center gap-1 ml-auto">
-                              {onRequestRedo && (
-                                <button onClick={e => { e.stopPropagation(); onRequestRedo(row.tenant); }}
-                                  className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 hover:border-amber-400 px-2 py-1.5 rounded-lg transition-colors min-h-[36px]" title="Request redo">↺ Redo</button>
-                              )}
-                              {onDeleteResponse && (
-                                <button onClick={e => { e.stopPropagation(); onDeleteResponse(row.tenant._id); }}
-                                  className="text-gray-300 hover:text-red-400 text-sm p-1.5 min-h-[36px] min-w-[36px]" title="Reset silently">🗑</button>
-                              )}
-                            </div>
+                          {onDeleteResponse && (
+                            <button onClick={e => { e.stopPropagation(); onDeleteResponse(row.tenant._id); }}
+                              className="text-gray-300 hover:text-red-400 text-sm p-1 min-h-[30px] min-w-[28px]" title="Reset">🗑</button>
                           )}
-                        </div>
-                      </div>
-                      {tenantOpen && row.response && (
-                        <div className="px-4 pb-4 border-t border-gray-50">
-                          <FullDetail response={row.response} />
                         </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  </div>
+
+                  {tenantOpen && row.response && (
+                    <div className="px-4 pb-4 border-t border-gray-50">
+                      <FullDetail response={row.response} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         );
       })}

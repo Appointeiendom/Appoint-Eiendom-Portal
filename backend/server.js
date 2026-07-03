@@ -16,20 +16,24 @@ if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigins = [
+const getAllowedOrigins = () => [
   'http://localhost:5173',
   'https://appoint-eiendom-portal-rho.vercel.app',
+  'https://rentservice.no',
+  'https://www.rentservice.no',
   process.env.FRONTEND_URL,
 ].filter(Boolean);
+
+const isAllowed = (origin) => {
+  if (!origin) return true;
+  return getAllowedOrigins().some(o => origin.startsWith(o.replace(/\/$/, '')));
+};
 
 const io = new Server(server, {
   cors: {
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.some(o => origin.startsWith(o.replace(/\/$/, '')))) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
+      if (isAllowed(origin)) callback(null, true);
+      else callback(new Error('Not allowed by CORS'));
     },
     methods: ['GET', 'POST'],
     credentials: true,
@@ -45,11 +49,8 @@ connectDB().then(() => {
 // Middleware
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.some(o => origin.startsWith(o.replace(/\/$/, '')))) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+    if (isAllowed(origin)) callback(null, true);
+    else callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 }));

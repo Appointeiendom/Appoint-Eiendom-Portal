@@ -12,6 +12,13 @@ const detectorSchema = new mongoose.Schema({
 const inspectionResponseSchema = new mongoose.Schema({
   inspectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Inspection', required: true },
   tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  // Snapshot of tenant info at time of submission — persists after tenant deletion
+  tenantSnapshot: {
+    name: String,
+    unit: String,
+    building: String,
+    email: String,
+  },
   fireExtinguisher: {
     present: Boolean,
     notPresentReason: String,

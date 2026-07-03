@@ -77,7 +77,18 @@ router.post('/:id/respond', protect, photoUpload, async (req, res) => {
 
     const response = await InspectionResponse.findOneAndUpdate(
       { inspectionId: inspection._id, tenantId: req.user._id },
-      { fireExtinguisher: fireExt, smokeDetector: smokeDet, stoveSensor: stoveSensor, completedAt: new Date() },
+      {
+        fireExtinguisher: fireExt,
+        smokeDetector: smokeDet,
+        stoveSensor: stoveSensor,
+        completedAt: new Date(),
+        tenantSnapshot: {
+          name: req.user.name,
+          unit: req.user.unit,
+          building: req.user.building,
+          email: req.user.email,
+        },
+      },
       { upsert: true, new: true }
     );
 
@@ -187,6 +198,32 @@ router.post('/:id/remind', protect, adminOnly, async (req, res) => {
       try { await sendInspectionReminderEmail(tenant, inspection); sent++; } catch {}
     }
     res.json({ sent, total: pending.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/inspections/:id/archive — get closed inspection with all responses (for archive view)
+router.get('/:id/archive', protect, adminOnly, async (req, res) => {
+  try {
+    const inspection = await Inspection.findById(req.params.id);
+    if (!inspection) return res.status(404).json({ message: 'Not found' });
+
+    const responses = await InspectionResponse.find({ inspectionId: inspection._id })
+      .populate('tenantId', 'name unit building email');
+
+    const rows = responses.map(r => ({
+      response: r,
+      tenant: {
+        _id: r.tenantId?._id || r.tenantId,
+        name: r.tenantSnapshot?.name || r.tenantId?.name || 'Deleted tenant',
+        unit: r.tenantSnapshot?.unit || r.tenantId?.unit || '',
+        building: r.tenantSnapshot?.building || r.tenantId?.building || '',
+        email: r.tenantSnapshot?.email || r.tenantId?.email || '',
+      },
+    }));
+
+    res.json({ inspection, rows });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

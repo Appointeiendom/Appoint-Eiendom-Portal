@@ -288,6 +288,11 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
                             {isVacant ? '— Vacant —' : row.tenant.name}
                           </p>
                           {row.tenant.building && <p className="text-xs text-gray-400">Unit {row.tenant.building}</p>}
+                          {row.response?.completedAt && (
+                            <p className="text-xs text-gray-400">
+                              {new Date(row.response.completedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          )}
                         </div>
                         <div className="flex sm:contents gap-4 text-xs text-gray-500">
                           <span className="sm:hidden">🧯</span><OverviewCell status={s?.fe} />
@@ -610,9 +615,106 @@ function Empty({ text }) {
   );
 }
 
+// ── Archive tab ───────────────────────────────────────────────────────────────
+
+function ArchiveTab({ inspections, onDelete }) {
+  const [expandedId, setExpandedId] = useState(null);
+  const [archiveData, setArchiveData] = useState({});
+  const [loading, setLoading] = useState({});
+
+  const closed = inspections.filter(i => i.status === 'closed');
+  if (!closed.length) return <Empty text="No archived inspections yet." />;
+
+  const toggle = async (ins) => {
+    if (expandedId === ins._id) { setExpandedId(null); return; }
+    setExpandedId(ins._id);
+    if (archiveData[ins._id]) return;
+    setLoading(l => ({ ...l, [ins._id]: true }));
+    try {
+      const res = await api.get(`/inspections/${ins._id}/archive`);
+      setArchiveData(d => ({ ...d, [ins._id]: res.data.rows }));
+    } catch { toast.error('Failed to load archive'); }
+    finally { setLoading(l => ({ ...l, [ins._id]: false })); }
+  };
+
+  return (
+    <div className="space-y-3">
+      {closed.map(ins => {
+        const isOpen = expandedId === ins._id;
+        const rows = archiveData[ins._id] || [];
+        const passed = rows.filter(r => overallCategory(r.response) === 'passed').length;
+        const issues = rows.filter(r => overallCategory(r.response) === 'issues').length;
+        const pending = rows.filter(r => overallCategory(r.response) === 'pending').length;
+        const dueLabel = new Date(ins.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        const createdLabel = new Date(ins.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+        return (
+          <div key={ins._id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3.5">
+              <button className="flex items-center gap-3 flex-1 text-left" onClick={() => toggle(ins)}>
+                <span className="text-lg">📋</span>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Due: {dueLabel}</p>
+                  <p className="text-xs text-gray-400">Created {createdLabel}</p>
+                </div>
+                <div className="flex items-center gap-2 ml-4 flex-wrap">
+                  {passed > 0 && <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">{passed} passed</span>}
+                  {issues > 0 && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">{issues} issues</span>}
+                  {pending > 0 && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{pending} pending</span>}
+                </div>
+                <span className="text-gray-400 text-sm ml-auto mr-3">{isOpen ? '▾' : '▸'}</span>
+              </button>
+              <button onClick={() => onDelete(ins)}
+                className="text-gray-300 hover:text-red-400 text-sm p-1.5 transition-colors" title="Delete inspection">🗑</button>
+            </div>
+
+            {isOpen && (
+              <div className="border-t border-gray-100">
+                {loading[ins._id] ? (
+                  <div className="p-6 text-center text-gray-400 text-sm">Loading…</div>
+                ) : rows.length === 0 ? (
+                  <div className="p-6 text-center text-gray-400 text-sm">No responses recorded.</div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    <div className="grid grid-cols-[1fr_auto_120px] gap-2 px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                      <span>Tenant</span>
+                      <span>Result</span>
+                      <span>Completed at</span>
+                    </div>
+                    {rows.sort((a, b) => {
+                      const ua = (a.tenant?.unit || '').localeCompare(b.tenant?.unit || '');
+                      if (ua !== 0) return ua;
+                      return (a.tenant?.building || '').localeCompare(b.tenant?.building || '', undefined, { numeric: true });
+                    }).map(row => {
+                      const cat = overallCategory(row.response);
+                      const completedAt = row.response?.completedAt
+                        ? new Date(row.response.completedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                        : '—';
+                      return (
+                        <div key={row.tenant._id} className="grid grid-cols-[1fr_auto_120px] gap-2 items-center px-4 py-3">
+                          <div>
+                            <p className="text-sm font-medium text-gray-800">{row.tenant.name}</p>
+                            <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · Unit ${row.tenant.building}` : ''}</p>
+                          </div>
+                          <OverallBadge cat={cat} />
+                          <p className="text-xs text-gray-500">{completedAt}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-const TABS = ['Overview', 'Needs Inspection', 'Passed', 'Pending'];
+const TABS = ['Overview', 'Needs Inspection', 'Passed', 'Pending', 'Archive'];
 
 export default function AdminInspections() {
   const [inspections, setInspections] = useState([]);
@@ -810,6 +912,8 @@ export default function AdminInspections() {
               <NeedsInspectionTab rows={rows} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget} />
             ) : tab === 'Passed' ? (
               <PassedTab rows={rows} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget} />
+            ) : tab === 'Archive' ? (
+              <ArchiveTab inspections={inspections} onDelete={handleDeleteInspection} />
             ) : (
               <PendingTab rows={rows} inspectionId={selected._id} />
             )}

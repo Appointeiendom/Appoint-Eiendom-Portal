@@ -44,6 +44,8 @@ export default function DirectChat() {
       sock.on('direct_message', onMsg);
       sock.on('direct_typing', onTyping);
       sock.on('direct_stop_typing', onStop);
+      // Re-fetch messages to catch any sent during disconnect
+      api.get('/direct').then(r => setMessages(r.data)).catch(console.error);
     });
 
     return () => {

@@ -139,6 +139,8 @@ function ChatPanel({ thread, onNewMessage, onBack, t, lang }) {
       sock.on('direct_message', onMsg);
       sock.on('direct_typing', onTyping);
       sock.on('direct_stop_typing', onStop);
+      // Re-fetch messages to catch any sent during disconnect
+      api.get(`/direct/${thread._id}`).then(r => setMessages(r.data)).catch(console.error);
     });
 
     return () => {

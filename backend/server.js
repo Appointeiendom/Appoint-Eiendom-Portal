@@ -16,10 +16,20 @@ if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
 const app = express();
 const server = http.createServer(app);
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://appoint-eiendom-portal-rho.vercel.app',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 const io = new Server(server, {
   cors: {
     origin: function (origin, callback) {
-      callback(null, true); // allow all for socket
+      if (!origin || allowedOrigins.some(o => origin.startsWith(o.replace(/\/$/, '')))) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
     },
     methods: ['GET', 'POST'],
     credentials: true,
@@ -35,13 +45,7 @@ connectDB().then(() => {
 // Middleware
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow all origins in development, specific ones in production
-    const allowed = [
-      'http://localhost:5173',
-      'https://appoint-eiendom-portal-rho.vercel.app',
-      process.env.FRONTEND_URL,
-    ].filter(Boolean);
-    if (!origin || allowed.some(o => origin.startsWith(o.replace(/\/$/, '')))) {
+    if (!origin || allowedOrigins.some(o => origin.startsWith(o.replace(/\/$/, '')))) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));

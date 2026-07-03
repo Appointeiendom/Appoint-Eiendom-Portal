@@ -117,25 +117,33 @@ router.post('/bulk-import', protect, adminOnly, memUpload.single('file'), async 
       // Skip rows that look like header/title rows
       if (!isEmail(email) && !name) continue;
 
-      if (!name || !isEmail(email)) { errors.push({ row: name || email || row.filter(Boolean).join(', '), reason: 'Missing name or valid email' }); continue; }
-      if (!unit) { errors.push({ row: email, reason: 'Could not determine address/building' }); continue; }
+      const VACANT_NAMES = ['ledig', 'vacant', 'empty', 'ledig plass', 'tom'];
+      const isVacant = VACANT_NAMES.includes(name.toLowerCase().trim());
 
-      const exists = await User.findOne({ email: email.toLowerCase() });
-      if (exists) { skipped.push(email); continue; }
+      // Vacant rows need at least an address to create the building/unit
+      if (!isVacant && (!name || !isEmail(email))) { errors.push({ row: name || email || row.filter(Boolean).join(', '), reason: 'Missing name or valid email' }); continue; }
+      if (!unit) { errors.push({ row: name || email || '(row)', reason: 'Could not determine address/building' }); continue; }
 
-      // Find or create building by name/address
-      let building = await Building.findOne({ name: { $regex: `^${unit}$`, $options: 'i' } });
+      // Find or create building
+      let building = await Building.findOne({ name: { $regex: `^${unit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } });
       if (!building) building = await Building.create({ name: unit, address: unit });
 
-      // Find or create apartment within building
-      let apt = buildingVal
-        ? building.apartments.find(a => a.number === String(buildingVal))
-        : null;
+      // Find or create apartment
+      let apt = buildingVal ? building.apartments.find(a => a.number === String(buildingVal)) : null;
       if (buildingVal && !apt) {
         building.apartments.push({ number: String(buildingVal) });
         await building.save();
         apt = building.apartments[building.apartments.length - 1];
       }
+
+      // Vacant row — building/unit created, no tenant account
+      if (isVacant) {
+        created.push({ name: '(vacant)', email: '', unit: building.name, aptNumber: apt?.number });
+        continue;
+      }
+
+      const exists = await User.findOne({ email: email.toLowerCase() });
+      if (exists) { skipped.push(email); continue; }
 
       const rawPassword = Math.random().toString(36).slice(-8) + 'A1!';
       await User.create({

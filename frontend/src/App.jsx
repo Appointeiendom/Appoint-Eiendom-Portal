@@ -45,10 +45,13 @@ function InspectionGate({ children }) {
   const [responded, setResponded] = useState(false);
   const [redoing, setRedoing] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const dismissKey = (id) => `inspection_banner_dismissed_${id}`;
-  const bannerDismissed = activeInspection ? !!localStorage.getItem(dismissKey(activeInspection._id)) : false;
-  const dismissBanner = () => { if (activeInspection) localStorage.setItem(dismissKey(activeInspection._id), '1'); setActiveInspection(i => ({ ...i, _dismissed: Date.now() })); };
+  const dismissBanner = () => {
+    if (activeInspection) localStorage.setItem(dismissKey(activeInspection._id), '1');
+    setBannerDismissed(true);
+  };
 
   useEffect(() => {
     if (user?.role !== 'tenant') { setChecked(true); return; }
@@ -56,6 +59,7 @@ function InspectionGate({ children }) {
       if (r.data) {
         setActiveInspection(r.data.inspection);
         setResponded(r.data.responded);
+        setBannerDismissed(!!localStorage.getItem(dismissKey(r.data.inspection._id)));
         if (!r.data.responded) setRedoing(false);
       }
     }).catch(() => {}).finally(() => setChecked(true));

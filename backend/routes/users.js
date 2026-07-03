@@ -27,34 +27,57 @@ router.post('/bulk-import', protect, adminOnly, memUpload.single('file'), async 
 
     const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
     const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-    if (!rows.length) return res.status(400).json({ message: 'File is empty or unreadable' });
+    // Read as raw array-of-arrays so we can find the real header row
+    const allRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+    // Recognised header keywords (Norwegian + English)
+    const NAME_KEYS   = ['name','navn','leietaker','full name','fullname'];
+    const EMAIL_KEYS  = ['email','e-mail','e-post','epost','gmail'];
+    const PHONE_KEYS  = ['phone','telefon','mob','mobil','mobnr','mobnr.','mobile','phone number'];
+    const ADDRESS_KEYS= ['address','adresse'];
+    const UNIT_KEYS   = ['unit','leil. nr.','leil.nr.','leilighet','enhet','apartment','apt','leil nr'];
+
+    const normalize = s => String(s || '').toLowerCase().trim().replace(/\.$/, '');
+
+    // Find the row index that contains recognisable column headers
+    let headerRowIdx = 0;
+    for (let i = 0; i < Math.min(allRows.length, 10); i++) {
+      const cells = allRows[i].map(normalize);
+      const hasEmail = cells.some(c => EMAIL_KEYS.includes(c));
+      const hasName  = cells.some(c => NAME_KEYS.includes(c));
+      if (hasEmail || hasName) { headerRowIdx = i; break; }
+    }
+
+    const headers = allRows[headerRowIdx].map(normalize);
+    const dataRows = allRows.slice(headerRowIdx + 1);
+
+    if (!dataRows.length) return res.status(400).json({ message: 'File is empty or unreadable' });
+
+    const getCol = (row, ...keys) => {
+      for (const k of keys) {
+        const idx = headers.findIndex(h => h === k || h.startsWith(k));
+        if (idx !== -1 && String(row[idx] || '').trim()) return String(row[idx]).trim();
+      }
+      return '';
+    };
 
     const created = [], skipped = [], errors = [];
 
-    for (const row of rows) {
-      // Normalise column names (case-insensitive)
-      const get = (...keys) => {
-        for (const k of keys) {
-          const found = Object.keys(row).find(rk => rk.toLowerCase().trim() === k.toLowerCase());
-          if (found && String(row[found]).trim()) return String(row[found]).trim();
-        }
-        return '';
-      };
+    for (const row of dataRows) {
+      // Skip fully empty rows
+      if (row.every(c => !String(c).trim())) continue;
 
-      const name  = get('name', 'full name', 'fullname', 'navn');
-      const email = get('email', 'e-mail', 'gmail', 'epost', 'e-post');
-      const phone = get('phone', 'phone number', 'telefon', 'mob', 'mobile');
-      const address = get('address', 'adresse');
-      const unitNo  = get('unit no', 'unit no.', 'unit number', 'unit#', 'unitno');
-      const unitRaw = get('unit', 'apartment', 'apt', 'leilighet', 'enhet');
-      // unit = the building/address grouping; building = the door/apt number
-      const unit     = unitRaw || address;
-      const buildingVal = unitNo || get('building');
+      const name    = getCol(row, ...NAME_KEYS);
+      const email   = getCol(row, ...EMAIL_KEYS);
+      const phone   = getCol(row, ...PHONE_KEYS);
+      const address = getCol(row, ...ADDRESS_KEYS);
+      const unitNo  = getCol(row, ...UNIT_KEYS);
+      const unit    = address;
+      const buildingVal = unitNo;
 
-      if (!name || !email) { errors.push({ row: name || email || JSON.stringify(row), reason: 'Missing name or email' }); continue; }
-      if (!unit) { errors.push({ row: email, reason: 'Missing address/unit' }); continue; }
+      if (!name || !email) { errors.push({ row: name || email || row.filter(Boolean).join(', '), reason: 'Missing name or email' }); continue; }
+      if (!unit) { errors.push({ row: email, reason: 'Missing address (Adresse column)' }); continue; }
 
       const exists = await User.findOne({ email: email.toLowerCase() });
       if (exists) { skipped.push(email); continue; }

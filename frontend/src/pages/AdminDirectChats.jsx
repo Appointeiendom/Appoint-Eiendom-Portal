@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useUnread } from '../context/UnreadContext';
-import { getSocket } from '../services/socketService';
+import { getSocket, onSocketConnect } from '../services/socketService';
 import api from '../services/api';
 import Layout from '../components/Layout';
 
@@ -119,8 +119,7 @@ function ChatPanel({ thread, onNewMessage, onBack, t, lang }) {
   };
 
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket || !thread) return;
+    if (!thread) return;
     const onMsg = (msg) => {
       if (String(msg.threadUserId) !== String(thread._id)) return;
       setMessages(prev => {
@@ -132,10 +131,25 @@ function ChatPanel({ thread, onNewMessage, onBack, t, lang }) {
     };
     const onTyping = (d) => { if (String(d.threadUserId) === String(thread._id) && String(d.userId) !== String(user._id)) setTyping(true); };
     const onStop = (d) => { if (String(d.threadUserId) === String(thread._id)) setTyping(false); };
-    socket.on('direct_message', onMsg);
-    socket.on('direct_typing', onTyping);
-    socket.on('direct_stop_typing', onStop);
-    return () => { socket.off('direct_message', onMsg); socket.off('direct_typing', onTyping); socket.off('direct_stop_typing', onStop); };
+
+    const cleanupSocket = onSocketConnect((sock) => {
+      sock.off('direct_message', onMsg);
+      sock.off('direct_typing', onTyping);
+      sock.off('direct_stop_typing', onStop);
+      sock.on('direct_message', onMsg);
+      sock.on('direct_typing', onTyping);
+      sock.on('direct_stop_typing', onStop);
+    });
+
+    return () => {
+      cleanupSocket();
+      const socket = getSocket();
+      if (socket) {
+        socket.off('direct_message', onMsg);
+        socket.off('direct_typing', onTyping);
+        socket.off('direct_stop_typing', onStop);
+      }
+    };
   }, [thread?._id]);
 
   if (!thread) return (

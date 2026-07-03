@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useUnread } from '../context/UnreadContext';
-import { getSocket } from '../services/socketService';
+import { getSocket, onSocketConnect } from '../services/socketService';
 import api from '../services/api';
 import Layout from '../components/Layout';
 
@@ -25,9 +25,6 @@ export default function DirectChat() {
     api.get('/direct').then(r => setMessages(r.data)).catch(console.error).finally(() => setLoading(false));
     setViewingDirect(true);
 
-    const socket = getSocket();
-    if (socket) socket.emit('join_direct');
-
     const onMsg = (msg) => {
       if (String(msg.threadUserId) !== String(user._id)) return;
       setMessages(prev => {
@@ -39,13 +36,20 @@ export default function DirectChat() {
     const onTyping = (d) => { if (String(d.userId) !== String(user._id)) setTyping(true); };
     const onStop = () => setTyping(false);
 
-    if (socket) {
-      socket.on('direct_message', onMsg);
-      socket.on('direct_typing', onTyping);
-      socket.on('direct_stop_typing', onStop);
-    }
+    const cleanupSocket = onSocketConnect((sock) => {
+      sock.emit('join_direct');
+      sock.off('direct_message', onMsg);
+      sock.off('direct_typing', onTyping);
+      sock.off('direct_stop_typing', onStop);
+      sock.on('direct_message', onMsg);
+      sock.on('direct_typing', onTyping);
+      sock.on('direct_stop_typing', onStop);
+    });
+
     return () => {
       setViewingDirect(false);
+      cleanupSocket();
+      const socket = getSocket();
       if (socket) {
         socket.off('direct_message', onMsg);
         socket.off('direct_typing', onTyping);

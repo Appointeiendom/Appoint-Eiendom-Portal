@@ -79,6 +79,7 @@ app.use('/api/translate', require('./routes/translate'));
 app.use('/api/inspections', require('./routes/inspections'));
 app.use('/api/buildings', require('./routes/buildings'));
 app.use('/api/direct', require('./routes/directMessages'));
+app.use('/api/feedback', require('./routes/feedback'));
 
 app.get('/api/health', (req, res) => res.json({ 
   status: 'ok',

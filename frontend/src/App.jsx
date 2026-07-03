@@ -35,6 +35,8 @@ import AdminBuildings from './pages/AdminBuildings';
 import TenantInspection from './pages/TenantInspection';
 import DirectChat from './pages/DirectChat';
 import AdminDirectChats from './pages/AdminDirectChats';
+import TenantFeedback from './pages/TenantFeedback';
+import AdminFeedback from './pages/AdminFeedback';
 
 // Blocks tenant portal access when an active inspection needs a response
 // Also shows a "Redo" banner when already responded
@@ -168,6 +170,8 @@ export default function App() {
           <Route path="/maintenance/jobs" element={<ProtectedRoute role="maintenance"><MaintenanceJobHistory /></ProtectedRoute>} />
           <Route path="/maintenance/chat" element={<ProtectedRoute role="maintenance"><DirectChat /></ProtectedRoute>} />
           <Route path="/tenant/chat" element={<ProtectedRoute role="tenant"><DirectChat /></ProtectedRoute>} />
+          <Route path="/tenant/feedback" element={<ProtectedRoute role="tenant"><TenantFeedback /></ProtectedRoute>} />
+          <Route path="/admin/feedback" element={<ProtectedRoute role="admin"><AdminFeedback /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

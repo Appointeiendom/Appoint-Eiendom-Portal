@@ -20,6 +20,7 @@ export default function Sidebar({ open, onClose }) {
     { to: '/admin/inspections', label: 'Inspections', icon: '🔥' },
     { to: '/admin/buildings', label: 'Properties', icon: '🏢' },
     { to: '/admin/messages', label: t('nav.directMessages'), icon: '💬', badge: directUnread },
+    { to: '/admin/feedback', label: 'Feedback', icon: '📝' },
     { to: '/admin/settings', label: t('nav.settings'), icon: '⚙️' },
     { to: '/admin/profile', label: t('nav.profile'), icon: '👤' },
   ];
@@ -31,6 +32,7 @@ export default function Sidebar({ open, onClose }) {
     { to: '/tenant/notices', label: t('nav.noticesDocs'), icon: '📢', badge: unreadCount },
     { to: '/tenant/chat', label: t('nav.chatWithAdmin'), icon: '💬', badge: directUnread },
     { to: '/tenant/waste', label: t('nav.wasteEnv'), icon: '♻️' },
+    { to: '/tenant/feedback', label: 'Feedback', icon: '📝' },
     { to: '/tenant/profile', label: t('nav.profile'), icon: '👤' },
   ];
 

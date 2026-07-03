@@ -198,8 +198,23 @@ router.put('/:id/toggle-active', protect, adminOnly, async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
     user.isActive = !user.isActive;
+    if (user.isActive) user.movedOutAt = null; // clear move-out when reactivating
     await user.save();
     res.json({ isActive: user.isActive });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PUT /api/users/:id/moveout — mark tenant as moved out (keeps record, frees the unit)
+router.put('/:id/moveout', protect, adminOnly, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.isActive = false;
+    user.movedOutAt = new Date();
+    await user.save();
+    res.json({ message: 'Tenant marked as moved out', movedOutAt: user.movedOutAt });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -278,10 +293,15 @@ router.get('/:id', protect, adminOnly, async (req, res) => {
   }
 });
 
-// GET /api/users (admin only - list all tenants)
+// GET /api/users (admin only - list tenants)
+// ?status=moved_out  → former tenants only
+// default           → active tenants only
 router.get('/', protect, adminOnly, async (req, res) => {
   try {
-    const users = await User.find({ role: 'tenant' }).select('-password').sort({ createdAt: -1 });
+    const filter = req.query.status === 'moved_out'
+      ? { role: 'tenant', isActive: false, movedOutAt: { $ne: null } }
+      : { role: 'tenant', isActive: true };
+    const users = await User.find(filter).select('-password').sort({ createdAt: -1 });
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: error.message });

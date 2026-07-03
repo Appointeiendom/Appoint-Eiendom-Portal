@@ -38,18 +38,15 @@ function PhotoCell({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
   );
 }
 
-function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, onToggleActive, selected, onToggleSelect, t }) {
+function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, onMoveOut, selected, onToggleSelect, t }) {
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 ${!tenant.isActive ? 'opacity-60 bg-gray-50' : ''} ${selected ? 'bg-emerald-50/40' : ''}`}>
+    <div className={`flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 ${selected ? 'bg-emerald-50/40' : ''}`}>
       <input type="checkbox" checked={selected} onChange={() => onToggleSelect(tenant._id)}
         className="w-4 h-4 accent-emerald-500 cursor-pointer shrink-0" onClick={e => e.stopPropagation()} />
       <PhotoCell tenant={tenant} uploadingId={uploadingId}
         onPhotoUpload={onPhotoUpload} onPhotoDelete={onPhotoDelete} onPhotoView={onPhotoView} />
       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onEdit(tenant)}>
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-medium text-gray-800 hover:text-emerald-600 transition-colors">{tenant.name}</p>
-          {!tenant.isActive && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">{t('tenants.expired')}</span>}
-        </div>
+        <p className="text-sm font-medium text-gray-800 hover:text-emerald-600 transition-colors">{tenant.name}</p>
         <p className="text-xs text-gray-500 truncate">{tenant.email}{tenant.phone ? ` · ${tenant.phone}` : ''}</p>
         {tenant.building && <p className="text-xs text-gray-400">{t('tenants.apartment')(tenant.building)}</p>}
       </div>
@@ -62,9 +59,9 @@ function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
           className="text-xs text-blue-500 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded transition-colors">
           {t('tenants.resetPassword')}
         </button>
-        <button onClick={() => onToggleActive(tenant)}
-          className={`text-xs px-2 py-1 rounded transition-colors ${tenant.isActive ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-50' : 'text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50'}`}>
-          {tenant.isActive ? t('tenants.expire') : t('tenants.reactivate')}
+        <button onClick={() => onMoveOut(tenant)}
+          className="text-xs text-amber-600 hover:text-amber-800 hover:bg-amber-50 px-2 py-1 rounded transition-colors">
+          Move Out
         </button>
         <button onClick={() => onDelete(tenant._id, tenant.name)}
           className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors">
@@ -75,7 +72,40 @@ function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
   );
 }
 
-function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, onToggleActive, selectedSet, onToggleSelect, t }) {
+function FormerTenantRow({ tenant, onDelete, onReAdd }) {
+  const movedOutDate = tenant.movedOutAt
+    ? new Date(tenant.movedOutAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : 'Unknown date';
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50">
+      <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+        {tenant.photo
+          ? <img src={tenant.photo} alt={tenant.name} className="w-9 h-9 rounded-full object-cover" />
+          : <span className="text-gray-500 text-sm font-bold">{tenant.name?.[0]?.toUpperCase()}</span>
+        }
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-700">{tenant.name}</p>
+        <p className="text-xs text-gray-400 truncate">{tenant.email}{tenant.phone ? ` · ${tenant.phone}` : ''}</p>
+        <p className="text-xs text-gray-400">
+          {tenant.unit}{tenant.building ? ` · Unit ${tenant.building}` : ''} · Moved out {movedOutDate}
+        </p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <button onClick={() => onReAdd(tenant)}
+          className="text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 border border-emerald-200 hover:border-emerald-400 px-2 py-1 rounded transition-colors">
+          Re-add
+        </button>
+        <button onClick={() => onDelete(tenant._id, tenant.name)}
+          className="text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-colors">
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoView, onReset, onDelete, onEdit, onMoveOut, selectedSet, onToggleSelect, t }) {
   const normalize = (str) => str.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
   const groups = tenants.reduce((acc, tenant) => {
     const key = (tenant.unit && tenant.unit.trim()) ? normalize(tenant.unit) : t('tenants.noBuilding');
@@ -133,7 +163,7 @@ function BuildingGroups({ tenants, uploadingId, onPhotoUpload, onPhotoDelete, on
                     selected={selectedSet.has(tenant._id)}
                     onToggleSelect={onToggleSelect}
                     onPhotoUpload={onPhotoUpload} onPhotoDelete={onPhotoDelete}
-                    onPhotoView={onPhotoView} onReset={onReset} onDelete={onDelete} onEdit={onEdit} onToggleActive={onToggleActive} />
+                    onPhotoView={onPhotoView} onReset={onReset} onDelete={onDelete} onEdit={onEdit} onMoveOut={onMoveOut} />
                 ))}
               </div>
             )}
@@ -260,6 +290,74 @@ function BuildingApartmentPicker({ buildings, buildingId, apartmentId, onBuildin
         )}
       </div>
     </>
+  );
+}
+
+function ReAddModal({ tenant, buildings, onClose, onConfirm }) {
+  const [buildingId, setBuildingId] = useState('');
+  const [apartmentId, setApartmentId] = useState('');
+  const [leaseStart, setLeaseStart] = useState('');
+  const [leaseEnd, setLeaseEnd] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handle = async (e) => {
+    e.preventDefault();
+    if (!buildingId || !apartmentId) return;
+    setSaving(true);
+    try {
+      await onConfirm({ buildingId, apartmentId, tenantId: tenant._id, leaseStart, leaseEnd });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-4 p-6 border-b border-gray-100">
+          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+            <span className="text-emerald-700 font-bold text-lg">{tenant.name?.[0]?.toUpperCase()}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-semibold text-gray-800">Re-add {tenant.name}</h2>
+            <p className="text-xs text-gray-400">Previously at {tenant.unit}{tenant.building ? ` · Unit ${tenant.building}` : ''}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">✕</button>
+        </div>
+        <form onSubmit={handle} className="p-6 space-y-4">
+          <p className="text-sm text-gray-600">Select the new unit for this tenant. They will be re-activated with access to the portal.</p>
+          <div className="grid grid-cols-2 gap-4">
+            <BuildingApartmentPicker
+              buildings={buildings}
+              buildingId={buildingId}
+              apartmentId={apartmentId}
+              onBuildingChange={v => { setBuildingId(v); setApartmentId(''); }}
+              onApartmentChange={setApartmentId}
+            />
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Lease Start</label>
+              <input type="date" value={leaseStart} onChange={e => setLeaseStart(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Lease End</label>
+              <input type="date" value={leaseEnd} onChange={e => setLeaseEnd(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving || !buildingId || !apartmentId}
+              className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60">
+              {saving ? 'Saving…' : 'Re-add Tenant'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
@@ -399,13 +497,21 @@ export default function AdminTenants() {
   const [importPreview, setImportPreview] = useState(null);
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [formerTenants, setFormerTenants] = useState([]);
+  const [formerOpen, setFormerOpen] = useState(false);
+  const [reAddTarget, setReAddTarget] = useState(null);
 
   const fetchTenants = () => {
     api.get('/users').then(res => { setTenants(res.data); setSelected(new Set()); }).catch(console.error).finally(() => setLoading(false));
   };
 
+  const fetchFormerTenants = () => {
+    api.get('/users?status=moved_out').then(res => setFormerTenants(res.data)).catch(console.error);
+  };
+
   useEffect(() => {
     fetchTenants();
+    fetchFormerTenants();
     api.get('/buildings').then(r => setBuildings(r.data)).catch(() => setBuildings([]));
   }, []);
 
@@ -436,15 +542,28 @@ export default function AdminTenants() {
     }
   };
 
-  const handleToggleActive = async (tenant) => {
-    const msg = tenant.isActive ? t('tenants.expireConfirm')(tenant.name) : t('tenants.reactivateConfirm')(tenant.name);
-    if (!window.confirm(msg)) return;
+  const handleMoveOut = async (tenant) => {
+    if (!window.confirm(`Mark ${tenant.name} as moved out? Their records will be kept in Former Tenants. The unit will become available for a new tenant.`)) return;
     try {
-      const res = await api.put(`/users/${tenant._id}/toggle-active`);
-      setTenants(prev => prev.map(tn => tn._id === tenant._id ? { ...tn, isActive: res.data.isActive } : tn));
-      toast.success(res.data.isActive ? t('tenants.reactivated')(tenant.name) : t('tenants.accessExpired')(tenant.name));
+      await api.put(`/users/${tenant._id}/moveout`);
+      setTenants(prev => prev.filter(tn => tn._id !== tenant._id));
+      fetchFormerTenants();
+      toast.success(`${tenant.name} marked as moved out`);
     } catch {
-      toast.error(t('tenants.toggleFailed'));
+      toast.error('Failed to move out tenant');
+    }
+  };
+
+  const handleReAdd = async ({ buildingId, apartmentId, tenantId, leaseStart, leaseEnd }) => {
+    try {
+      const res = await api.put(`/users/${tenantId}`, { buildingId, apartmentId, leaseStart, leaseEnd });
+      await api.put(`/users/${tenantId}/toggle-active`); // re-activate
+      setFormerTenants(prev => prev.filter(tn => tn._id !== tenantId));
+      setTenants(prev => [...prev, { ...res.data, isActive: true }]);
+      setReAddTarget(null);
+      toast.success('Tenant re-added successfully');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to re-add tenant');
     }
   };
 
@@ -470,6 +589,7 @@ export default function AdminTenants() {
       await api.delete(`/users/${id}`);
       toast.success(t('tenants.deleteSuccess'));
       setTenants(prev => prev.filter(tn => tn._id !== id));
+      setFormerTenants(prev => prev.filter(tn => tn._id !== id));
       setSelected(prev => { const n = new Set(prev); n.delete(id); return n; });
     } catch {
       toast.error(t('tenants.deleteFailed'));
@@ -662,9 +782,42 @@ export default function AdminTenants() {
               onReset={(tenant) => { setResetTarget(tenant); setNewPassword(''); }}
               onDelete={handleDelete}
               onEdit={setEditTarget}
-              onToggleActive={handleToggleActive}
+              onMoveOut={handleMoveOut}
             />
           </>
+        )}
+
+        {/* Former Tenants section */}
+        {formerTenants.length > 0 && (
+          <div className="mt-8">
+            <button
+              onClick={() => setFormerOpen(o => !o)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors text-left"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base">📦</span>
+                <span className="text-sm font-semibold text-gray-700">Former Tenants</span>
+                <span className="text-xs bg-gray-300 text-gray-600 font-medium px-2 py-0.5 rounded-full">{formerTenants.length}</span>
+              </div>
+              <span className="text-gray-400 text-sm">{formerOpen ? '▾' : '▸'}</span>
+            </button>
+
+            {formerOpen && (
+              <div className="mt-2 bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <p className="text-xs text-gray-400 px-4 py-2 border-b border-gray-100 bg-gray-50">
+                  Tenants who have moved out. Records are kept for reference. You can re-add them to a new unit or permanently delete.
+                </p>
+                {formerTenants.map(tenant => (
+                  <FormerTenantRow
+                    key={tenant._id}
+                    tenant={tenant}
+                    onDelete={handleDelete}
+                    onReAdd={() => setReAddTarget(tenant)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -706,6 +859,15 @@ export default function AdminTenants() {
             </form>
           </div>
         </div>
+      )}
+
+      {reAddTarget && (
+        <ReAddModal
+          tenant={reAddTarget}
+          buildings={buildings}
+          onClose={() => setReAddTarget(null)}
+          onConfirm={handleReAdd}
+        />
       )}
 
       {importModal && (

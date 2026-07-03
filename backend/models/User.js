@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema(
     leaseEnd: { type: Date, default: null },
     buildingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Building', default: null },
     apartmentId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    movedOutAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

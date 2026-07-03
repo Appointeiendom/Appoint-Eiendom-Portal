@@ -61,7 +61,7 @@ router.get('/:id/apartments', protect, adminOnly, async (req, res) => {
     if (!building) return res.status(404).json({ message: 'Building not found' });
 
     // Find all tenants in this building
-    const tenants = await User.find({ role: 'tenant', buildingId: req.params.id })
+    const tenants = await User.find({ role: 'tenant', isActive: true, buildingId: req.params.id })
       .select('name apartmentId');
 
     const occupancyMap = {};

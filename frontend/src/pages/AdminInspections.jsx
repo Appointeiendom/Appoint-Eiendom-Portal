@@ -218,10 +218,8 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
     buildingMap[b].sort((a, bRow) => {
       if (a.tenant?.isVacant && !bRow.tenant?.isVacant) return 1;
       if (!a.tenant?.isVacant && bRow.tenant?.isVacant) return -1;
-      const aptA = (a.tenant?.building || '').toLowerCase();
-      const aptB = (bRow.tenant?.building || '').toLowerCase();
-      if (aptA !== aptB) return aptA.localeCompare(aptB, undefined, { numeric: true });
-      return (a.tenant?.name || '').localeCompare(bRow.tenant?.name || '');
+      // Sort by unit label alphabetically (A-1, A-2, B-1, etc.)
+      return (a.tenant?.building || '').localeCompare(bRow.tenant?.building || '', undefined, { sensitivity: 'base' });
     });
   });
 
@@ -236,8 +234,7 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Global column headers */}
-      <div className="grid grid-cols-[2fr_1fr_1.5fr_90px_90px_90px] gap-0 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-        <span>Address</span>
+      <div className="grid grid-cols-[1fr_2fr_90px_90px_90px] gap-0 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase tracking-wide">
         <span>Unit</span>
         <span>Tenant</span>
         <span className="text-center">🧯 Fire</span>
@@ -279,15 +276,12 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
               return (
                 <div key={row.tenant._id} className="border-t border-gray-100">
                   <div
-                    className={`grid grid-cols-[2fr_1fr_1.5fr_90px_90px_90px] gap-0 items-center px-4 py-2.5 cursor-pointer ${isVacant ? 'bg-gray-50/50' : 'hover:bg-gray-50'}`}
+                    className={`grid grid-cols-[1fr_2fr_90px_90px_90px] gap-0 items-center px-4 py-2.5 cursor-pointer ${isVacant ? 'bg-gray-50/50' : 'hover:bg-gray-50'}`}
                     onClick={() => !isVacant && setExpandedTenant(tenantOpen ? null : row.tenant._id)}
                   >
-                    {/* Address (same for all rows in building — shown lighter) */}
-                    <span className="text-xs text-gray-400 truncate pr-2">{building}</span>
-
                     {/* Unit number */}
-                    <span className="text-xs text-gray-500 pr-2">
-                      {row.tenant.building ? `#${row.tenant.building}` : '—'}
+                    <span className="text-sm font-medium text-gray-600 pr-2">
+                      {row.tenant.building || '—'}
                     </span>
 
                     {/* Tenant name */}

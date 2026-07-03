@@ -105,6 +105,33 @@ router.post('/:id/apartments', protect, adminOnly, async (req, res) => {
   }
 });
 
+// PUT /api/buildings/:id/apartments/:aptId — rename unit (works whether occupied or vacant)
+router.put('/:id/apartments/:aptId', protect, adminOnly, async (req, res) => {
+  try {
+    const { number, floor, type } = req.body;
+    if (!number || !number.trim()) return res.status(400).json({ message: 'Unit number is required' });
+    const building = await Building.findById(req.params.id);
+    if (!building) return res.status(404).json({ message: 'Building not found' });
+    const apt = building.apartments.id(req.params.aptId);
+    if (!apt) return res.status(404).json({ message: 'Unit not found' });
+    // Check for duplicate number (excluding self)
+    const duplicate = building.apartments.find(a => a._id.toString() !== req.params.aptId && a.number.toLowerCase() === number.trim().toLowerCase());
+    if (duplicate) return res.status(400).json({ message: 'Unit number already exists in this building' });
+    const oldNumber = apt.number;
+    apt.number = number.trim();
+    if (floor !== undefined) apt.floor = floor;
+    if (type !== undefined) apt.type = type;
+    await building.save();
+    // Sync tenant records that reference this apartment
+    if (oldNumber !== apt.number) {
+      await User.updateMany({ buildingId: req.params.id, apartmentId: req.params.aptId }, { building: apt.number });
+    }
+    res.json(building);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // DELETE /api/buildings/:id/apartments/:aptId — remove if vacant
 router.delete('/:id/apartments/:aptId', protect, adminOnly, async (req, res) => {
   try {

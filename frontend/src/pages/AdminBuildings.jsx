@@ -3,25 +3,70 @@ import api from '../services/api';
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
 
-function ApartmentGrid({ building, onRemove }) {
+function ApartmentGrid({ building, onRemove, onRename }) {
+  const [editingApt, setEditingApt] = useState(null); // aptId
+  const [editValue, setEditValue] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = (apt, e) => {
+    e.stopPropagation();
+    setEditingApt(apt._id);
+    setEditValue(apt.number);
+  };
+
+  const saveEdit = async (apt) => {
+    if (!editValue.trim() || editValue.trim() === apt.number) { setEditingApt(null); return; }
+    setSaving(true);
+    try {
+      await onRename(building._id, apt._id, editValue.trim());
+      setEditingApt(null);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mt-3">
       {building.apartments.map(apt => (
         <div key={apt._id}
           className={`relative rounded-xl border p-3 text-center group ${apt.isOccupied ? 'bg-gray-50 border-gray-200' : 'bg-emerald-50 border-emerald-200'}`}>
-          <p className={`text-lg font-bold ${apt.isOccupied ? 'text-gray-600' : 'text-emerald-700'}`}>{apt.number}</p>
-          {apt.floor && <p className="text-xs text-gray-400">{apt.floor}</p>}
-          {apt.type && <p className="text-xs text-gray-400">{apt.type}</p>}
-          <p className={`text-xs mt-1 font-medium truncate ${apt.isOccupied ? 'text-gray-500' : 'text-emerald-600'}`}>
-            {apt.isOccupied ? apt.occupantName : 'Vacant'}
-          </p>
-          {!apt.isOccupied && (
-            <button
-              onClick={() => onRemove(building._id, apt._id)}
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs hidden group-hover:flex items-center justify-center leading-none"
-            >
-              ✕
-            </button>
+          {editingApt === apt._id ? (
+            <div onClick={e => e.stopPropagation()} className="flex flex-col gap-1">
+              <input
+                autoFocus
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveEdit(apt); if (e.key === 'Escape') setEditingApt(null); }}
+                className="w-full text-center border border-emerald-400 rounded px-1 py-0.5 text-sm font-bold focus:outline-none"
+              />
+              <div className="flex gap-1 justify-center">
+                <button onClick={() => saveEdit(apt)} disabled={saving}
+                  className="text-xs bg-emerald-500 text-white px-2 py-0.5 rounded disabled:opacity-60">✓</button>
+                <button onClick={() => setEditingApt(null)}
+                  className="text-xs text-gray-400 hover:text-gray-600 px-1 py-0.5">✕</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className={`text-lg font-bold ${apt.isOccupied ? 'text-gray-600' : 'text-emerald-700'}`}>{apt.number}</p>
+              {apt.floor && <p className="text-xs text-gray-400">{apt.floor}</p>}
+              {apt.type && <p className="text-xs text-gray-400">{apt.type}</p>}
+              <p className={`text-xs mt-1 font-medium truncate ${apt.isOccupied ? 'text-gray-500' : 'text-emerald-600'}`}>
+                {apt.isOccupied ? apt.occupantName : 'Vacant'}
+              </p>
+              {/* Edit pencil — always visible on hover */}
+              <button
+                onClick={(e) => startEdit(apt, e)}
+                className="absolute top-1 left-1.5 text-gray-400 hover:text-emerald-600 text-xs hidden group-hover:block"
+                title="Rename unit"
+              >✏️</button>
+              {!apt.isOccupied && (
+                <button
+                  onClick={() => onRemove(building._id, apt._id)}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs hidden group-hover:flex items-center justify-center leading-none"
+                >✕</button>
+              )}
+            </>
           )}
         </div>
       ))}
@@ -148,6 +193,17 @@ export default function AdminBuildings() {
     }
   };
 
+  const handleRenameApt = async (buildingId, aptId, newNumber) => {
+    try {
+      const res = await api.put(`/buildings/${buildingId}/apartments/${aptId}`, { number: newNumber });
+      setBuildings(prev => prev.map(b => b._id === buildingId ? res.data : b));
+      await refreshApts(buildingId);
+      toast.success('Unit renamed');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to rename');
+    }
+  };
+
   const handleSaveEdit = async (id) => {
     try {
       const res = await api.put(`/buildings/${id}`, editForm);
@@ -266,6 +322,7 @@ export default function AdminBuildings() {
                       <ApartmentGrid
                         building={{ ...b, apartments: apts || [] }}
                         onRemove={handleRemoveApt}
+                        onRename={handleRenameApt}
                       />
                       <AddApartmentForm
                         buildingId={b._id}

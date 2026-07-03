@@ -293,6 +293,50 @@ function BuildingApartmentPicker({ buildings, buildingId, apartmentId, onBuildin
   );
 }
 
+function NeverLoggedIn({ tenants, onReset }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-amber-100 transition-colors text-left"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-base">⚠️</span>
+          <span className="text-sm font-semibold text-amber-800">Never Logged In</span>
+          <span className="text-xs bg-amber-200 text-amber-800 font-semibold px-2 py-0.5 rounded-full">{tenants.length}</span>
+        </div>
+        <span className="text-amber-500 text-sm">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <div className="border-t border-amber-200 divide-y divide-amber-100">
+          <div className="px-4 py-2 bg-amber-100/50 text-xs text-amber-700">
+            These tenants have accounts but have never logged in. Contact them and share their credentials.
+          </div>
+          {tenants.map(tn => (
+            <div key={tn._id} className="flex items-center gap-3 px-4 py-3 hover:bg-amber-50">
+              <div className="w-8 h-8 rounded-full bg-amber-200 flex items-center justify-center shrink-0">
+                <span className="text-amber-700 text-xs font-bold">{tn.name?.[0]?.toUpperCase()}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800">{tn.name}</p>
+                <p className="text-xs text-gray-500 truncate">{tn.email}{tn.phone ? ` · ${tn.phone}` : ''}</p>
+                {tn.unit && <p className="text-xs text-gray-400">{tn.unit}{tn.building ? ` · ${tn.building}` : ''}</p>}
+              </div>
+              <button
+                onClick={() => onReset(tn)}
+                className="text-xs text-blue-500 hover:text-blue-700 border border-blue-200 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+              >
+                Send New Password
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ReAddModal({ tenant, buildings, onClose, onConfirm }) {
   const [buildingId, setBuildingId] = useState('');
   const [apartmentId, setApartmentId] = useState('');
@@ -752,6 +796,15 @@ export default function AdminTenants() {
             </button>
           </form>
         )}
+
+        {/* Never logged in alert */}
+        {!loading && (() => {
+          const neverLogged = tenants.filter(tn => !tn.firstLoginAt);
+          if (!neverLogged.length) return null;
+          return (
+            <NeverLoggedIn tenants={neverLogged} onReset={(tenant) => { setResetTarget(tenant); setNewPassword(''); }} />
+          );
+        })()}
 
         {loading ? (
           <div className="space-y-3">

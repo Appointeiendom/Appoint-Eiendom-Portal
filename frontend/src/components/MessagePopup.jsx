@@ -39,30 +39,14 @@ export default function MessagePopup() {
       timerRef.current = setTimeout(() => setPopup(null), DISMISS_MS);
     };
 
-    const onFirstLogin = (data) => {
-      if (user.role !== 'admin') return;
-      const unit = data.unit ? `${data.unit}${data.building ? ` · ${data.building}` : ''}` : '';
-      setPopup({
-        senderName: data.name,
-        message: `Logged in for the first time${unit ? ` · ${unit}` : ''}`,
-        path: '/admin/tenants',
-        icon: '🟢',
-      });
-      clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setPopup(null), DISMISS_MS);
-    };
-
     const cleanup = onSocketConnect((sock) => {
       sock.off('new_message_notification', onNotification);
       sock.on('new_message_notification', onNotification);
-      sock.off('tenant_first_login', onFirstLogin);
-      sock.on('tenant_first_login', onFirstLogin);
     });
 
     return () => {
       cleanup();
       getSocket()?.off('new_message_notification', onNotification);
-      getSocket()?.off('tenant_first_login', onFirstLogin);
     };
   }, [user]);
 
@@ -96,10 +80,7 @@ export default function MessagePopup() {
       >
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
-            {popup.icon
-              ? <span className="text-lg leading-none">{popup.icon}</span>
-              : <span className="text-white font-bold text-sm">{popup.senderName?.[0]?.toUpperCase()}</span>
-            }
+            <span className="text-white font-bold text-sm">{popup.senderName?.[0]?.toUpperCase()}</span>
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">

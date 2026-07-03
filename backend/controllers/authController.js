@@ -46,6 +46,22 @@ const login = async (req, res) => {
     }
     if (!user.isActive) return res.status(403).json({ message: 'Your access has expired. Please contact your admin.' });
 
+    const isFirstLogin = !user.firstLoginAt && user.role === 'tenant';
+    if (isFirstLogin) {
+      user.firstLoginAt = new Date();
+      await user.save();
+      // Notify all online admins via socket
+      if (req.io) {
+        req.io.to('admin_direct').emit('tenant_first_login', {
+          tenantId: user._id,
+          name: user.name,
+          unit: user.unit,
+          building: user.building,
+          loginAt: user.firstLoginAt,
+        });
+      }
+    }
+
     res.json({
       _id: user._id,
       name: user.name,

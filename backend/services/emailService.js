@@ -459,20 +459,20 @@ async function sendWelcomeEmail(tenant, rawPassword) {
             <p style="color: #065F46; font-weight: bold; margin: 0 0 12px 0; font-size: 15px;">Your Login Credentials</p>
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
-                <td style="padding: 8px 0; color: #6B7280; font-size: 14px; width: 35%;">Email</td>
-                <td style="padding: 8px 0; color: #1F2937; font-weight: bold; font-size: 14px;">${tenant.email}</td>
+                <td style="padding: 6px 0; color: #6B7280; font-size: 14px; white-space: nowrap; padding-right: 20px; width: 1%;">Email</td>
+                <td style="padding: 6px 0; color: #1F2937; font-weight: bold; font-size: 14px; word-break: break-all;">${tenant.email}</td>
               </tr>
               <tr>
-                <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Password</td>
-                <td style="padding: 8px 0; color: #1F2937; font-weight: bold; font-size: 14px; letter-spacing: 1px;">${rawPassword}</td>
+                <td style="padding: 6px 0; color: #6B7280; font-size: 14px; white-space: nowrap; padding-right: 20px; width: 1%;">Pass</td>
+                <td style="padding: 6px 0; color: #1F2937; font-weight: bold; font-size: 14px; letter-spacing: 1px; word-break: break-all;">${rawPassword}</td>
               </tr>
               <tr>
-                <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Address</td>
-                <td style="padding: 8px 0; color: #1F2937; font-size: 14px;">${tenant.unit}</td>
+                <td style="padding: 6px 0; color: #6B7280; font-size: 14px; white-space: nowrap; padding-right: 20px; width: 1%;">Address</td>
+                <td style="padding: 6px 0; color: #1F2937; font-size: 14px;">${tenant.unit}</td>
               </tr>
               ${tenant.building ? `<tr>
-                <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Rental Unit</td>
-                <td style="padding: 8px 0; color: #1F2937; font-size: 14px;">${tenant.building}</td>
+                <td style="padding: 6px 0; color: #6B7280; font-size: 14px; white-space: nowrap; padding-right: 20px; width: 1%;">Unit</td>
+                <td style="padding: 6px 0; color: #1F2937; font-size: 14px;">${tenant.building}</td>
               </tr>` : ''}
             </table>
           </div>

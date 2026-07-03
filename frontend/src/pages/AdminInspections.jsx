@@ -201,134 +201,88 @@ function ExportMenu({ rows, label }) {
 // ── Overview table ────────────────────────────────────────────────────────────
 
 function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
-  const [closedBuildings, setClosedBuildings] = useState(new Set());
   const [expandedTenant, setExpandedTenant] = useState(null);
 
   if (!rows.length) return <Empty text="No tenants yet." />;
 
-  // Group by building address (tenant.unit)
-  const buildingMap = {};
-  rows.forEach(row => {
-    const key = row.tenant?.unit || '(No building)';
-    if (!buildingMap[key]) buildingMap[key] = [];
-    buildingMap[key].push(row);
+  // Sort: by address → unit (A-1, A-2, B-1…) → vacant last
+  const sorted = [...rows].sort((a, b) => {
+    if (a.tenant?.isVacant && !b.tenant?.isVacant) return 1;
+    if (!a.tenant?.isVacant && b.tenant?.isVacant) return -1;
+    const addrCmp = (a.tenant?.unit || '').localeCompare(b.tenant?.unit || '');
+    if (addrCmp !== 0) return addrCmp;
+    return (a.tenant?.building || '').localeCompare(b.tenant?.building || '', undefined, { sensitivity: 'base' });
   });
-  const buildings = Object.keys(buildingMap).sort((a, b) => a.localeCompare(b));
-  buildings.forEach(b => {
-    buildingMap[b].sort((a, bRow) => {
-      if (a.tenant?.isVacant && !bRow.tenant?.isVacant) return 1;
-      if (!a.tenant?.isVacant && bRow.tenant?.isVacant) return -1;
-      // Sort by unit label alphabetically (A-1, A-2, B-1, etc.)
-      return (a.tenant?.building || '').localeCompare(bRow.tenant?.building || '', undefined, { sensitivity: 'base' });
-    });
-  });
-
-  const toggleBuilding = (building) => {
-    setClosedBuildings(prev => {
-      const next = new Set(prev);
-      if (next.has(building)) next.delete(building); else next.add(building);
-      return next;
-    });
-  };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      {/* Global column headers */}
-      <div className="grid grid-cols-[1fr_2fr_90px_90px_90px] gap-0 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-        <span>Unit</span>
-        <span>Tenant</span>
-        <span className="text-center">🧯 Fire</span>
-        <span className="text-center">🔔 Smoke</span>
-        <span className="text-center">🍳 Stove</span>
-      </div>
+    <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+      <table className="w-full text-sm border-collapse">
+        <thead>
+          <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            <th className="text-left px-4 py-3">Address</th>
+            <th className="text-left px-4 py-3">Unit</th>
+            <th className="text-left px-4 py-3">Name</th>
+            <th className="text-center px-4 py-3">🧯 Fire</th>
+            <th className="text-center px-4 py-3">🔔 Smoke</th>
+            <th className="text-center px-4 py-3">🍳 Stove</th>
+            <th className="px-2 py-3"></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {sorted.map(row => {
+            const s = getItemStatuses(row.response);
+            const isVacant = row.tenant.isVacant;
+            const tenantOpen = expandedTenant === row.tenant._id;
 
-      {buildings.map((building, bi) => {
-        const buildingRows = buildingMap[building];
-        const isOpen = !closedBuildings.has(building);
-        const passed = buildingRows.filter(r => overallCategory(r.response) === 'passed').length;
-        const issues = buildingRows.filter(r => overallCategory(r.response) === 'issues').length;
-        const pending = buildingRows.filter(r => !r.response && !r.tenant?.isVacant).length;
-        const vacant = buildingRows.filter(r => r.tenant?.isVacant).length;
-
-        return (
-          <div key={building} className={bi > 0 ? 'border-t border-gray-200' : ''}>
-            {/* Building header row */}
-            <button
-              onClick={() => toggleBuilding(building)}
-              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
-            >
-              <span className="text-gray-400 text-xs w-3">{isOpen ? '▾' : '▸'}</span>
-              <span className="text-sm font-semibold text-emerald-700 flex-1">🏢 {building}</span>
-              <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                {passed > 0 && <span className="text-xs bg-emerald-100 text-emerald-700 font-medium px-2 py-0.5 rounded-full">{passed} passed</span>}
-                {issues > 0 && <span className="text-xs bg-red-100 text-red-700 font-medium px-2 py-0.5 rounded-full">{issues} issues</span>}
-                {pending > 0 && <span className="text-xs bg-amber-100 text-amber-700 font-medium px-2 py-0.5 rounded-full">{pending} pending</span>}
-                {vacant > 0 && <span className="text-xs bg-gray-100 text-gray-500 font-medium px-2 py-0.5 rounded-full">{vacant} vacant</span>}
-              </div>
-            </button>
-
-            {/* Tenant rows */}
-            {isOpen && buildingRows.map(row => {
-              const s = getItemStatuses(row.response);
-              const tenantOpen = expandedTenant === row.tenant._id;
-              const isVacant = row.tenant.isVacant;
-
-              return (
-                <div key={row.tenant._id} className="border-t border-gray-100">
-                  <div
-                    className={`grid grid-cols-[1fr_2fr_90px_90px_90px] gap-0 items-center px-4 py-2.5 cursor-pointer ${isVacant ? 'bg-gray-50/50' : 'hover:bg-gray-50'}`}
-                    onClick={() => !isVacant && setExpandedTenant(tenantOpen ? null : row.tenant._id)}
-                  >
-                    {/* Unit number */}
-                    <span className="text-sm font-medium text-gray-600 pr-2">
-                      {row.tenant.building || '—'}
+            return (
+              <>
+                <tr
+                  key={row.tenant._id}
+                  className={`cursor-pointer transition-colors ${isVacant ? 'bg-gray-50/60' : 'hover:bg-gray-50'}`}
+                  onClick={() => !isVacant && setExpandedTenant(tenantOpen ? null : row.tenant._id)}
+                >
+                  <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">{row.tenant.unit || '—'}</td>
+                  <td className="px-4 py-2.5 text-gray-700 font-medium whitespace-nowrap">{row.tenant.building || '—'}</td>
+                  <td className="px-4 py-2.5">
+                    <span className={isVacant ? 'text-gray-400 italic' : 'text-gray-800'}>
+                      {isVacant ? '— Vacant —' : row.tenant.name}
                     </span>
-
-                    {/* Tenant name */}
-                    <div className="pr-2 min-w-0">
-                      <p className={`text-sm font-medium truncate ${isVacant ? 'text-gray-400 italic' : 'text-gray-800'}`}>
-                        {isVacant ? '— Vacant —' : row.tenant.name}
-                      </p>
-                      {row.response?.completedAt && (
-                        <p className="text-xs text-gray-400">
-                          {new Date(row.response.completedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Fire Ext */}
-                    <OverviewCell status={s?.fe} />
-                    {/* Smoke Det */}
-                    <OverviewCell status={s?.sd} />
-                    {/* Stove */}
-                    <div className="flex items-center justify-center gap-1">
-                      <OverviewCell status={s?.sv} />
-                      {row.response && !isVacant && (
-                        <div className="flex items-center gap-0.5 ml-1">
-                          {onRequestRedo && (
-                            <button onClick={e => { e.stopPropagation(); onRequestRedo(row.tenant); }}
-                              className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 hover:border-amber-400 px-1.5 py-1 rounded-lg transition-colors" title="Request redo">↺</button>
-                          )}
-                          {onDeleteResponse && (
-                            <button onClick={e => { e.stopPropagation(); onDeleteResponse(row.tenant._id); }}
-                              className="text-gray-300 hover:text-red-400 text-sm p-1 min-h-[30px] min-w-[28px]" title="Reset">🗑</button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {tenantOpen && row.response && (
-                    <div className="px-4 pb-4 border-t border-gray-50">
+                    {row.response?.completedAt && (
+                      <span className="ml-2 text-xs text-gray-400">
+                        {new Date(row.response.completedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-center"><OverviewCell status={s?.fe} /></td>
+                  <td className="px-4 py-2.5 text-center"><OverviewCell status={s?.sd} /></td>
+                  <td className="px-4 py-2.5 text-center"><OverviewCell status={s?.sv} /></td>
+                  <td className="px-2 py-2.5">
+                    {row.response && !isVacant && (
+                      <div className="flex items-center gap-1">
+                        {onRequestRedo && (
+                          <button onClick={e => { e.stopPropagation(); onRequestRedo(row.tenant); }}
+                            className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 hover:border-amber-400 px-1.5 py-1 rounded-lg transition-colors" title="Request redo">↺</button>
+                        )}
+                        {onDeleteResponse && (
+                          <button onClick={e => { e.stopPropagation(); onDeleteResponse(row.tenant._id); }}
+                            className="text-gray-300 hover:text-red-400 text-sm px-1" title="Reset">🗑</button>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+                {tenantOpen && row.response && (
+                  <tr key={`${row.tenant._id}-detail`}>
+                    <td colSpan={7} className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
                       <FullDetail response={row.response} />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        );
-      })}
+                    </td>
+                  </tr>
+                )}
+              </>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

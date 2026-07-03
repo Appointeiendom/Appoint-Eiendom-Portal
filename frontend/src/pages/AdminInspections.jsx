@@ -217,6 +217,9 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
   // Sort tenants within each building by unit number then name
   buildings.forEach(b => {
     buildingMap[b].sort((a, b) => {
+      // Vacant units always at bottom
+      if (a.tenant?.isVacant && !b.tenant?.isVacant) return 1;
+      if (!a.tenant?.isVacant && b.tenant?.isVacant) return -1;
       const aptA = (a.tenant?.building || '').toLowerCase();
       const aptB = (b.tenant?.building || '').toLowerCase();
       if (aptA !== aptB) return aptA.localeCompare(aptB, undefined, { numeric: true });
@@ -232,9 +235,10 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
       {buildings.map(building => {
         const buildingRows = buildingMap[building];
         const isOpen = firstOpen === building || expandedBuilding === building;
-        const passed = buildingRows.filter(r => overallCategory(r.response) === 'pass').length;
+        const passed = buildingRows.filter(r => overallCategory(r.response) === 'passed').length;
         const issues = buildingRows.filter(r => overallCategory(r.response) === 'issues').length;
         const pending = buildingRows.filter(r => !r.response).length;
+        const vacant = buildingRows.filter(r => r.tenant?.isVacant).length;
 
         return (
           <div key={building} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -253,7 +257,8 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
               <div className="flex items-center gap-2">
                 {passed > 0 && <span className="text-xs bg-emerald-100 text-emerald-700 font-medium px-2 py-0.5 rounded-full">{passed} passed</span>}
                 {issues > 0 && <span className="text-xs bg-red-100 text-red-700 font-medium px-2 py-0.5 rounded-full">{issues} issues</span>}
-                {pending > 0 && <span className="text-xs bg-amber-100 text-amber-700 font-medium px-2 py-0.5 rounded-full">{pending} pending</span>}
+                {pending > 0 && <span className="text-xs bg-amber-100 text-amber-700 font-medium px-2 py-0.5 rounded-full">{pending - vacant} pending</span>}
+                {vacant > 0 && <span className="text-xs bg-gray-100 text-gray-500 font-medium px-2 py-0.5 rounded-full">{vacant} vacant</span>}
                 <span className="text-gray-400 text-sm ml-1">{isOpen ? '▾' : '▸'}</span>
               </div>
             </button>
@@ -271,14 +276,17 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
                 {buildingRows.map(row => {
                   const s = getItemStatuses(row.response);
                   const tenantOpen = expandedTenant === row.tenant._id;
+                  const isVacant = row.tenant.isVacant;
                   return (
                     <div key={row.tenant._id} className="border-t border-gray-100 first:border-0">
                       <div
-                        className="flex flex-col sm:grid sm:grid-cols-[1fr_100px_100px_100px] gap-2 items-start sm:items-center px-4 py-3 hover:bg-gray-50 cursor-pointer"
-                        onClick={() => setExpandedTenant(tenantOpen ? null : row.tenant._id)}
+                        className={`flex flex-col sm:grid sm:grid-cols-[1fr_100px_100px_100px] gap-2 items-start sm:items-center px-4 py-3 cursor-pointer ${isVacant ? 'bg-gray-50/50 hover:bg-gray-100/50' : 'hover:bg-gray-50'}`}
+                        onClick={() => !isVacant && setExpandedTenant(tenantOpen ? null : row.tenant._id)}
                       >
                         <div>
-                          <p className="text-sm font-medium text-gray-800">{row.tenant.name}</p>
+                          <p className={`text-sm font-medium ${isVacant ? 'text-gray-400 italic' : 'text-gray-800'}`}>
+                            {isVacant ? '— Vacant —' : row.tenant.name}
+                          </p>
                           {row.tenant.building && <p className="text-xs text-gray-400">Unit {row.tenant.building}</p>}
                         </div>
                         <div className="flex sm:contents gap-4 text-xs text-gray-500">

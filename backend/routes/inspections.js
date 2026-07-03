@@ -7,6 +7,7 @@ const { cloudinary } = require('../config/cloudinary');
 const Inspection = require('../models/Inspection');
 const InspectionResponse = require('../models/InspectionResponse');
 const User = require('../models/User');
+const Building = require('../models/Building');
 const { sendInspectionReminderEmail, sendInspectionRedoEmail } = require('../services/emailService');
 
 const storage = new CloudinaryStorage({
@@ -96,10 +97,36 @@ router.get('/:id/responses', protect, adminOnly, async (req, res) => {
     const responses = await InspectionResponse.find({ inspectionId: inspection._id });
     const responseMap = Object.fromEntries(responses.map(r => [r.tenantId.toString(), r]));
 
-    res.json({
-      inspection,
-      tenants: tenants.map(t => ({ tenant: t, response: responseMap[t._id.toString()] || null })),
-    });
+    // Build set of occupied apartments (building name + apt number)
+    const occupiedKeys = new Set(tenants.map(t => `${t.unit}__${t.building}`));
+
+    // Fetch all buildings and include vacant apartments
+    const buildings = await Building.find();
+    const vacantRows = [];
+    for (const b of buildings) {
+      for (const apt of b.apartments) {
+        const key = `${b.name}__${apt.number}`;
+        if (!occupiedKeys.has(key)) {
+          vacantRows.push({
+            tenant: {
+              _id: `vacant__${b.name}__${apt.number}`,
+              name: 'Vacant',
+              unit: b.name,
+              building: apt.number,
+              isVacant: true,
+            },
+            response: null,
+          });
+        }
+      }
+    }
+
+    const allRows = [
+      ...tenants.map(t => ({ tenant: t, response: responseMap[t._id.toString()] || null })),
+      ...vacantRows,
+    ];
+
+    res.json({ inspection, tenants: allRows });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

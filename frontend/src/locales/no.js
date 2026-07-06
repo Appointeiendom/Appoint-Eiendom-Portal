@@ -409,6 +409,12 @@ export default {
     newPhone: 'Nytt telefonnummer',
     savePhone: 'Lagre telefonnummer',
     phoneUpdated: 'Telefonnummer oppdatert',
+    password: 'Passord',
+    newPassword: 'Nytt passord',
+    confirmNewPassword: 'Bekreft nytt passord',
+    passwordMismatch: 'Passordene stemmer ikke overens',
+    passwordUpdated: 'Passord oppdatert',
+    passwordOtpHint: (email) => `En bekreftelseskode sendes til ${email} for å bekrefte endringen.`,
   },
 
   // Status

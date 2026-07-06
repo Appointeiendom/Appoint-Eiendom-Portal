@@ -128,4 +128,52 @@ const confirmEmailChange = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getMe, requestEmailChange, confirmEmailChange };
+// In-memory OTP store for password change: userId -> { otp, newPassword, expiresAt }
+const pwOtpStore = new Map();
+
+// POST /api/auth/request-password-change — send OTP to user's email, store new password hash intent
+const requestPasswordChange = async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6)
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    pwOtpStore.set(String(req.user._id), { otp, newPassword, expiresAt: Date.now() + 10 * 60 * 1000 });
+
+    const { sendOtpEmail } = require('../services/emailService');
+    await sendOtpEmail(req.user.email, otp);
+
+    res.json({ message: 'OTP sent' });
+  } catch (error) {
+    console.error('request-password-change error:', error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// PUT /api/auth/confirm-password-change — verify OTP and apply new password
+const confirmPasswordChange = async (req, res) => {
+  try {
+    const { otp } = req.body;
+    if (!otp) return res.status(400).json({ message: 'OTP is required' });
+
+    const entry = pwOtpStore.get(String(req.user._id));
+    if (!entry) return res.status(400).json({ message: 'No pending password change. Request a new code.' });
+    if (Date.now() > entry.expiresAt) {
+      pwOtpStore.delete(String(req.user._id));
+      return res.status(400).json({ message: 'Code expired. Request a new one.' });
+    }
+    if (entry.otp !== otp.trim()) return res.status(400).json({ message: 'Incorrect code' });
+
+    const user = await User.findById(req.user._id);
+    user.password = entry.newPassword;
+    await user.save();
+    pwOtpStore.delete(String(req.user._id));
+
+    res.json({ message: 'Password updated' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { register, login, getMe, requestEmailChange, confirmEmailChange, requestPasswordChange, confirmPasswordChange };

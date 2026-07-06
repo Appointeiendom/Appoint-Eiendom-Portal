@@ -399,6 +399,12 @@ export default {
     newPhone: 'New phone number',
     savePhone: 'Save phone number',
     phoneUpdated: 'Phone number updated',
+    password: 'Password',
+    newPassword: 'New password',
+    confirmNewPassword: 'Confirm new password',
+    passwordMismatch: 'Passwords do not match',
+    passwordUpdated: 'Password updated successfully',
+    passwordOtpHint: (email) => `A verification code will be sent to ${email} to confirm the change.`,
   },
 
   status: {

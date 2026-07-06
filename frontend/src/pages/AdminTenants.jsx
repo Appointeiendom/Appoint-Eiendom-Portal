@@ -61,7 +61,7 @@ function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
         </button>
         <button onClick={() => onMoveOut(tenant)}
           className="text-xs text-amber-600 hover:text-amber-800 hover:bg-amber-50 px-2 py-1 rounded transition-colors">
-          Move Out
+          {t('tenants.moveOut')}
         </button>
         <button onClick={() => onDelete(tenant._id, tenant.name)}
           className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors">
@@ -73,9 +73,10 @@ function TenantRow({ tenant, uploadingId, onPhotoUpload, onPhotoDelete, onPhotoV
 }
 
 function FormerTenantRow({ tenant, onDelete, onReAdd }) {
+  const { t } = useLanguage();
   const movedOutDate = tenant.movedOutAt
     ? new Date(tenant.movedOutAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-    : 'Unknown date';
+    : '—';
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50">
       <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
@@ -88,17 +89,17 @@ function FormerTenantRow({ tenant, onDelete, onReAdd }) {
         <p className="text-sm font-medium text-gray-700">{tenant.name}</p>
         <p className="text-xs text-gray-400 truncate">{tenant.email}{tenant.phone ? ` · ${tenant.phone}` : ''}</p>
         <p className="text-xs text-gray-400">
-          {tenant.unit}{tenant.building ? ` · Unit ${tenant.building}` : ''} · Moved out {movedOutDate}
+          {tenant.unit}{tenant.building ? ` · ${t('tenants.apartment')(tenant.building)}` : ''} · {t('tenants.movedOut')(movedOutDate)}
         </p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <button onClick={() => onReAdd(tenant)}
           className="text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 border border-emerald-200 hover:border-emerald-400 px-2 py-1 rounded transition-colors">
-          Re-add
+          {t('tenants.reAdd')}
         </button>
         <button onClick={() => onDelete(tenant._id, tenant.name)}
           className="text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-colors">
-          Delete
+          {t('common.delete')}
         </button>
       </div>
     </div>
@@ -294,6 +295,7 @@ function BuildingApartmentPicker({ buildings, buildingId, apartmentId, onBuildin
 }
 
 function NeverLoggedIn({ tenants, onReset }) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(true);
   return (
     <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
@@ -303,7 +305,7 @@ function NeverLoggedIn({ tenants, onReset }) {
       >
         <div className="flex items-center gap-2">
           <span className="text-base">⚠️</span>
-          <span className="text-sm font-semibold text-amber-800">Never Logged In</span>
+          <span className="text-sm font-semibold text-amber-800">{t('tenants.neverLoggedIn')}</span>
           <span className="text-xs bg-amber-200 text-amber-800 font-semibold px-2 py-0.5 rounded-full">{tenants.length}</span>
         </div>
         <span className="text-amber-500 text-sm">{open ? '▾' : '▸'}</span>
@@ -311,7 +313,7 @@ function NeverLoggedIn({ tenants, onReset }) {
       {open && (
         <div className="border-t border-amber-200 divide-y divide-amber-100">
           <div className="px-4 py-2 bg-amber-100/50 text-xs text-amber-700">
-            These tenants have accounts but have never logged in. Contact them and share their credentials.
+            {t('tenants.neverLoggedInHint')}
           </div>
           {tenants.map(tn => (
             <div key={tn._id} className="flex items-center gap-3 px-4 py-3 hover:bg-amber-50">
@@ -327,7 +329,7 @@ function NeverLoggedIn({ tenants, onReset }) {
                 onClick={() => onReset(tn)}
                 className="text-xs text-blue-500 hover:text-blue-700 border border-blue-200 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap"
               >
-                Send New Password
+                {t('tenants.sendNewPassword')}
               </button>
             </div>
           ))}
@@ -337,7 +339,7 @@ function NeverLoggedIn({ tenants, onReset }) {
   );
 }
 
-function ReAddModal({ tenant, buildings, onClose, onConfirm }) {
+function ReAddModal({ tenant, buildings, onClose, onConfirm, t }) {
   const [buildingId, setBuildingId] = useState('');
   const [apartmentId, setApartmentId] = useState('');
   const [leaseStart, setLeaseStart] = useState('');
@@ -363,13 +365,13 @@ function ReAddModal({ tenant, buildings, onClose, onConfirm }) {
             <span className="text-emerald-700 font-bold text-lg">{tenant.name?.[0]?.toUpperCase()}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-semibold text-gray-800">Re-add {tenant.name}</h2>
-            <p className="text-xs text-gray-400">Previously at {tenant.unit}{tenant.building ? ` · Unit ${tenant.building}` : ''}</p>
+            <h2 className="font-semibold text-gray-800">{t('tenants.reAddTitle')(tenant.name)}</h2>
+            <p className="text-xs text-gray-400">{t('tenants.reAddPreviously')(tenant.unit, tenant.building)}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">✕</button>
         </div>
         <form onSubmit={handle} className="p-6 space-y-4">
-          <p className="text-sm text-gray-600">Select the new unit for this tenant. They will be re-activated with access to the portal.</p>
+          <p className="text-sm text-gray-600">{t('tenants.reAddHint')}</p>
           <div className="grid grid-cols-2 gap-4">
             <BuildingApartmentPicker
               buildings={buildings}
@@ -379,12 +381,12 @@ function ReAddModal({ tenant, buildings, onClose, onConfirm }) {
               onApartmentChange={setApartmentId}
             />
             <div className="col-span-2 sm:col-span-1">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Lease Start</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.leaseStart')}</label>
               <input type="date" value={leaseStart} onChange={e => setLeaseStart(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
             <div className="col-span-2 sm:col-span-1">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Lease End</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('tenants.leaseEnd')}</label>
               <input type="date" value={leaseEnd} onChange={e => setLeaseEnd(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
@@ -392,11 +394,11 @@ function ReAddModal({ tenant, buildings, onClose, onConfirm }) {
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="submit" disabled={saving || !buildingId || !apartmentId}
               className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60">
-              {saving ? 'Saving…' : 'Re-add Tenant'}
+              {saving ? t('common.saving') : t('tenants.reAddTenant')}
             </button>
           </div>
         </form>
@@ -587,14 +589,14 @@ export default function AdminTenants() {
   };
 
   const handleMoveOut = async (tenant) => {
-    if (!window.confirm(`Mark ${tenant.name} as moved out? Their records will be kept in Former Tenants. The unit will become available for a new tenant.`)) return;
+    if (!window.confirm(t('tenants.moveOutConfirm')(tenant.name))) return;
     try {
       await api.put(`/users/${tenant._id}/moveout`);
       setTenants(prev => prev.filter(tn => tn._id !== tenant._id));
       fetchFormerTenants();
-      toast.success(`${tenant.name} marked as moved out`);
+      toast.success(t('tenants.moveOutSuccess')(tenant.name));
     } catch {
-      toast.error('Failed to move out tenant');
+      toast.error(t('tenants.moveOutFailed'));
     }
   };
 
@@ -605,9 +607,9 @@ export default function AdminTenants() {
       setFormerTenants(prev => prev.filter(tn => tn._id !== tenantId));
       setTenants(prev => [...prev, { ...res.data, isActive: true }]);
       setReAddTarget(null);
-      toast.success('Tenant re-added successfully');
+      toast.success(t('tenants.reAddSuccess')(reAddTarget?.name || ''));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to re-add tenant');
+      toast.error(err.response?.data?.message || t('tenants.reAddFailed'));
     }
   };
 
@@ -849,7 +851,7 @@ export default function AdminTenants() {
             >
               <div className="flex items-center gap-2">
                 <span className="text-base">📦</span>
-                <span className="text-sm font-semibold text-gray-700">Former Tenants</span>
+                <span className="text-sm font-semibold text-gray-700">{t('tenants.formerTenants')}</span>
                 <span className="text-xs bg-gray-300 text-gray-600 font-medium px-2 py-0.5 rounded-full">{formerTenants.length}</span>
               </div>
               <span className="text-gray-400 text-sm">{formerOpen ? '▾' : '▸'}</span>
@@ -858,7 +860,7 @@ export default function AdminTenants() {
             {formerOpen && (
               <div className="mt-2 bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <p className="text-xs text-gray-400 px-4 py-2 border-b border-gray-100 bg-gray-50">
-                  Tenants who have moved out. Records are kept for reference. You can re-add them to a new unit or permanently delete.
+                  {t('tenants.formerTenantsHint')}
                 </p>
                 {formerTenants.map(tenant => (
                   <FormerTenantRow
@@ -920,6 +922,7 @@ export default function AdminTenants() {
           buildings={buildings}
           onClose={() => setReAddTarget(null)}
           onConfirm={handleReAdd}
+          t={t}
         />
       )}
 

@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import api from '../services/api';
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../context/LanguageContext';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -201,6 +202,7 @@ function ExportMenu({ rows, label }) {
 // ── Overview table ────────────────────────────────────────────────────────────
 
 function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
+  const { t } = useLanguage();
   const [expandedTenant, setExpandedTenant] = useState(null);
 
   if (!rows.length) return <Empty text="No tenants yet." />;
@@ -219,9 +221,9 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-            <th className="text-left px-4 py-3">Address</th>
-            <th className="text-left px-4 py-3">Unit</th>
-            <th className="text-left px-4 py-3">Name</th>
+            <th className="text-left px-4 py-3">{t('inspection.overviewAddress')}</th>
+            <th className="text-left px-4 py-3">{t('inspection.overviewUnit')}</th>
+            <th className="text-left px-4 py-3">{t('inspection.overviewName')}</th>
             <th className="text-center px-4 py-3">🧯 Fire</th>
             <th className="text-center px-4 py-3">🔔 Smoke</th>
             <th className="text-center px-4 py-3">🍳 Stove</th>

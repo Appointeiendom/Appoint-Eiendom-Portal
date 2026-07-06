@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../context/LanguageContext';
 
 function ApartmentGrid({ building, onRemove, onRename }) {
+  const { t } = useLanguage();
   const [editingApt, setEditingApt] = useState(null); // aptId
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
@@ -58,7 +60,7 @@ function ApartmentGrid({ building, onRemove, onRename }) {
               <button
                 onClick={(e) => startEdit(apt, e)}
                 className="absolute top-1 left-1.5 text-gray-400 hover:text-emerald-600 text-xs hidden group-hover:block"
-                title="Rename unit"
+                title={t('buildings.renameUnit')}
               >✏️</button>
               {!apt.isOccupied && (
                 <button
@@ -123,6 +125,7 @@ function AddApartmentForm({ buildingId, onAdded }) {
 }
 
 export default function AdminBuildings() {
+  const { t } = useLanguage();
   const [buildings, setBuildings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -198,9 +201,9 @@ export default function AdminBuildings() {
       const res = await api.put(`/buildings/${buildingId}/apartments/${aptId}`, { number: newNumber });
       setBuildings(prev => prev.map(b => b._id === buildingId ? res.data : b));
       await refreshApts(buildingId);
-      toast.success('Unit renamed');
+      toast.success(t('buildings.renameSuccess'));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to rename');
+      toast.error(err.response?.data?.message || t('buildings.renameFailed'));
     }
   };
 

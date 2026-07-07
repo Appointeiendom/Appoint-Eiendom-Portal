@@ -14,8 +14,9 @@ const storage = new CloudinaryStorage({
     const isPdf = file.mimetype === 'application/pdf';
     return {
       folder: 'tenant-portal',
+      resource_type: 'auto',
+      format: isPdf ? 'pdf' : undefined,
       allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'],
-      resource_type: isPdf ? 'raw' : 'image',
       ...(isPdf ? {} : { transformation: [{ width: 1200, crop: 'limit' }] }),
     };
   },

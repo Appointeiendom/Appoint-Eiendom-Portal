@@ -32,6 +32,14 @@ export default function TenantDocuments() {
     return '📄';
   };
 
+  const docUrl = (doc) => {
+    // For PDFs served from Cloudinary raw, force download so browser doesn't try to preview
+    if (doc.fileType?.includes('pdf') && doc.fileUrl?.includes('cloudinary.com')) {
+      return doc.fileUrl.replace('/raw/upload/', '/raw/upload/fl_attachment/');
+    }
+    return doc.fileUrl;
+  };
+
   return (
     <Layout>
       <div className="max-w-2xl">
@@ -84,7 +92,7 @@ export default function TenantDocuments() {
           ) : (
             <div className="space-y-2">
               {docs.map(doc => (
-                <a key={doc._id} href={doc.fileUrl} target="_blank" rel="noreferrer"
+                <a key={doc._id} href={docUrl(doc)} target="_blank" rel="noreferrer"
                   className="bg-white rounded-xl border border-gray-200 px-5 py-4 flex items-center gap-4 hover:border-emerald-300 hover:shadow-sm transition-all block">
                   <span className="text-2xl shrink-0">{fileIcon(doc.fileType)}</span>
                   <div className="flex-1 min-w-0">

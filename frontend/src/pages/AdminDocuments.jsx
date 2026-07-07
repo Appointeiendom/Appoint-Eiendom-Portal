@@ -47,6 +47,13 @@ export default function AdminDocuments() {
     } catch { toast.error(t('docs.deleteFailed')); }
   };
 
+  const docUrl = (doc) => {
+    if (doc.fileType?.includes('pdf') && doc.fileUrl?.includes('cloudinary.com')) {
+      return doc.fileUrl.replace('/raw/upload/', '/raw/upload/fl_attachment/');
+    }
+    return doc.fileUrl;
+  };
+
   const fileIcon = (type) => {
     if (!type) return '📄';
     if (type.includes('pdf')) return '📕';
@@ -117,7 +124,7 @@ export default function AdminDocuments() {
                       : t('docs.allTenants')} · {new Date(doc.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <a href={doc.fileUrl} target="_blank" rel="noreferrer"
+                <a href={docUrl(doc)} target="_blank" rel="noreferrer"
                   className="text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 transition-colors shrink-0">
                   {t('docs.view')}
                 </a>

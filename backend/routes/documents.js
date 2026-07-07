@@ -42,15 +42,17 @@ router.post('/', protect, adminOnly, upload.single('file'), async (req, res) => 
     // SMS + email notification
     if (tenantId) {
       const tenant = await User.findById(tenantId).select('phone email name');
+      console.log('[DOC] specific tenant:', tenant?.email);
       if (tenant) {
-        sendDocumentSMS(tenant, title).catch(console.error);
-        sendDocumentEmail(tenant, title, doc.fileUrl).catch(console.error);
+        sendDocumentSMS(tenant, title).catch(e => console.error('[DOC SMS]', e.message));
+        sendDocumentEmail(tenant, title, doc.fileUrl).catch(e => console.error('[DOC EMAIL]', e.message));
       }
     } else {
-      const tenants = await User.find({ role: 'tenant' }).select('phone email name');
+      const tenants = await User.find({ role: 'tenant', movedOutAt: null }).select('phone email name');
+      console.log('[DOC] sending to', tenants.length, 'tenants:', tenants.map(t => t.email));
       for (const t of tenants) {
-        sendDocumentSMS(t, title).catch(console.error);
-        sendDocumentEmail(t, title, doc.fileUrl).catch(console.error);
+        sendDocumentSMS(t, title).catch(e => console.error('[DOC SMS]', e.message));
+        sendDocumentEmail(t, title, doc.fileUrl).catch(e => console.error('[DOC EMAIL]', e.message));
       }
     }
 

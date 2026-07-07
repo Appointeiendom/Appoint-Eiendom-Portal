@@ -23,7 +23,7 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// GET /api/documents/:id/file — proxy download via signed Cloudinary URL (no auth needed on this endpoint)
+// GET /api/documents/:id/file — stream PDF through backend (bypasses Cloudinary access restrictions)
 router.get('/:id/file', async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
@@ -31,21 +31,46 @@ router.get('/:id/file', async (req, res) => {
 
     const isPdf = doc.fileType?.includes('pdf');
 
-    if (isPdf && doc.cloudinaryId) {
-      // Generate a signed URL — works regardless of account access settings
-      const signedUrl = cloudinary.url(doc.cloudinaryId, {
-        resource_type: 'raw',
-        type: 'upload',
-        sign_url: true,
-        secure: true,
-        expires_at: Math.floor(Date.now() / 1000) + 300, // 5 min
-      });
-      return res.redirect(signedUrl);
+    if (isPdf) {
+      // Derive public_id: prefer stored cloudinaryId, otherwise parse from URL
+      let publicId = doc.cloudinaryId;
+      if (!publicId && doc.fileUrl) {
+        // URL format: https://res.cloudinary.com/{cloud}/raw/upload/v{ver}/{public_id}
+        const match = doc.fileUrl.match(/\/raw\/upload\/(?:v\d+\/)?(.+)$/);
+        if (match) publicId = match[1];
+      }
+
+      if (publicId) {
+        // Generate a signed URL and stream the file through our backend
+        const signedUrl = cloudinary.url(publicId, {
+          resource_type: 'raw',
+          type: 'upload',
+          sign_url: true,
+          secure: true,
+        });
+
+        const https = require('https');
+        const url = new URL(signedUrl);
+        const request = https.get({ hostname: url.hostname, path: url.pathname + url.search }, (stream) => {
+          if (stream.statusCode !== 200) {
+            return res.status(stream.statusCode).json({ message: 'Could not fetch file from storage' });
+          }
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.title)}.pdf"`);
+          stream.pipe(res);
+        });
+        request.on('error', (e) => {
+          console.error('[DOC FILE]', e.message);
+          res.status(500).json({ message: 'File fetch error' });
+        });
+        return;
+      }
     }
 
-    // Fallback: redirect to stored URL directly (images or legacy docs)
+    // Fallback for images: redirect directly
     res.redirect(doc.fileUrl);
   } catch (err) {
+    console.error('[DOC FILE]', err.message);
     res.status(500).json({ message: err.message });
   }
 });

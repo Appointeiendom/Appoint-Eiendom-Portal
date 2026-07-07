@@ -10,17 +10,24 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: async (req, file) => ({
-    folder: 'tenant-portal',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-    transformation: [{ width: 1200, crop: 'limit' }],
-    resource_type: 'image',
-  }),
+  params: async (req, file) => {
+    const isPdf = file.mimetype === 'application/pdf';
+    return {
+      folder: 'tenant-portal',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'],
+      resource_type: isPdf ? 'raw' : 'image',
+      ...(isPdf ? {} : { transformation: [{ width: 1200, crop: 'limit' }] }),
+    };
+  },
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+    allowed.includes(file.mimetype) ? cb(null, true) : cb(new Error('Only images and PDFs are allowed'));
+  },
 });
 
 module.exports = { upload, cloudinary };

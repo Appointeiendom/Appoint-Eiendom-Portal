@@ -89,8 +89,9 @@ export default function AdminDocuments() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('docs.fileLabel')} *</label>
-              <input type="file" required onChange={e => setForm(f => ({ ...f, file: e.target.files[0] }))}
+              <input type="file" required accept=".pdf,image/*" onChange={e => setForm(f => ({ ...f, file: e.target.files[0] }))}
                 className="w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
+              <p className="text-xs text-gray-400 mt-1">PDF or image, max 20 MB</p>
             </div>
             <button type="submit" disabled={uploading}
               className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60">

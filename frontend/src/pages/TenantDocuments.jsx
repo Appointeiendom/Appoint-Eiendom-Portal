@@ -32,13 +32,7 @@ export default function TenantDocuments() {
     return '📄';
   };
 
-  const docUrl = (doc) => {
-    // For PDFs served from Cloudinary raw, force download so browser doesn't try to preview
-    if (doc.fileType?.includes('pdf') && doc.fileUrl?.includes('cloudinary.com')) {
-      return doc.fileUrl.replace('/raw/upload/', '/raw/upload/fl_attachment/');
-    }
-    return doc.fileUrl;
-  };
+  const docUrl = (doc) => doc.fileUrl;
 
   return (
     <Layout>

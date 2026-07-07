@@ -47,12 +47,7 @@ export default function AdminDocuments() {
     } catch { toast.error(t('docs.deleteFailed')); }
   };
 
-  const docUrl = (doc) => {
-    if (doc.fileType?.includes('pdf') && doc.fileUrl?.includes('cloudinary.com')) {
-      return doc.fileUrl.replace('/raw/upload/', '/raw/upload/fl_attachment/');
-    }
-    return doc.fileUrl;
-  };
+  const docUrl = (doc) => doc.fileUrl;
 
   const fileIcon = (type) => {
     if (!type) return '📄';

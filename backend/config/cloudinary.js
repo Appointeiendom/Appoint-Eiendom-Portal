@@ -13,12 +13,12 @@ const storage = new CloudinaryStorage({
   params: async (req, file) => {
     const isPdf = file.mimetype === 'application/pdf';
     if (isPdf) {
-      // Use raw + explicit public_id with .pdf so Cloudinary serves with correct content-type
       const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
       return {
         folder: 'tenant-portal',
         resource_type: 'raw',
         public_id: `${Date.now()}_${safeName}`,
+        access_mode: 'public',
       };
     }
     return {

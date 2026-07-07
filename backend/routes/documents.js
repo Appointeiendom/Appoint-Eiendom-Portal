@@ -5,6 +5,7 @@ const { upload } = require('../config/cloudinary');
 const Document = require('../models/Document');
 const User = require('../models/User');
 const { sendDocumentSMS } = require('../services/smsService');
+const { sendDocumentEmail } = require('../services/emailService');
 
 // GET /api/documents — admin sees all, tenant sees global + their own
 router.get('/', protect, async (req, res) => {
@@ -38,13 +39,19 @@ router.post('/', protect, adminOnly, upload.single('file'), async (req, res) => 
 
     const populated = await Document.findById(doc._id).populate('tenantId', 'name unit building');
 
-    // SMS notification
+    // SMS + email notification
     if (tenantId) {
-      const tenant = await User.findById(tenantId).select('phone name');
-      if (tenant) sendDocumentSMS(tenant, title).catch(console.error);
+      const tenant = await User.findById(tenantId).select('phone email name');
+      if (tenant) {
+        sendDocumentSMS(tenant, title).catch(console.error);
+        sendDocumentEmail(tenant, title, doc.fileUrl).catch(console.error);
+      }
     } else {
-      const tenants = await User.find({ role: 'tenant' }).select('phone');
-      for (const t of tenants) sendDocumentSMS(t, title).catch(console.error);
+      const tenants = await User.find({ role: 'tenant' }).select('phone email name');
+      for (const t of tenants) {
+        sendDocumentSMS(t, title).catch(console.error);
+        sendDocumentEmail(t, title, doc.fileUrl).catch(console.error);
+      }
     }
 
     res.status(201).json(populated);

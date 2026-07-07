@@ -437,7 +437,36 @@ const sendInspectionReminderEmail = async (tenant, inspection) => {
   }
 };
 
-module.exports = { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail, sendWelcomeEmail, sendChatNotificationEmail, sendResponsibilityEmail, sendOtpEmail, sendAnnouncementEmail, sendInspectionReminderEmail, sendInspectionRedoEmail };
+const sendDocumentEmail = async (tenant, title, fileUrl) => {
+  try {
+    const portalUrl = `${process.env.FRONTEND_URL}/tenant/notices`;
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px;">
+        <div style="background:#10B981;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
+          <h1 style="color:white;margin:0;font-size:22px;">📄 New Document Available</h1>
+        </div>
+        <div style="background:white;padding:30px;border-radius:0 0 8px 8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+          <p style="color:#4B5563;margin-top:0;">Hi <strong>${tenant.name}</strong>,</p>
+          <p style="color:#4B5563;">A new document has been uploaded for you in your tenant portal:</p>
+          <div style="background:#F0FDF4;border-left:4px solid #10B981;padding:16px;border-radius:4px;margin:20px 0;">
+            <p style="color:#065F46;font-weight:bold;margin:0;font-size:16px;">📄 ${title}</p>
+          </div>
+          <p style="color:#4B5563;font-size:14px;">You can view and download the document by clicking the button below or logging in to your portal under <strong>Messages &amp; Documents → Documents</strong>.</p>
+          <div style="text-align:center;margin-top:24px;">
+            <a href="${portalUrl}" style="background:#10B981;color:white;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">View Document</a>
+          </div>
+        </div>
+        <p style="text-align:center;color:#9CA3AF;font-size:12px;margin-top:20px;">Service Portal</p>
+      </div>
+    `;
+    await sgMail.send({ from: FROM, to: tenant.email, subject: `New document: ${title}`, html });
+    console.log(`Document email sent to ${tenant.email}`);
+  } catch (err) {
+    console.error('Email error (document):', err.message);
+  }
+};
+
+module.exports = { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail, sendWelcomeEmail, sendChatNotificationEmail, sendResponsibilityEmail, sendOtpEmail, sendAnnouncementEmail, sendInspectionReminderEmail, sendInspectionRedoEmail, sendDocumentEmail };
 
 // Welcome email sent to tenant when admin creates their account
 async function sendWelcomeEmail(tenant, rawPassword) {

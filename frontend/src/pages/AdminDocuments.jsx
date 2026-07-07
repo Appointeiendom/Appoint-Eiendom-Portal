@@ -47,7 +47,12 @@ export default function AdminDocuments() {
     } catch { toast.error(t('docs.deleteFailed')); }
   };
 
-  const docUrl = (doc) => doc.fileUrl;
+  const docUrl = (doc) => {
+    if (doc.fileType?.includes('pdf') && doc.cloudinaryId) {
+      return `${import.meta.env.VITE_API_URL}/api/documents/${doc._id}/file`;
+    }
+    return doc.fileUrl;
+  };
 
   const fileIcon = (type) => {
     if (!type) return '📄';

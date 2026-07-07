@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, adminOnly } = require('../middleware/auth');
-const { upload } = require('../config/cloudinary');
+const { upload, cloudinary } = require('../config/cloudinary');
 const Document = require('../models/Document');
 const User = require('../models/User');
 const { sendDocumentSMS } = require('../services/smsService');
@@ -23,15 +23,44 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+// GET /api/documents/:id/file — proxy download via signed Cloudinary URL (no auth needed on this endpoint)
+router.get('/:id/file', async (req, res) => {
+  try {
+    const doc = await Document.findById(req.params.id);
+    if (!doc) return res.status(404).json({ message: 'Not found' });
+
+    const isPdf = doc.fileType?.includes('pdf');
+
+    if (isPdf && doc.cloudinaryId) {
+      // Generate a signed URL — works regardless of account access settings
+      const signedUrl = cloudinary.url(doc.cloudinaryId, {
+        resource_type: 'raw',
+        type: 'upload',
+        sign_url: true,
+        secure: true,
+        expires_at: Math.floor(Date.now() / 1000) + 300, // 5 min
+      });
+      return res.redirect(signedUrl);
+    }
+
+    // Fallback: redirect to stored URL directly (images or legacy docs)
+    res.redirect(doc.fileUrl);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // POST /api/documents — admin uploads a document
 router.post('/', protect, adminOnly, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     const { title, tenantId } = req.body;
     if (!title) return res.status(400).json({ message: 'Title is required' });
+
     const doc = await Document.create({
       title,
       fileUrl: req.file.path,
+      cloudinaryId: req.file.filename || null,
       fileType: req.file.mimetype,
       uploadedBy: req.user._id,
       tenantId: tenantId || null,

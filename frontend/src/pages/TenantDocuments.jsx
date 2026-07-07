@@ -32,7 +32,12 @@ export default function TenantDocuments() {
     return '📄';
   };
 
-  const docUrl = (doc) => doc.fileUrl;
+  const docUrl = (doc) => {
+    if (doc.fileType?.includes('pdf') && doc.cloudinaryId) {
+      return `${import.meta.env.VITE_API_URL}/api/documents/${doc._id}/file`;
+    }
+    return doc.fileUrl;
+  };
 
   return (
     <Layout>

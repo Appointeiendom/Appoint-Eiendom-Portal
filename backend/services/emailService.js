@@ -15,6 +15,8 @@ const statusColor = (status) => {
 };
 
 // Email sent to admin when a new issue is created
+const PORTAL_FOOTER = `<p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;"><a href="${process.env.FRONTEND_URL}/login" style="color:#9CA3AF;">rentservice.no</a></p>`;
+
 const sendNewIssueEmail = async (issue, tenant) => {
   try {
 
@@ -60,7 +62,7 @@ const sendNewIssueEmail = async (issue, tenant) => {
             <a href="${issueUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View Issue in Dashboard</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Service Portal</p>
+        ${PORTAL_FOOTER}
       </div>
     `;
 
@@ -117,7 +119,7 @@ const sendStatusChangeEmail = async (issue, tenant, updatedBy) => {
             <a href="${issueUrl}" style="background: #3B82F6; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View Issue</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Service Portal</p>
+        ${PORTAL_FOOTER}
       </div>
     `;
 
@@ -177,7 +179,7 @@ const sendTenantConfirmationEmail = async (issue, tenant) => {
             <a href="${issueUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View My Issue</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Service Portal</p>
+        ${PORTAL_FOOTER}
       </div>
     `;
 
@@ -232,7 +234,7 @@ const sendTenantStatusEmail = async (issue, tenant) => {
             <a href="${issueUrl}" style="background: ${statusColor(issue.status)}; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View Issue</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Service Portal</p>
+        ${PORTAL_FOOTER}
       </div>
     `;
 
@@ -274,7 +276,7 @@ const sendResponsibilityEmail = async (issue, tenant) => {
             <a href="${portalUrl}" style="background: #F59E0B; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View Issue &amp; Find Maintenance</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Service Portal</p>
+        ${PORTAL_FOOTER}
       </div>
     `;
 
@@ -320,7 +322,7 @@ const sendChatNotificationEmail = async ({ toEmail, toName, fromName, fromRole, 
             <a href="${issueUrl}" style="background: #10B981; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Reply in Portal</a>
           </div>
         </div>
-        <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">Service Portal</p>
+        ${PORTAL_FOOTER}
       </div>
     `;
 
@@ -338,6 +340,7 @@ const sendChatNotificationEmail = async ({ toEmail, toName, fromName, fromRole, 
 };
 
 const sendOtpEmail = async (toEmail, otp) => {
+  const loginUrl = `${process.env.FRONTEND_URL}/login`;
   await sgMail.send({
     from: FROM,
     to: toEmail,
@@ -353,7 +356,11 @@ const sendOtpEmail = async (toEmail, otp) => {
             <span style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#1F2937;">${otp}</span>
           </div>
           <p style="color:#6B7280;font-size:13px;">Koden er gyldig i 10 minutter. Del den ikke med andre.</p>
+          <div style="text-align:center;margin-top:24px;">
+            <a href="${loginUrl}" style="background:#10B981;color:white;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">Gå til portalen</a>
+          </div>
         </div>
+        <p style="text-align:center;color:#9CA3AF;font-size:12px;margin-top:20px;"><a href="${loginUrl}" style="color:#9CA3AF;">rentservice.no</a></p>
       </div>
     `,
   });
@@ -364,7 +371,8 @@ const sendAnnouncementEmail = async (tenants, title, body) => {
   const valid = tenants.filter(t => t.email);
   if (!valid.length) { console.warn('[ANNOUNCEMENT EMAIL] no valid recipients'); return; }
 
-  const html = (name) => `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px;"><div style="background:#10B981;padding:20px;border-radius:8px 8px 0 0;text-align:center;"><h1 style="color:white;margin:0;font-size:22px;">${title}</h1></div><div style="background:white;padding:30px;border-radius:0 0 8px 8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);"><p style="color:#4B5563;margin-top:0;">Hi <strong>${name}</strong>,</p><div style="background:#F9FAFB;border-left:4px solid #10B981;padding:16px;border-radius:4px;white-space:pre-wrap;color:#1F2937;line-height:1.6;">${body}</div><p style="color:#9CA3AF;font-size:12px;margin-top:24px;">Service Portal</p></div></div>`;
+  const portalUrl = `${process.env.FRONTEND_URL}/login`;
+  const html = (name) => `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px;"><div style="background:#10B981;padding:20px;border-radius:8px 8px 0 0;text-align:center;"><h1 style="color:white;margin:0;font-size:22px;">${title}</h1></div><div style="background:white;padding:30px;border-radius:0 0 8px 8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);"><p style="color:#4B5563;margin-top:0;">Hi <strong>${name}</strong>,</p><div style="background:#F9FAFB;border-left:4px solid #10B981;padding:16px;border-radius:4px;white-space:pre-wrap;color:#1F2937;line-height:1.6;">${body}</div><div style="text-align:center;margin-top:24px;"><a href="${portalUrl}" style="background:#10B981;color:white;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">Go to Portal</a></div></div><p style="text-align:center;color:#9CA3AF;font-size:12px;margin-top:20px;"><a href="${portalUrl}" style="color:#9CA3AF;">rentservice.no</a></p></div>`;
 
   let sent = 0, failed = 0;
   for (const t of valid) {
@@ -403,7 +411,7 @@ const sendInspectionRedoEmail = async (tenant, inspection, reason) => {
             <a href="${loginUrl}" style="background:#F59E0B;color:white;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">Redo Inspection Now</a>
           </div>
         </div>
-        <p style="text-align:center;color:#9CA3AF;font-size:12px;margin-top:20px;">Service Portal</p>
+        ${PORTAL_FOOTER}
       </div>
     `;
     await sgMail.send({ from: FROM, to: tenant.email, subject: `Action Required: Please redo your safety inspection`, html });
@@ -440,7 +448,7 @@ const sendInspectionReminderEmail = async (tenant, inspection) => {
             <a href="${loginUrl}" style="background:#EF4444;color:white;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">Complete Inspection Now</a>
           </div>
         </div>
-        <p style="text-align:center;color:#9CA3AF;font-size:12px;margin-top:20px;">Service Portal</p>
+        ${PORTAL_FOOTER}
       </div>
     `;
     await sgMail.send({ from: FROM, to: tenant.email, subject: `⚠️ Reminder: Complete your safety inspection by ${due}`, html });
@@ -470,7 +478,7 @@ const sendDocumentEmail = async (tenant, title, fileUrl) => {
             <a href="${portalUrl}" style="background:#10B981;color:white;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">View Document</a>
           </div>
         </div>
-        <p style="text-align:center;color:#9CA3AF;font-size:12px;margin-top:20px;">Service Portal</p>
+        ${PORTAL_FOOTER}
       </div>
     `;
     await sgMail.send({ from: FROM, to: tenant.email, subject: `New document: ${title}`, html });

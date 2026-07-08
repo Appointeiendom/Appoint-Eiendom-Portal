@@ -361,19 +361,26 @@ const sendOtpEmail = async (toEmail, otp) => {
 };
 
 const sendAnnouncementEmail = async (tenants, title, body) => {
-  for (const t of tenants) {
-    if (!t.email) { console.warn('[ANNOUNCEMENT EMAIL] skipping tenant with no email:', t._id); continue; }
-    try {
-      await sgMail.send({
-        to: t.email,
-        from: FROM,
-        subject: `📢 ${title} — Service Portal`,
-        html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px;"><div style="background:#10B981;padding:20px;border-radius:8px 8px 0 0;text-align:center;"><h1 style="color:white;margin:0;font-size:22px;">📢 ${title}</h1></div><div style="background:white;padding:30px;border-radius:0 0 8px 8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);"><p style="color:#4B5563;margin-top:0;">Hi <strong>${t.name}</strong>,</p><div style="background:#F9FAFB;border-left:4px solid #10B981;padding:16px;border-radius:4px;white-space:pre-wrap;color:#1F2937;line-height:1.6;">${body}</div><p style="color:#9CA3AF;font-size:12px;margin-top:24px;">Service Portal</p></div></div>`,
-      });
-      console.log('[ANNOUNCEMENT EMAIL] sent to', t.email);
-    } catch (e) {
-      console.error('[ANNOUNCEMENT EMAIL] failed for', t.email, ':', e.response?.body?.errors?.[0]?.message || e.message);
-    }
+  const valid = tenants.filter(t => t.email);
+  if (!valid.length) { console.warn('[ANNOUNCEMENT EMAIL] no valid recipients'); return; }
+
+  // Send ONE API call with personalizations — avoids rate-limit/credit errors from looping
+  const msg = {
+    from: FROM,
+    subject: `Announcement: ${title} — Service Portal`,
+    personalizations: valid.map(t => ({
+      to: [{ email: t.email }],
+      substitutions: { '{{name}}': t.name || 'Tenant' },
+    })),
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px;"><div style="background:#10B981;padding:20px;border-radius:8px 8px 0 0;text-align:center;"><h1 style="color:white;margin:0;font-size:22px;">${title}</h1></div><div style="background:white;padding:30px;border-radius:0 0 8px 8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);"><p style="color:#4B5563;margin-top:0;">Hi <strong>{{name}}</strong>,</p><div style="background:#F9FAFB;border-left:4px solid #10B981;padding:16px;border-radius:4px;white-space:pre-wrap;color:#1F2937;line-height:1.6;">${body}</div><p style="color:#9CA3AF;font-size:12px;margin-top:24px;">Service Portal</p></div></div>`,
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log('[ANNOUNCEMENT EMAIL] sent to', valid.length, 'recipients in one call');
+  } catch (e) {
+    console.error('[ANNOUNCEMENT EMAIL] failed:', e.response?.body?.errors?.[0]?.message || e.message);
+    throw e;
   }
 };
 

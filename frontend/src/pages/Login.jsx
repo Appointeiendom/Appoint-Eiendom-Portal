@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import api from '../services/api';
 import toast from 'react-hot-toast';
 
 const policy = {
@@ -211,6 +212,45 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Forgot password state
+  const [forgotStep, setForgotStep] = useState(null); // null | 'email' | 'otp'
+  const [fpEmail, setFpEmail] = useState('');
+  const [fpOtp, setFpOtp] = useState('');
+  const [fpPassword, setFpPassword] = useState('');
+  const [fpConfirm, setFpConfirm] = useState('');
+  const [fpLoading, setFpLoading] = useState(false);
+  const [fpError, setFpError] = useState('');
+
+  const handleForgotRequest = async (e) => {
+    e.preventDefault();
+    setFpLoading(true); setFpError('');
+    try {
+      await api.post('/auth/forgot-password', { email: fpEmail });
+      setForgotStep('otp');
+    } catch (err) {
+      // Always show success msg to avoid email enumeration
+      setForgotStep('otp');
+    } finally {
+      setFpLoading(false);
+    }
+  };
+
+  const handleForgotReset = async (e) => {
+    e.preventDefault();
+    if (fpPassword !== fpConfirm) return setFpError(lang === 'no' ? 'Passordene stemmer ikke overens' : 'Passwords do not match');
+    if (fpPassword.length < 6) return setFpError(lang === 'no' ? 'Minst 6 tegn' : 'At least 6 characters');
+    setFpLoading(true); setFpError('');
+    try {
+      await api.post('/auth/reset-password', { email: fpEmail, otp: fpOtp, newPassword: fpPassword });
+      toast.success(lang === 'no' ? 'Passord tilbakestilt! Logg inn.' : 'Password reset! Please log in.');
+      setForgotStep(null); setFpEmail(''); setFpOtp(''); setFpPassword(''); setFpConfirm('');
+    } catch (err) {
+      setFpError(err.response?.data?.message || (lang === 'no' ? 'Noe gikk galt' : 'Something went wrong'));
+    } finally {
+      setFpLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -288,7 +328,73 @@ export default function Login() {
             className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-60 mt-2">
             {loading ? t('auth.signingIn') : t('auth.signin')}
           </button>
+          <div className="text-center">
+            <button type="button" onClick={() => { setForgotStep('email'); setFpError(''); }}
+              className="text-sm text-emerald-600 hover:text-emerald-800 hover:underline transition-colors">
+              {lang === 'no' ? 'Glemt passord?' : 'Forgot password?'}
+            </button>
+          </div>
         </form>
+
+        {/* Forgot password inline panel */}
+        {forgotStep && (
+          <div className="mt-6 bg-emerald-50 border border-emerald-200 rounded-xl p-5">
+            {forgotStep === 'email' ? (
+              <form onSubmit={handleForgotRequest} className="space-y-3">
+                <p className="text-sm font-semibold text-gray-700">
+                  {lang === 'no' ? 'Tilbakestill passord' : 'Reset password'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {lang === 'no' ? 'Skriv inn e-postadressen din. Vi sender deg en kode.' : 'Enter your email address. We will send you a code.'}
+                </p>
+                <input type="email" required value={fpEmail} onChange={e => setFpEmail(e.target.value)}
+                  placeholder={lang === 'no' ? 'din@epost.no' : 'your@email.com'}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                {fpError && <p className="text-xs text-red-600">{fpError}</p>}
+                <div className="flex gap-2">
+                  <button type="submit" disabled={fpLoading}
+                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold py-2 rounded-lg transition-colors disabled:opacity-60">
+                    {fpLoading ? (lang === 'no' ? 'Sender...' : 'Sending...') : (lang === 'no' ? 'Send kode' : 'Send code')}
+                  </button>
+                  <button type="button" onClick={() => setForgotStep(null)}
+                    className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg">
+                    {lang === 'no' ? 'Avbryt' : 'Cancel'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleForgotReset} className="space-y-3">
+                <p className="text-sm font-semibold text-gray-700">
+                  {lang === 'no' ? 'Angi ny kode og passord' : 'Enter code and new password'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {lang === 'no' ? `En 6-sifret kode er sendt til ${fpEmail}` : `A 6-digit code was sent to ${fpEmail}`}
+                </p>
+                <input type="text" required inputMode="numeric" maxLength={6} value={fpOtp}
+                  onChange={e => setFpOtp(e.target.value.replace(/\D/g, ''))}
+                  placeholder={lang === 'no' ? '6-sifret kode' : '6-digit code'}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                <input type="password" required value={fpPassword} onChange={e => setFpPassword(e.target.value)}
+                  placeholder={lang === 'no' ? 'Nytt passord' : 'New password'}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                <input type="password" required value={fpConfirm} onChange={e => setFpConfirm(e.target.value)}
+                  placeholder={lang === 'no' ? 'Bekreft nytt passord' : 'Confirm new password'}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                {fpError && <p className="text-xs text-red-600">{fpError}</p>}
+                <div className="flex gap-2">
+                  <button type="submit" disabled={fpLoading}
+                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold py-2 rounded-lg transition-colors disabled:opacity-60">
+                    {fpLoading ? (lang === 'no' ? 'Lagrer...' : 'Saving...') : (lang === 'no' ? 'Tilbakestill passord' : 'Reset password')}
+                  </button>
+                  <button type="button" onClick={() => setForgotStep('email')}
+                    className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg">
+                    ← {lang === 'no' ? 'Tilbake' : 'Back'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
 
         <p className="text-center text-sm text-gray-500 mt-6">{t('auth.contactAdmin')}</p>
 

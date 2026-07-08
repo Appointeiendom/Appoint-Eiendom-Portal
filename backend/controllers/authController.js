@@ -176,4 +176,50 @@ const confirmPasswordChange = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getMe, requestEmailChange, confirmEmailChange, requestPasswordChange, confirmPasswordChange };
+// In-memory OTP store for forgot-password: email -> { otp, expiresAt }
+const forgotOtpStore = new Map();
+
+// POST /auth/forgot-password — send OTP to email (no auth required)
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    // Always respond OK to avoid revealing whether email exists
+    if (!user) return res.json({ message: 'If that email is registered, a code has been sent.' });
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    forgotOtpStore.set(email.toLowerCase().trim(), { otp, userId: String(user._id), expiresAt: Date.now() + 10 * 60 * 1000 });
+    const { sendOtpEmail } = require('../services/emailService');
+    await sendOtpEmail(user.email, otp);
+    res.json({ message: 'If that email is registered, a code has been sent.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// POST /auth/reset-password — verify OTP and set new password (no auth required)
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) return res.status(400).json({ message: 'All fields are required' });
+    if (newPassword.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    const key = email.toLowerCase().trim();
+    const entry = forgotOtpStore.get(key);
+    if (!entry) return res.status(400).json({ message: 'No reset requested for this email. Please start again.' });
+    if (Date.now() > entry.expiresAt) {
+      forgotOtpStore.delete(key);
+      return res.status(400).json({ message: 'Code expired. Please request a new one.' });
+    }
+    if (entry.otp !== otp.trim()) return res.status(400).json({ message: 'Incorrect code' });
+    const user = await User.findById(entry.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.password = newPassword;
+    await user.save();
+    forgotOtpStore.delete(key);
+    res.json({ message: 'Password reset successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = { register, login, getMe, requestEmailChange, confirmEmailChange, requestPasswordChange, confirmPasswordChange, forgotPassword, resetPassword };

@@ -35,42 +35,49 @@ router.get('/:id/file', async (req, res) => {
       // Derive public_id: prefer stored cloudinaryId, otherwise parse from URL
       let publicId = doc.cloudinaryId;
       if (!publicId && doc.fileUrl) {
-        // URL format: https://res.cloudinary.com/{cloud}/raw/upload/v{ver}/{public_id}
         const match = doc.fileUrl.match(/\/raw\/upload\/(?:v\d+\/)?(.+)$/);
         if (match) publicId = match[1];
       }
 
+      console.log('[DOC FILE] publicId:', publicId);
+      console.log('[DOC FILE] fileUrl:', doc.fileUrl);
+
       if (publicId) {
-        // Generate a signed URL and stream the file through our backend
         const signedUrl = cloudinary.url(publicId, {
           resource_type: 'raw',
           type: 'upload',
           sign_url: true,
           secure: true,
         });
+        console.log('[DOC FILE] signedUrl:', signedUrl);
 
-        const https = require('https');
-        const url = new URL(signedUrl);
-        const request = https.get({ hostname: url.hostname, path: url.pathname + url.search }, (stream) => {
-          if (stream.statusCode !== 200) {
-            return res.status(stream.statusCode).json({ message: 'Could not fetch file from storage' });
-          }
+        const axios = require('axios');
+        try {
+          const response = await axios.get(signedUrl, { responseType: 'stream', timeout: 15000 });
           res.setHeader('Content-Type', 'application/pdf');
           res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.title)}.pdf"`);
-          stream.pipe(res);
-        });
-        request.on('error', (e) => {
-          console.error('[DOC FILE]', e.message);
-          res.status(500).json({ message: 'File fetch error' });
-        });
-        return;
+          response.data.pipe(res);
+          return;
+        } catch (axErr) {
+          console.error('[DOC FILE] axios status:', axErr.response?.status, axErr.message);
+          // Fall through to try direct URL
+        }
       }
+
+      // Last resort: try the stored URL directly
+      console.log('[DOC FILE] falling back to direct URL');
+      const axios = require('axios');
+      const response = await axios.get(doc.fileUrl, { responseType: 'stream', timeout: 15000 });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.title)}.pdf"`);
+      response.data.pipe(res);
+      return;
     }
 
-    // Fallback for images: redirect directly
+    // Images: redirect directly
     res.redirect(doc.fileUrl);
   } catch (err) {
-    console.error('[DOC FILE]', err.message);
+    console.error('[DOC FILE] error:', err.response?.status, err.message);
     res.status(500).json({ message: err.message });
   }
 });

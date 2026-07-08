@@ -42,10 +42,12 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const { title, body, building } = req.body;
     if (!title || !body) return res.status(400).json({ message: 'Title and body are required' });
 
-    const tenantFilter = { role: 'tenant' };
+    const tenantFilter = { role: 'tenant', movedOutAt: null };
     if (building) tenantFilter.unit = { $regex: new RegExp(`^${escapeRegex(building.trim())}$`, 'i') };
 
     const tenants = await User.find(tenantFilter).select('email name phone');
+    console.log('[ANNOUNCEMENT] sending to', tenants.length, 'tenants:', tenants.map(t => t.email));
+
     const announcement = await Announcement.create({
       title, body,
       sentBy: req.user._id,
@@ -53,8 +55,8 @@ router.post('/', protect, adminOnly, async (req, res) => {
       building: building || null,
     });
 
-    sendAnnouncementEmail(tenants, title, body).catch(console.error);
-    sendAnnouncementSMS(tenants, title).catch(console.error);
+    sendAnnouncementEmail(tenants, title, body).catch(e => console.error('[ANNOUNCEMENT EMAIL]', e.message));
+    sendAnnouncementSMS(tenants, title).catch(e => console.error('[ANNOUNCEMENT SMS]', e.message));
 
     res.status(201).json(announcement);
   } catch (err) {

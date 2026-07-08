@@ -46,7 +46,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
     if (building) tenantFilter.unit = { $regex: new RegExp(`^${escapeRegex(building.trim())}$`, 'i') };
 
     const tenants = await User.find(tenantFilter).select('email name phone');
-    console.log('[ANNOUNCEMENT] sending to', tenants.length, 'tenants:', tenants.map(t => t.email));
+    console.log('[ANNOUNCEMENT] found', tenants.length, 'active tenants:', tenants.map(t => t.email));
 
     const announcement = await Announcement.create({
       title, body,
@@ -55,7 +55,13 @@ router.post('/', protect, adminOnly, async (req, res) => {
       building: building || null,
     });
 
-    sendAnnouncementEmail(tenants, title, body).catch(e => console.error('[ANNOUNCEMENT EMAIL]', e.message));
+    // Send and await so errors are visible in logs
+    try {
+      await sendAnnouncementEmail(tenants, title, body);
+      console.log('[ANNOUNCEMENT] email sending complete');
+    } catch (e) {
+      console.error('[ANNOUNCEMENT EMAIL ERROR]', e.message, e.response?.body);
+    }
     sendAnnouncementSMS(tenants, title).catch(e => console.error('[ANNOUNCEMENT SMS]', e.message));
 
     res.status(201).json(announcement);

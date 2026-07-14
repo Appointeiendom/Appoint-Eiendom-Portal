@@ -23,61 +23,43 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// GET /api/documents/:id/file — stream PDF through backend (bypasses Cloudinary access restrictions)
+// GET /api/documents/:id/file — redirect to signed Cloudinary URL for PDFs
 router.get('/:id/file', async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
     if (!doc) return res.status(404).json({ message: 'Not found' });
 
-    const isPdf = doc.fileType?.includes('pdf');
-
-    if (isPdf) {
-      // Derive public_id: prefer stored cloudinaryId, otherwise parse from URL
-      let publicId = doc.cloudinaryId;
-      if (!publicId && doc.fileUrl) {
-        const match = doc.fileUrl.match(/\/raw\/upload\/(?:v\d+\/)?(.+)$/);
-        if (match) publicId = match[1];
-      }
-
-      console.log('[DOC FILE] publicId:', publicId);
-      console.log('[DOC FILE] fileUrl:', doc.fileUrl);
-
-      if (publicId) {
-        const signedUrl = cloudinary.url(publicId, {
-          resource_type: 'raw',
-          type: 'upload',
-          sign_url: true,
-          secure: true,
-        });
-        console.log('[DOC FILE] signedUrl:', signedUrl);
-
-        const axios = require('axios');
-        try {
-          const response = await axios.get(signedUrl, { responseType: 'stream', timeout: 15000 });
-          res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.title)}.pdf"`);
-          response.data.pipe(res);
-          return;
-        } catch (axErr) {
-          console.error('[DOC FILE] axios status:', axErr.response?.status, axErr.message);
-          // Fall through to try direct URL
-        }
-      }
-
-      // Last resort: try the stored URL directly
-      console.log('[DOC FILE] falling back to direct URL');
-      const axios = require('axios');
-      const response = await axios.get(doc.fileUrl, { responseType: 'stream', timeout: 15000 });
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.title)}.pdf"`);
-      response.data.pipe(res);
-      return;
+    if (!doc.fileType?.includes('pdf')) {
+      return res.redirect(doc.fileUrl);
     }
 
-    // Images: redirect directly
-    res.redirect(doc.fileUrl);
+    // Derive public_id: prefer stored cloudinaryId, otherwise parse from URL
+    let publicId = doc.cloudinaryId;
+    if (!publicId && doc.fileUrl) {
+      const match = doc.fileUrl.match(/\/raw\/upload\/(?:v\d+\/)?(.+)$/);
+      if (match) publicId = match[1];
+    }
+
+    console.log('[DOC FILE] publicId:', publicId);
+    console.log('[DOC FILE] fileUrl:', doc.fileUrl);
+
+    if (publicId) {
+      // Generate a time-limited signed URL — browser accesses Cloudinary directly, no proxy
+      const signedUrl = cloudinary.url(publicId, {
+        resource_type: 'raw',
+        type: 'upload',
+        sign_url: true,
+        secure: true,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+      });
+      console.log('[DOC FILE] signed URL generated, redirecting');
+      return res.redirect(signedUrl);
+    }
+
+    console.log('[DOC FILE] no publicId, redirecting to stored URL');
+    return res.redirect(doc.fileUrl);
   } catch (err) {
-    console.error('[DOC FILE] error:', err.response?.status, err.message);
+    console.error('[DOC FILE] error:', err.message);
     res.status(500).json({ message: err.message });
   }
 });

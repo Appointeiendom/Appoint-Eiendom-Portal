@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, adminOnly } = require('../middleware/auth');
-const { upload, cloudinary } = require('../config/cloudinary');
+const { upload } = require('../config/cloudinary');
 const Document = require('../models/Document');
 const User = require('../models/User');
 const { sendDocumentSMS } = require('../services/smsService');
@@ -23,41 +23,30 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// GET /api/documents/:id/file — redirect to signed Cloudinary URL for PDFs
+// GET /api/documents/:id/file — serve PDF from MongoDB or redirect image to Cloudinary
 router.get('/:id/file', async (req, res) => {
   try {
-    const doc = await Document.findById(req.params.id);
+    // Include fileData (excluded by default) only for this route
+    const doc = await Document.findById(req.params.id).select('+fileData');
     if (!doc) return res.status(404).json({ message: 'Not found' });
 
     if (!doc.fileType?.includes('pdf')) {
       return res.redirect(doc.fileUrl);
     }
 
-    // Derive public_id: prefer stored cloudinaryId, otherwise parse from URL
-    let publicId = doc.cloudinaryId;
-    if (!publicId && doc.fileUrl) {
-      const match = doc.fileUrl.match(/\/raw\/upload\/(?:v\d+\/)?(.+)$/);
-      if (match) publicId = match[1];
+    if (doc.fileData) {
+      // New PDFs: stored as binary in MongoDB — serve directly
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.title)}.pdf"`);
+      return res.send(doc.fileData);
     }
 
-    console.log('[DOC FILE] publicId:', publicId);
-    console.log('[DOC FILE] fileUrl:', doc.fileUrl);
-
-    if (publicId) {
-      // Generate a time-limited signed URL — browser accesses Cloudinary directly, no proxy
-      const signedUrl = cloudinary.url(publicId, {
-        resource_type: 'raw',
-        type: 'upload',
-        sign_url: true,
-        secure: true,
-        expires_at: Math.floor(Date.now() / 1000) + 3600,
-      });
-      console.log('[DOC FILE] signed URL generated, redirecting');
-      return res.redirect(signedUrl);
+    // Legacy PDFs stored in Cloudinary — try redirecting to stored URL
+    if (doc.fileUrl) {
+      return res.redirect(doc.fileUrl);
     }
 
-    console.log('[DOC FILE] no publicId, redirecting to stored URL');
-    return res.redirect(doc.fileUrl);
+    res.status(404).json({ message: 'File data not found' });
   } catch (err) {
     console.error('[DOC FILE] error:', err.message);
     res.status(500).json({ message: err.message });
@@ -71,10 +60,13 @@ router.post('/', protect, adminOnly, upload.single('file'), async (req, res) => 
     const { title, tenantId } = req.body;
     if (!title) return res.status(400).json({ message: 'Title is required' });
 
+    const isPdf = req.file.mimetype === 'application/pdf';
     const doc = await Document.create({
       title,
-      fileUrl: req.file.path,
-      cloudinaryId: req.file.filename || null,
+      // PDFs: stored in MongoDB as buffer; images: Cloudinary URL
+      fileUrl: isPdf ? null : req.file.path,
+      cloudinaryId: isPdf ? null : (req.file.filename || null),
+      fileData: isPdf ? req.file.buffer : undefined,
       fileType: req.file.mimetype,
       uploadedBy: req.user._id,
       tenantId: tenantId || null,

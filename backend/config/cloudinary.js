@@ -1,7 +1,6 @@
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
-const streamifier = require('streamifier');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -27,30 +26,21 @@ const upload = multer({
   storage: {
     _handleFile(req, file, cb) {
       if (file.mimetype === 'application/pdf') {
-        // Collect buffer in memory
+        // Store PDF buffer in memory — will be saved to MongoDB, not Cloudinary
         const chunks = [];
         file.stream.on('data', d => chunks.push(d));
         file.stream.on('end', () => {
           const buf = Buffer.concat(chunks);
-          const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-          const publicId = `tenant-portal/${Date.now()}_${safeName}`;
-          const uploadStream = cloudinary.uploader.upload_stream(
-            { resource_type: 'raw', public_id: publicId, overwrite: true },
-            (err, result) => {
-              if (err) return cb(err);
-              cb(null, {
-                path: result.secure_url,
-                filename: result.public_id,
-                mimetype: 'application/pdf',
-                size: buf.length,
-              });
-            }
-          );
-          streamifier.createReadStream(buf).pipe(uploadStream);
+          cb(null, {
+            buffer: buf,
+            mimetype: 'application/pdf',
+            size: buf.length,
+            originalname: file.originalname,
+          });
         });
         file.stream.on('error', cb);
       } else {
-        // Delegate images to CloudinaryStorage
+        // Images go to Cloudinary as before
         imageStorage._handleFile(req, file, cb);
       }
     },

@@ -23,15 +23,13 @@ const photoUpload = multer({ storage, limits: { fileSize: 15 * 1024 * 1024 } }).
 // POST /api/inspections — admin creates a new inspection (closes any active one first)
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
-    const { dueDate } = req.body;
-    if (!dueDate) return res.status(400).json({ message: 'Due date is required' });
     await Inspection.updateMany({ status: 'active' }, { status: 'closed' });
-    const inspection = await Inspection.create({ createdBy: req.user._id, dueDate });
+    const inspection = await Inspection.create({ createdBy: req.user._id });
 
     // Notify all active tenants
     const tenants = await User.find({ role: 'tenant', movedOutAt: null }).select('name email');
     for (const tenant of tenants) {
-      sendInspectionAssignedEmail(tenant, inspection).catch(e =>
+      sendInspectionAssignedEmail(tenant).catch(e =>
         console.error('[INSPECTION EMAIL]', tenant.email, e.message)
       );
     }
@@ -205,7 +203,7 @@ router.post('/:id/remind', protect, adminOnly, async (req, res) => {
 
     let sent = 0;
     for (const tenant of pending) {
-      try { await sendInspectionReminderEmail(tenant, inspection); sent++; } catch {}
+      try { await sendInspectionReminderEmail(tenant); sent++; } catch {}
     }
     res.json({ sent, total: pending.length });
   } catch (err) {

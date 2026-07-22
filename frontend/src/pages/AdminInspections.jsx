@@ -602,7 +602,6 @@ function ArchiveTab({ inspections, onDelete }) {
         const passed = rows.filter(r => overallCategory(r.response) === 'passed').length;
         const issues = rows.filter(r => overallCategory(r.response) === 'issues').length;
         const pending = rows.filter(r => overallCategory(r.response) === 'pending').length;
-        const dueLabel = new Date(ins.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         const createdLabel = new Date(ins.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
         return (
@@ -611,8 +610,7 @@ function ArchiveTab({ inspections, onDelete }) {
               <button className="flex items-center gap-3 flex-1 text-left" onClick={() => toggle(ins)}>
                 <span className="text-lg">📋</span>
                 <div>
-                  <p className="text-sm font-semibold text-gray-800">Due: {dueLabel}</p>
-                  <p className="text-xs text-gray-400">Created {createdLabel}</p>
+                  <p className="text-sm font-semibold text-gray-800">Inspection {createdLabel}</p>
                 </div>
                 <div className="flex items-center gap-2 ml-4 flex-wrap">
                   {passed > 0 && <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">{passed} passed</span>}
@@ -679,7 +677,6 @@ export default function AdminInspections() {
   const [rows, setRows] = useState([]);
   const [loadingRows, setLoadingRows] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [dueDate, setDueDate] = useState('');
   const [closing, setClosing] = useState(false);
   const [tab, setTab] = useState('Overview');
   const [seenCounts, setSeenCounts] = useState({});
@@ -704,13 +701,11 @@ export default function AdminInspections() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!dueDate) return;
     setCreating(true);
     try {
-      const res = await api.post('/inspections', { dueDate });
+      const res = await api.post('/inspections', {});
       setInspections(prev => [res.data, ...prev.map(i => ({ ...i, status: 'closed' }))]);
       setSelected(res.data);
-      setDueDate('');
       toast.success('Inspection started — tenants are now blocked until they respond.');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed');
@@ -764,8 +759,7 @@ export default function AdminInspections() {
     setSeenCounts(prev => ({ ...prev, [t]: tabCounts[t] }));
   };
 
-  const minDate = new Date(); minDate.setDate(minDate.getDate() + 1);
-  const inspLabel = selected ? new Date(selected.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  const inspLabel = selected ? new Date(selected.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 
   return (
     <Layout>
@@ -776,11 +770,8 @@ export default function AdminInspections() {
             <h1 className="text-2xl font-bold text-gray-800">🔥 Safety Inspections</h1>
             <p className="text-gray-500 text-sm mt-1">Fire extinguisher · Smoke detector · Stove heat sensor</p>
           </div>
-          <form onSubmit={handleCreate} className="flex items-center gap-2">
-            <input type="date" value={dueDate} min={minDate.toISOString().split('T')[0]}
-              onChange={e => setDueDate(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
-            <button type="submit" disabled={creating || !dueDate}
+          <form onSubmit={handleCreate}>
+            <button type="submit" disabled={creating}
               className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60">
               {creating ? '…' : '+ New Inspection'}
             </button>
@@ -794,7 +785,7 @@ export default function AdminInspections() {
               <div key={ins._id}
                 className={`flex items-center rounded-lg border text-sm font-medium transition-colors ${selected?._id === ins._id ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200'}`}>
                 <button onClick={() => setSelected(ins)} className="px-3 py-1.5">
-                  {new Date(ins.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {new Date(ins.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   <span className={`ml-1.5 text-xs ${ins.status === 'active' ? 'text-emerald-400' : 'text-gray-400'}`}>
                     {ins.status === 'active' ? '● Active' : '○ Closed'}
                   </span>
@@ -881,7 +872,7 @@ export default function AdminInspections() {
           <div className="bg-white rounded-xl border border-dashed border-gray-300 p-16 text-center">
             <p className="text-4xl mb-3">🔥</p>
             <p className="text-gray-600 font-medium">No inspections yet</p>
-            <p className="text-gray-400 text-sm mt-1">Set a due date above to start the first inspection.</p>
+            <p className="text-gray-400 text-sm mt-1">Click "+ New Inspection" to start the first inspection.</p>
           </div>
         )}
       </div>

@@ -391,7 +391,6 @@ const sendAnnouncementEmail = async (tenants, title, body) => {
 
 const sendInspectionRedoEmail = async (tenant, inspection, reason) => {
   try {
-    const due = new Date(inspection.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     const loginUrl = `${process.env.FRONTEND_URL}/login`;
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px;">
@@ -406,7 +405,7 @@ const sendInspectionRedoEmail = async (tenant, inspection, reason) => {
             <p style="color:#92400E;font-weight:bold;margin:0 0 6px 0;">Reason from the admin:</p>
             <p style="color:#78350F;margin:0;">${reason}</p>
           </div>` : ''}
-          <p style="color:#4B5563;font-size:14px;">Please log in and complete the inspection again by <strong>${due}</strong>. Make sure photos are clear and well-lit.</p>
+          <p style="color:#4B5563;font-size:14px;">Please log in and complete the inspection again as soon as possible. Make sure photos are clear and well-lit.</p>
           <div style="text-align:center;margin-top:24px;">
             <a href="${loginUrl}" style="background:#F59E0B;color:white;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">Redo Inspection Now</a>
           </div>
@@ -422,9 +421,8 @@ const sendInspectionRedoEmail = async (tenant, inspection, reason) => {
   }
 };
 
-const sendInspectionReminderEmail = async (tenant, inspection) => {
+const sendInspectionReminderEmail = async (tenant) => {
   try {
-    const due = new Date(inspection.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     const loginUrl = `${process.env.FRONTEND_URL}/login`;
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px;">
@@ -435,7 +433,6 @@ const sendInspectionReminderEmail = async (tenant, inspection) => {
           <p style="color:#4B5563;margin-top:0;">Hi <strong>${tenant.name}</strong>,</p>
           <p style="color:#4B5563;">This is a reminder that you have not yet completed your <strong>safety inspection</strong>.</p>
           <div style="background:#FEF2F2;border-left:4px solid #EF4444;padding:16px;border-radius:4px;margin:20px 0;">
-            <p style="color:#991B1B;font-weight:bold;margin:0 0 6px 0;">⏳ Due date: ${due}</p>
             <p style="color:#7F1D1D;margin:0;font-size:14px;">Please log in and complete the safety check for your unit as soon as possible.</p>
           </div>
           <p style="color:#4B5563;font-size:14px;">The inspection covers:</p>
@@ -451,7 +448,7 @@ const sendInspectionReminderEmail = async (tenant, inspection) => {
         ${PORTAL_FOOTER}
       </div>
     `;
-    await sgMail.send({ from: FROM, to: tenant.email, subject: `⚠️ Reminder: Complete your safety inspection by ${due}`, html });
+    await sgMail.send({ from: FROM, to: tenant.email, subject: `Reminder: Complete your safety inspection`, html });
     console.log(`Inspection reminder sent to ${tenant.email}`);
   } catch (err) {
     console.error('Email error (inspection reminder):', err.message);
@@ -488,9 +485,8 @@ const sendDocumentEmail = async (tenant, title, fileUrl) => {
   }
 };
 
-const sendInspectionAssignedEmail = async (tenant, inspection) => {
+const sendInspectionAssignedEmail = async (tenant) => {
   try {
-    const due = new Date(inspection.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     const loginUrl = `${process.env.FRONTEND_URL}/login`;
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px;">
@@ -499,9 +495,8 @@ const sendInspectionAssignedEmail = async (tenant, inspection) => {
         </div>
         <div style="background:white;padding:30px;border-radius:0 0 8px 8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
           <p style="color:#4B5563;margin-top:0;">Hi <strong>${tenant.name}</strong>,</p>
-          <p style="color:#4B5563;">A new safety inspection has been scheduled. Please log in and complete it before the due date.</p>
+          <p style="color:#4B5563;">A new safety inspection has been scheduled. Please log in and complete it as soon as possible.</p>
           <div style="background:#F0FDF4;border-left:4px solid #10B981;padding:16px;border-radius:4px;margin:20px 0;">
-            <p style="color:#065F46;font-weight:bold;margin:0 0 6px 0;">⏳ Due date: ${due}</p>
             <p style="color:#065F46;margin:0;font-size:14px;">The inspection covers fire extinguisher, smoke detector, and stove heat sensor.</p>
           </div>
           <ul style="color:#4B5563;font-size:14px;line-height:1.8;padding-left:20px;">
@@ -517,7 +512,7 @@ const sendInspectionAssignedEmail = async (tenant, inspection) => {
         ${PORTAL_FOOTER}
       </div>
     `;
-    await sgMail.send({ from: FROM, to: tenant.email, subject: `Action required: Complete your safety inspection by ${due}`, html });
+    await sgMail.send({ from: FROM, to: tenant.email, subject: `Action required: Complete your safety inspection`, html });
     console.log(`Inspection assigned email sent to ${tenant.email}`);
   } catch (err) {
     console.error('Email error (inspection assigned):', err.message);

@@ -8,7 +8,7 @@ const Inspection = require('../models/Inspection');
 const InspectionResponse = require('../models/InspectionResponse');
 const User = require('../models/User');
 const Building = require('../models/Building');
-const { sendInspectionReminderEmail, sendInspectionRedoEmail } = require('../services/emailService');
+const { sendInspectionReminderEmail, sendInspectionRedoEmail, sendInspectionAssignedEmail } = require('../services/emailService');
 
 const storage = new CloudinaryStorage({
   cloudinary,
@@ -27,6 +27,16 @@ router.post('/', protect, adminOnly, async (req, res) => {
     if (!dueDate) return res.status(400).json({ message: 'Due date is required' });
     await Inspection.updateMany({ status: 'active' }, { status: 'closed' });
     const inspection = await Inspection.create({ createdBy: req.user._id, dueDate });
+
+    // Notify all active tenants
+    const tenants = await User.find({ role: 'tenant', movedOutAt: null }).select('name email');
+    for (const tenant of tenants) {
+      sendInspectionAssignedEmail(tenant, inspection).catch(e =>
+        console.error('[INSPECTION EMAIL]', tenant.email, e.message)
+      );
+    }
+    console.log(`[INSPECTION] notified ${tenants.length} tenants`);
+
     res.status(201).json(inspection);
   } catch (err) {
     res.status(500).json({ message: err.message });

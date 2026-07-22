@@ -488,7 +488,43 @@ const sendDocumentEmail = async (tenant, title, fileUrl) => {
   }
 };
 
-module.exports = { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail, sendWelcomeEmail, sendChatNotificationEmail, sendResponsibilityEmail, sendOtpEmail, sendAnnouncementEmail, sendInspectionReminderEmail, sendInspectionRedoEmail, sendDocumentEmail };
+const sendInspectionAssignedEmail = async (tenant, inspection) => {
+  try {
+    const due = new Date(inspection.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    const loginUrl = `${process.env.FRONTEND_URL}/login`;
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px;">
+        <div style="background:#10B981;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
+          <h1 style="color:white;margin:0;font-size:22px;">🔍 Safety Inspection Required</h1>
+        </div>
+        <div style="background:white;padding:30px;border-radius:0 0 8px 8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+          <p style="color:#4B5563;margin-top:0;">Hi <strong>${tenant.name}</strong>,</p>
+          <p style="color:#4B5563;">A new safety inspection has been scheduled. Please log in and complete it before the due date.</p>
+          <div style="background:#F0FDF4;border-left:4px solid #10B981;padding:16px;border-radius:4px;margin:20px 0;">
+            <p style="color:#065F46;font-weight:bold;margin:0 0 6px 0;">⏳ Due date: ${due}</p>
+            <p style="color:#065F46;margin:0;font-size:14px;">The inspection covers fire extinguisher, smoke detector, and stove heat sensor.</p>
+          </div>
+          <ul style="color:#4B5563;font-size:14px;line-height:1.8;padding-left:20px;">
+            <li>🧯 Fire extinguisher — check it is present and in date</li>
+            <li>🔔 Smoke detector — test that it works</li>
+            <li>🍳 Stove heat sensor — confirm it is installed</li>
+          </ul>
+          <p style="color:#4B5563;font-size:14px;">Take a clear photo of each item when prompted.</p>
+          <div style="text-align:center;margin-top:24px;">
+            <a href="${loginUrl}" style="background:#10B981;color:white;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">Complete Inspection Now</a>
+          </div>
+        </div>
+        ${PORTAL_FOOTER}
+      </div>
+    `;
+    await sgMail.send({ from: FROM, to: tenant.email, subject: `Action required: Complete your safety inspection by ${due}`, html });
+    console.log(`Inspection assigned email sent to ${tenant.email}`);
+  } catch (err) {
+    console.error('Email error (inspection assigned):', err.message);
+  }
+};
+
+module.exports = { sendNewIssueEmail, sendStatusChangeEmail, sendTenantConfirmationEmail, sendTenantStatusEmail, sendWelcomeEmail, sendChatNotificationEmail, sendResponsibilityEmail, sendOtpEmail, sendAnnouncementEmail, sendInspectionReminderEmail, sendInspectionRedoEmail, sendDocumentEmail, sendInspectionAssignedEmail };
 
 // Welcome email sent to tenant when admin creates their account
 async function sendWelcomeEmail(tenant, rawPassword) {

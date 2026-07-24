@@ -2,9 +2,7 @@ const cron = require('node-cron');
 const Message = require('../models/Message');
 const User = require('../models/User');
 const Settings = require('../models/Settings');
-const sgMail = require('@sendgrid/mail');
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const transporter = require('../config/mailer');
 
 const FROM = process.env.EMAIL_FROM || 'no-reply@rentservice.no';
 
@@ -71,7 +69,7 @@ const sendDigest = async () => {
       </div>
     `;
 
-    await sgMail.send({
+    await transporter.sendMail({
       from: FROM,
       to: await getAdminEmail(),
       subject: `[Digest] ${messages.length} unread tenant message(s) today`,

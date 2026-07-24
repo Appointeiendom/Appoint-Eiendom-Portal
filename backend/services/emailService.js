@@ -1,7 +1,6 @@
-const sgMail = require('@sendgrid/mail');
+const transporter = require('../config/mailer');
 const User = require('../models/User');
 const Settings = require('../models/Settings');
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const FROM = process.env.EMAIL_FROM || 'no-reply@rentservice.no';
 
 const getAdminEmail = async () => {
@@ -66,7 +65,7 @@ const sendNewIssueEmail = async (issue, tenant) => {
       </div>
     `;
 
-    await sgMail.send({
+    await transporter.sendMail({
       from: FROM,
       to: await getAdminEmail(),
       subject: `New Issue: ${issue.title} — ${tenant.name} (${issue.unit})`,
@@ -76,7 +75,7 @@ const sendNewIssueEmail = async (issue, tenant) => {
     console.log('New issue email sent to admin');
   } catch (error) {
     console.error('Email error (new issue):', error.message);
-    console.error('SendGrid error details:', JSON.stringify(error.response?.body || error, null, 2));
+    console.error('SMTP error details:', error.response || error);
   }
 };
 
@@ -123,7 +122,7 @@ const sendStatusChangeEmail = async (issue, tenant, updatedBy) => {
       </div>
     `;
 
-    await sgMail.send({
+    await transporter.sendMail({
       from: FROM,
       to: await getAdminEmail(),
       subject: `Issue Status Update: "${issue.title}" → ${issue.status.replace('-', ' ').toUpperCase()}`,
@@ -183,7 +182,7 @@ const sendTenantConfirmationEmail = async (issue, tenant) => {
       </div>
     `;
 
-    await sgMail.send({
+    await transporter.sendMail({
       from: FROM,
       to: tenant.email,
       subject: `Issue received: ${issue.title}`,
@@ -238,7 +237,7 @@ const sendTenantStatusEmail = async (issue, tenant) => {
       </div>
     `;
 
-    await sgMail.send({
+    await transporter.sendMail({
       from: FROM,
       to: tenant.email,
       subject: `Issue update: "${issue.title}" is now ${issue.status.replace('-', ' ')}`,
@@ -280,7 +279,7 @@ const sendResponsibilityEmail = async (issue, tenant) => {
       </div>
     `;
 
-    await sgMail.send({
+    await transporter.sendMail({
       from: FROM,
       to: tenant.email,
       subject: `Action required: "${issue.title}" is your responsibility`,
@@ -326,7 +325,7 @@ const sendChatNotificationEmail = async ({ toEmail, toName, fromName, fromRole, 
       </div>
     `;
 
-    await sgMail.send({
+    await transporter.sendMail({
       from: FROM,
       to: toEmail,
       subject: `New message from ${fromName}: "${issueTitle}"`,
@@ -341,7 +340,7 @@ const sendChatNotificationEmail = async ({ toEmail, toName, fromName, fromRole, 
 
 const sendOtpEmail = async (toEmail, otp) => {
   const loginUrl = `${process.env.FRONTEND_URL}/login`;
-  await sgMail.send({
+  await transporter.sendMail({
     from: FROM,
     to: toEmail,
     subject: 'Bekreft ny e-postadresse — Service Portal',
@@ -377,13 +376,13 @@ const sendAnnouncementEmail = async (tenants, title, body) => {
   let sent = 0, failed = 0;
   for (const t of valid) {
     try {
-      await sgMail.send({ to: t.email, from: FROM, subject: `📢 ${title} — Service Portal`, html: html(t.name || 'Tenant') });
+      await transporter.sendMail({ to: t.email, from: FROM, subject: `📢 ${title} — Service Portal`, html: html(t.name || 'Tenant') });
       sent++;
       // Small delay between sends to avoid rate limiting
       await new Promise(r => setTimeout(r, 200));
     } catch (e) {
       failed++;
-      console.error('[ANNOUNCEMENT EMAIL] failed for', t.email, ':', e.response?.body?.errors?.[0]?.message || e.message);
+      console.error('[ANNOUNCEMENT EMAIL] failed for', t.email, ':', e.response || e.message);
     }
   }
   console.log(`[ANNOUNCEMENT EMAIL] done: ${sent} sent, ${failed} failed`);
@@ -413,7 +412,7 @@ const sendInspectionRedoEmail = async (tenant, inspection, reason) => {
         ${PORTAL_FOOTER}
       </div>
     `;
-    await sgMail.send({ from: FROM, to: tenant.email, subject: `Action Required: Please redo your safety inspection`, html });
+    await transporter.sendMail({ from: FROM, to: tenant.email, subject: `Action Required: Please redo your safety inspection`, html });
     console.log(`Redo inspection email sent to ${tenant.email}`);
   } catch (err) {
     console.error('Email error (inspection redo):', err.message);
@@ -448,7 +447,7 @@ const sendInspectionReminderEmail = async (tenant) => {
         ${PORTAL_FOOTER}
       </div>
     `;
-    await sgMail.send({ from: FROM, to: tenant.email, subject: `Reminder: Complete your safety inspection`, html });
+    await transporter.sendMail({ from: FROM, to: tenant.email, subject: `Reminder: Complete your safety inspection`, html });
     console.log(`Inspection reminder sent to ${tenant.email}`);
   } catch (err) {
     console.error('Email error (inspection reminder):', err.message);
@@ -478,7 +477,7 @@ const sendDocumentEmail = async (tenant, title, fileUrl) => {
         ${PORTAL_FOOTER}
       </div>
     `;
-    await sgMail.send({ from: FROM, to: tenant.email, subject: `New document: ${title}`, html });
+    await transporter.sendMail({ from: FROM, to: tenant.email, subject: `New document: ${title}`, html });
     console.log(`Document email sent to ${tenant.email}`);
   } catch (err) {
     console.error('Email error (document):', err.message);
@@ -512,7 +511,7 @@ const sendInspectionAssignedEmail = async (tenant) => {
         ${PORTAL_FOOTER}
       </div>
     `;
-    await sgMail.send({ from: FROM, to: tenant.email, subject: `Action required: Complete your safety inspection`, html });
+    await transporter.sendMail({ from: FROM, to: tenant.email, subject: `Action required: Complete your safety inspection`, html });
     console.log(`Inspection assigned email sent to ${tenant.email}`);
   } catch (err) {
     console.error('Email error (inspection assigned):', err.message);
@@ -569,7 +568,7 @@ async function sendWelcomeEmail(tenant, rawPassword) {
       </div>
     `;
 
-    await sgMail.send({
+    await transporter.sendMail({
       from: FROM,
       to: tenant.email,
       subject: `Welcome to the Service Portal — Your Login Details`,
@@ -579,7 +578,7 @@ async function sendWelcomeEmail(tenant, rawPassword) {
     console.log(`Welcome email sent to: ${tenant.email}`);
   } catch (error) {
     console.error('Email error (welcome):', error.message);
-    console.error('SendGrid error details:', JSON.stringify(error.response?.body || error, null, 2));
+    console.error('SMTP error details:', error.response || error);
   }
 }
 

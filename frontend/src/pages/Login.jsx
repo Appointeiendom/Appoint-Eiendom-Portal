@@ -47,7 +47,7 @@ const policy = {
         list: [
           'MongoDB Atlas (MongoDB Inc., USA) — databaselagring',
           'Cloudinary (Cloudinary Ltd., USA) — lagring av bilder og filer',
-          'SendGrid / Twilio (Twilio Inc., USA) — utsending av e-post og SMS-varsler',
+          'Brevo (Sendinblue SAS, EU) / Twilio (Twilio Inc., USA) — utsending av e-post og SMS-varsler',
           'Render (Render Services Inc., USA) — hosting av serverapplikasjon',
           'Vercel (Vercel Inc., USA) — hosting av nettstedet',
         ],
@@ -145,7 +145,7 @@ const policy = {
         list: [
           'MongoDB Atlas (MongoDB Inc., USA) — database storage',
           'Cloudinary (Cloudinary Ltd., USA) — image and file storage',
-          'SendGrid / Twilio (Twilio Inc., USA) — email and SMS notifications',
+          'Brevo (Sendinblue SAS, EU) / Twilio (Twilio Inc., USA) — email and SMS notifications',
           'Render (Render Services Inc., USA) — server application hosting',
           'Vercel (Vercel Inc., USA) — website hosting',
         ],

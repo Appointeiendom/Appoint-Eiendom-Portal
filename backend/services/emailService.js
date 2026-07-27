@@ -17,6 +17,8 @@ const sendEmail = async (to, toName, subject, html) => {
       to: [{ email: to, name: toName || to }],
       subject,
       htmlContent: html,
+      trackClicks: false,
+      trackOpens: false,
     }),
   });
   if (!res.ok) {

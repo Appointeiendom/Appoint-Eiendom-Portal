@@ -455,7 +455,7 @@ function PendingTab({ rows, inspectionId, onRemind }) {
       const res = await api.post(`/inspections/${inspectionId}/remind`);
       toast.success(`Reminder sent to ${res.data.sent} tenant${res.data.sent !== 1 ? 's' : ''}`);
       if (onRemind) onRemind();
-    } catch { toast.error('Failed to send reminders'); } finally { setSending(false); }
+    } catch (e) { toast.error('Failed: ' + (e.response?.status ?? '') + ' ' + (e.response?.data?.message || e.message || 'unknown')); } finally { setSending(false); }
   };
 
   const handleRemindOne = async (tenantId, name) => {

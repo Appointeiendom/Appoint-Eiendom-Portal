@@ -112,7 +112,7 @@ router.get('/:id/responses', protect, adminOnly, async (req, res) => {
     const inspection = await Inspection.findById(req.params.id);
     if (!inspection) return res.status(404).json({ message: 'Not found' });
 
-    const tenants = await User.find({ role: 'tenant', isActive: true }).select('name email unit building').sort({ name: 1 });
+    const tenants = await User.find({ role: 'tenant', movedOutAt: null }).select('name email unit building').sort({ name: 1 });
     const responses = await InspectionResponse.find({ inspectionId: inspection._id });
     const responseMap = Object.fromEntries(responses.map(r => [r.tenantId.toString(), r]));
 
@@ -194,7 +194,8 @@ router.post('/:id/remind', protect, adminOnly, async (req, res) => {
     if (!inspection) return res.status(404).json({ message: 'Not found' });
 
     const { tenantIds } = req.body; // optional array — if empty, remind all pending
-    const tenants = await User.find({ role: 'tenant', isActive: true, ...(tenantIds?.length ? { _id: { $in: tenantIds } } : {}) }).select('name email');
+    const tenants = await User.find({ role: 'tenant', movedOutAt: null, ...(tenantIds?.length ? { _id: { $in: tenantIds } } : {}) }).select('name email');
+    console.log('[REMIND] found', tenants.length, 'active tenants, pending:', tenants.map(t => t.email));
     const responses = await InspectionResponse.find({ inspectionId: inspection._id }).select('tenantId');
     const respondedIds = new Set(responses.map(r => r.tenantId.toString()));
 

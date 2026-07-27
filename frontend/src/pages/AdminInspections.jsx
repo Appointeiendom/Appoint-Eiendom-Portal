@@ -494,10 +494,12 @@ function PendingTab({ rows, inspectionId, onRemind }) {
                   <p className="text-sm text-gray-700">{row.tenant.name}</p>
                   <p className="text-xs text-gray-400">{row.tenant.email}</p>
                 </div>
-                <button onClick={() => handleRemindOne(row.tenant._id, row.tenant.name)} disabled={sending}
-                  className="text-xs text-amber-600 hover:text-amber-800 border border-amber-200 hover:border-amber-400 px-3 py-1 rounded-lg transition-colors disabled:opacity-50">
-                  📧 Remind
-                </button>
+                {!row.tenant.isVacant && (
+                  <button onClick={() => handleRemindOne(row.tenant._id, row.tenant.name)} disabled={sending}
+                    className="text-xs text-amber-600 hover:text-amber-800 border border-amber-200 hover:border-amber-400 px-3 py-1 rounded-lg transition-colors disabled:opacity-50">
+                    📧 Remind
+                  </button>
+                )}
               </div>
             ))}
           </div>

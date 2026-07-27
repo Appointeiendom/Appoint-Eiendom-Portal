@@ -202,11 +202,18 @@ router.post('/:id/remind', protect, adminOnly, async (req, res) => {
     const pending = tenants.filter(t => !respondedIds.has(t._id.toString()));
     if (!pending.length) return res.json({ sent: 0, message: 'No pending tenants to remind' });
 
-    let sent = 0;
+    // Respond immediately — send emails in background so request doesn't timeout
+    res.json({ sent: pending.length, total: pending.length });
+
     for (const tenant of pending) {
-      try { await sendInspectionReminderEmail(tenant); sent++; } catch {}
+      try {
+        await sendInspectionReminderEmail(tenant);
+        await new Promise(r => setTimeout(r, 200));
+      } catch (e) {
+        console.error('[REMIND] failed for', tenant.email, e.message);
+      }
     }
-    res.json({ sent, total: pending.length });
+    console.log(`[REMIND] done: ${pending.length} reminders sent`);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

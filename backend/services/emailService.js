@@ -3,7 +3,7 @@ const Settings = require('../models/Settings');
 const FROM_EMAIL = process.env.EMAIL_FROM || 'sameer@superstay.no';
 const FROM_NAME = 'Rentservice';
 
-const PORTAL_FOOTER = `<p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;"><a href="${process.env.FRONTEND_URL}/login" style="color:#9CA3AF;">rentservice.no</a></p>`;
+const PORTAL_FOOTER = `<p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">rentservice.no</p>`;
 
 const sendEmail = async (to, toName, subject, html) => {
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {

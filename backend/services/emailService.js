@@ -17,8 +17,6 @@ const sendEmail = async (to, toName, subject, html) => {
       to: [{ email: to, name: toName || to }],
       subject,
       htmlContent: html,
-      params: {},
-      headers: { 'X-Mailin-Track-Click': '0', 'X-Mailin-Track-Open': '0' },
     }),
   });
   if (!res.ok) {

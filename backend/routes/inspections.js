@@ -179,6 +179,22 @@ router.post('/:id/responses/:tenantId/redo', protect, adminOnly, async (req, res
   }
 });
 
+// PATCH /api/inspections/:id/responses/:tenantId/comments — admin saves per-item comments
+router.patch('/:id/responses/:tenantId/comments', protect, adminOnly, async (req, res) => {
+  try {
+    const { fireExtinguisher, smokeDetector, stoveSensor } = req.body;
+    const response = await InspectionResponse.findOneAndUpdate(
+      { inspectionId: req.params.id, tenantId: req.params.tenantId },
+      { $set: { 'adminComments.fireExtinguisher': fireExtinguisher || '', 'adminComments.smokeDetector': smokeDetector || '', 'adminComments.stoveSensor': stoveSensor || '' } },
+      { new: true }
+    );
+    if (!response) return res.status(404).json({ message: 'Response not found' });
+    res.json(response);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // DELETE /api/inspections/:id/responses/:tenantId — admin deletes one tenant's response
 router.delete('/:id/responses/:tenantId', protect, adminOnly, async (req, res) => {
   try {

@@ -31,6 +31,11 @@ const inspectionResponseSchema = new mongoose.Schema({
   smokeDetector: detectorSchema,
   stoveSensor: detectorSchema,
   completedAt: Date,
+  adminComments: {
+    fireExtinguisher: { type: String, default: '' },
+    smokeDetector: { type: String, default: '' },
+    stoveSensor: { type: String, default: '' },
+  },
 }, { timestamps: true });
 
 inspectionResponseSchema.index({ inspectionId: 1, tenantId: 1 }, { unique: true });

@@ -201,7 +201,7 @@ function ExportMenu({ rows, label }) {
 
 // ── Overview table ────────────────────────────────────────────────────────────
 
-function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
+function OverviewTab({ rows, inspectionId, onDeleteResponse, onRequestRedo, onCommentSaved }) {
   const { t } = useLanguage();
   const [expandedTenant, setExpandedTenant] = useState(null);
   const [sortCol, setSortCol] = useState('address');
@@ -297,7 +297,7 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
                 {tenantOpen && row.response && (
                   <tr key={`${row.tenant._id}-detail`}>
                     <td colSpan={8} className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
-                      <FullDetail response={row.response} />
+                      <FullDetail response={row.response} inspectionId={inspectionId} tenantId={row.tenant._id} onCommentSaved={onCommentSaved} />
                     </td>
                   </tr>
                 )}
@@ -532,38 +532,75 @@ function PendingTab({ rows, inspectionId, onRemind }) {
 
 // ── Full detail (expandable in overview) ─────────────────────────────────────
 
-function FullDetail({ response }) {
+function FullDetail({ response, inspectionId, tenantId, onCommentSaved }) {
   const fe = response.fireExtinguisher;
   const sd = response.smokeDetector;
   const sv = response.stoveSensor;
+  const [comments, setComments] = useState({
+    fireExtinguisher: response.adminComments?.fireExtinguisher || '',
+    smokeDetector: response.adminComments?.smokeDetector || '',
+    stoveSensor: response.adminComments?.stoveSensor || '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const saveComments = async () => {
+    setSaving(true);
+    try {
+      await api.patch(`/inspections/${inspectionId}/responses/${tenantId}/comments`, comments);
+      if (onCommentSaved) onCommentSaved(tenantId, comments);
+      toast.success('Comments saved');
+    } catch { toast.error('Failed to save comments'); }
+    finally { setSaving(false); }
+  };
+
+  const items = [
+    { label: '🧯 Fire Extinguisher', data: fe, type: 'fe', key: 'fireExtinguisher' },
+    { label: '🔔 Smoke Detector', data: sd, type: 'det', key: 'smokeDetector' },
+    { label: '🍳 Stove Heat Sensor', data: sv, type: 'det', key: 'stoveSensor' },
+  ];
+
   return (
-    <div className="grid md:grid-cols-3 gap-4 pt-3">
-      {[
-        { label: '🧯 Fire Extinguisher', data: fe, type: 'fe' },
-        { label: '🔔 Smoke Detector', data: sd, type: 'det' },
-        { label: '🍳 Stove Heat Sensor', data: sv, type: 'det' },
-      ].map(({ label, data, type }) => (
-        <div key={label} className="bg-gray-50 rounded-lg p-3 space-y-1">
-          <p className="text-xs font-semibold text-gray-700 mb-2">{label}</p>
-          {!data ? <p className="text-xs text-gray-400">No data</p> : (
-            <>
-              <DetailLine label="Present" val={data.present} reason={!data.present ? data.notPresentReason : null} />
-              {type === 'fe' && data.present && <>
-                <DetailLine label="Gauge green" val={data.gaugeGreen} reason={!data.gaugeGreen ? data.gaugeReason : null} />
-                <DetailLine label="Pin intact" val={data.pinIntact} reason={!data.pinIntact ? data.pinReason : null} />
-              </>}
-              {type === 'det' && data.present && <>
-                <DetailLine label="Beeped" val={data.beeped} />
-                {data.beeped === false && <DetailLine label="After battery" val={data.beepedAfterBattery} />}
-              </>}
-              {data.photo && (
-                <img src={data.photo} alt="" onClick={() => window.open(data.photo)}
-                  className="mt-2 h-20 w-full object-cover rounded cursor-pointer hover:opacity-90" />
-              )}
-            </>
-          )}
-        </div>
-      ))}
+    <div className="pt-3 space-y-3">
+      <div className="grid md:grid-cols-3 gap-4">
+        {items.map(({ label, data, type, key }) => (
+          <div key={label} className="bg-gray-50 rounded-lg p-3 space-y-1">
+            <p className="text-xs font-semibold text-gray-700 mb-2">{label}</p>
+            {!data ? <p className="text-xs text-gray-400">No data</p> : (
+              <>
+                <DetailLine label="Present" val={data.present} reason={!data.present ? data.notPresentReason : null} />
+                {type === 'fe' && data.present && <>
+                  <DetailLine label="Gauge green" val={data.gaugeGreen} reason={!data.gaugeGreen ? data.gaugeReason : null} />
+                  <DetailLine label="Pin intact" val={data.pinIntact} reason={!data.pinIntact ? data.pinReason : null} />
+                </>}
+                {type === 'det' && data.present && <>
+                  <DetailLine label="Beeped" val={data.beeped} />
+                  {data.beeped === false && <DetailLine label="After battery" val={data.beepedAfterBattery} />}
+                </>}
+                {data.photo && (
+                  <img src={data.photo} alt="" onClick={() => window.open(data.photo)}
+                    className="mt-2 h-20 w-full object-cover rounded cursor-pointer hover:opacity-90" />
+                )}
+              </>
+            )}
+            <div className="pt-2">
+              <p className="text-xs text-gray-400 mb-1">Admin comment</p>
+              <textarea
+                rows={2}
+                placeholder="Add a note…"
+                value={comments[key]}
+                onChange={e => setComments(c => ({ ...c, [key]: e.target.value }))}
+                className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-end">
+        <button onClick={saveComments} disabled={saving}
+          className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-60">
+          {saving ? 'Saving…' : '💾 Save Comments'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -890,7 +927,8 @@ export default function AdminInspections() {
             {loadingRows ? (
               <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-xl border border-gray-200 animate-pulse" />)}</div>
             ) : tab === 'Overview' ? (
-              <OverviewTab rows={rows} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget} />
+              <OverviewTab rows={rows} inspectionId={selected._id} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget}
+                onCommentSaved={(tenantId, comments) => setRows(prev => prev.map(r => r.tenant._id === tenantId ? { ...r, response: { ...r.response, adminComments: comments } } : r))} />
             ) : tab === 'Needs Inspection' ? (
               <NeedsInspectionTab rows={rows} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget} />
             ) : tab === 'Passed' ? (

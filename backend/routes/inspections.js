@@ -179,6 +179,34 @@ router.post('/:id/responses/:tenantId/redo', protect, adminOnly, async (req, res
   }
 });
 
+// PATCH /api/inspections/:id/responses/:tenantId/field-override — admin overrides a single field
+router.patch('/:id/responses/:tenantId/field-override', protect, adminOnly, async (req, res) => {
+  try {
+    const { section, field, value, comment, clear } = req.body;
+    const allowed = {
+      fireExtinguisher: ['present', 'gaugeGreen', 'pinIntact'],
+      smokeDetector: ['present', 'beeped'],
+      stoveSensor: ['present', 'beeped'],
+    };
+    if (!allowed[section]?.includes(field)) return res.status(400).json({ message: 'Invalid section/field' });
+    if (!clear && (value === undefined || !comment?.trim())) return res.status(400).json({ message: 'value and comment are required' });
+
+    const update = clear
+      ? { $unset: { [`adminOverrides.${section}.${field}`]: '' } }
+      : { $set: { [`adminOverrides.${section}.${field}`]: { value, comment: comment.trim() } } };
+
+    const response = await InspectionResponse.findOneAndUpdate(
+      { inspectionId: req.params.id, tenantId: req.params.tenantId },
+      update,
+      { new: true }
+    );
+    if (!response) return res.status(404).json({ message: 'Response not found' });
+    res.json(response);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // PATCH /api/inspections/:id/responses/:tenantId/comments — admin saves per-item comments
 router.patch('/:id/responses/:tenantId/comments', protect, adminOnly, async (req, res) => {
   try {

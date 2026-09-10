@@ -7,27 +7,39 @@ import { useLanguage } from '../context/LanguageContext';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
-function fireExtStatus(fe) {
-  if (!fe) return { pass: null, reason: null };
-  if (!fe.present) return { pass: false, reason: fe.notPresentReason || 'Not present' };
-  if (fe.gaugeGreen === false) return { pass: false, reason: fe.gaugeReason ? `Gauge — ${fe.gaugeReason}` : 'Gauge not green' };
-  if (fe.pinIntact === false) return { pass: false, reason: fe.pinReason ? `Pin — ${fe.pinReason}` : 'Pin not intact' };
+function applyOv(data, ov) {
+  if (!data || !ov) return data;
+  const out = { ...data };
+  for (const f of Object.keys(ov)) {
+    if (ov[f]?.value !== undefined) out[f] = ov[f].value;
+  }
+  return out;
+}
+
+function fireExtStatus(fe, ov) {
+  const d = applyOv(fe, ov);
+  if (!d) return { pass: null, reason: null };
+  if (!d.present) return { pass: false, reason: fe?.notPresentReason || 'Not present' };
+  if (d.gaugeGreen === false) return { pass: false, reason: fe?.gaugeReason ? `Gauge — ${fe.gaugeReason}` : 'Gauge not green' };
+  if (d.pinIntact === false) return { pass: false, reason: fe?.pinReason ? `Pin — ${fe.pinReason}` : 'Pin not intact' };
   return { pass: true, reason: null };
 }
 
-function detectorStatus(d) {
-  if (!d) return { pass: null, reason: null };
-  if (!d.present) return { pass: false, reason: d.notPresentReason || 'Not present' };
-  if (d.needsInspection) return { pass: false, reason: 'Did not beep — needs physical inspection' };
+function detectorStatus(d, ov) {
+  const e = applyOv(d, ov);
+  if (!e) return { pass: null, reason: null };
+  if (!e.present) return { pass: false, reason: d?.notPresentReason || 'Not present' };
+  if (e.needsInspection) return { pass: false, reason: 'Did not beep — needs physical inspection' };
   return { pass: true, reason: null };
 }
 
 function getItemStatuses(r) {
   if (!r) return null;
+  const ov = r.adminOverrides || {};
   return {
-    fe: fireExtStatus(r.fireExtinguisher),
-    sd: detectorStatus(r.smokeDetector),
-    sv: detectorStatus(r.stoveSensor),
+    fe: fireExtStatus(r.fireExtinguisher, ov.fireExtinguisher),
+    sd: detectorStatus(r.smokeDetector, ov.smokeDetector),
+    sv: detectorStatus(r.stoveSensor, ov.stoveSensor),
   };
 }
 
@@ -201,7 +213,7 @@ function ExportMenu({ rows, label }) {
 
 // ── Overview table ────────────────────────────────────────────────────────────
 
-function OverviewTab({ rows, inspectionId, onDeleteResponse, onRequestRedo, onCommentSaved }) {
+function OverviewTab({ rows, inspectionId, onDeleteResponse, onRequestRedo, onResponseUpdated }) {
   const { t } = useLanguage();
   const [expandedTenant, setExpandedTenant] = useState(null);
   const [sortCol, setSortCol] = useState('address');
@@ -297,7 +309,7 @@ function OverviewTab({ rows, inspectionId, onDeleteResponse, onRequestRedo, onCo
                 {tenantOpen && row.response && (
                   <tr key={`${row.tenant._id}-detail`}>
                     <td colSpan={8} className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
-                      <FullDetail response={row.response} inspectionId={inspectionId} tenantId={row.tenant._id} onCommentSaved={onCommentSaved} />
+                      <FullDetail response={row.response} inspectionId={inspectionId} tenantId={row.tenant._id} onResponseUpdated={onResponseUpdated} />
                     </td>
                   </tr>
                 )}
@@ -323,7 +335,7 @@ function OverviewCell({ status }) {
 
 // ── Needs Inspection tab ──────────────────────────────────────────────────────
 
-function NeedsInspectionTab({ rows, inspectionId, onDeleteResponse, onRequestRedo, onCommentSaved }) {
+function NeedsInspectionTab({ rows, inspectionId, onDeleteResponse, onRequestRedo, onResponseUpdated }) {
   const [expandedTenant, setExpandedTenant] = useState(null);
   const problemRows = rows.filter(r => overallCategory(r.response) === 'issues');
   if (!problemRows.length) return (
@@ -385,7 +397,7 @@ function NeedsInspectionTab({ rows, inspectionId, onDeleteResponse, onRequestRed
                   </div>
                   {isOpen && row.response && (
                     <div className="px-5 pb-4 bg-gray-50 border-t border-gray-100">
-                      <FullDetail response={row.response} inspectionId={inspectionId} tenantId={row.tenant._id} onCommentSaved={onCommentSaved} />
+                      <FullDetail response={row.response} inspectionId={inspectionId} tenantId={row.tenant._id} onResponseUpdated={onResponseUpdated} />
                     </div>
                   )}
                 </div>
@@ -413,7 +425,7 @@ function IssueItemRow({ label, status }) {
 
 // ── Passed tab ────────────────────────────────────────────────────────────────
 
-function PassedTab({ rows, inspectionId, onDeleteResponse, onRequestRedo, onCommentSaved }) {
+function PassedTab({ rows, inspectionId, onDeleteResponse, onRequestRedo, onResponseUpdated }) {
   const [expandedTenant, setExpandedTenant] = useState(null);
   const passedRows = rows.filter(r => {
     const s = getItemStatuses(r.response);
@@ -467,7 +479,7 @@ function PassedTab({ rows, inspectionId, onDeleteResponse, onRequestRedo, onComm
             </div>
             {isOpen && row.response && (
               <div className="px-5 pb-4 bg-gray-50 border-t border-gray-100">
-                <FullDetail response={row.response} inspectionId={inspectionId} tenantId={row.tenant._id} onCommentSaved={onCommentSaved} />
+                <FullDetail response={row.response} inspectionId={inspectionId} tenantId={row.tenant._id} onResponseUpdated={onResponseUpdated} />
               </div>
             )}
           </div>
@@ -553,86 +565,200 @@ function PendingTab({ rows, inspectionId, onRemind }) {
 
 // ── Full detail (expandable in overview) ─────────────────────────────────────
 
-function FullDetail({ response, inspectionId, tenantId, onCommentSaved }) {
-  const fe = response.fireExtinguisher;
-  const sd = response.smokeDetector;
-  const sv = response.stoveSensor;
-  const [comments, setComments] = useState({
-    fireExtinguisher: response.adminComments?.fireExtinguisher || '',
-    smokeDetector: response.adminComments?.smokeDetector || '',
-    stoveSensor: response.adminComments?.stoveSensor || '',
-  });
+function OverridableLine({ label, tenantVal, override, reason, onSave, onClear }) {
+  const [editing, setEditing] = useState(false);
+  const [newVal, setNewVal] = useState(true);
+  const [comment, setComment] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const saveComments = async () => {
+  const effectiveVal = override?.value !== undefined ? override.value : tenantVal;
+
+  const startEdit = () => {
+    setNewVal(!effectiveVal);
+    setComment('');
+    setEditing(true);
+  };
+
+  const save = async () => {
+    if (!comment.trim()) return;
     setSaving(true);
-    try {
-      await api.patch(`/inspections/${inspectionId}/responses/${tenantId}/comments`, comments);
-      if (onCommentSaved) onCommentSaved(tenantId, comments);
-      toast.success('Comments saved');
-    } catch { toast.error('Failed to save comments'); }
+    try { await onSave(newVal, comment.trim()); setEditing(false); }
+    catch { toast.error('Failed to save'); }
     finally { setSaving(false); }
   };
 
-  const items = [
-    { label: '🧯 Fire Extinguisher', data: fe, type: 'fe', key: 'fireExtinguisher' },
-    { label: '🔔 Smoke Detector', data: sd, type: 'det', key: 'smokeDetector' },
-    { label: '🍳 Stove Heat Sensor', data: sv, type: 'det', key: 'stoveSensor' },
-  ];
+  const clear = async () => {
+    setSaving(true);
+    try { await onClear(); setEditing(false); }
+    catch { toast.error('Failed'); }
+    finally { setSaving(false); }
+  };
 
   return (
-    <div className="pt-3 space-y-3">
-      <div className="grid md:grid-cols-3 gap-4">
-        {items.map(({ label, data, type, key }) => (
-          <div key={label} className="bg-gray-50 rounded-lg p-3 space-y-1">
-            <p className="text-xs font-semibold text-gray-700 mb-2">{label}</p>
-            {!data ? <p className="text-xs text-gray-400">No data</p> : (
-              <>
-                <DetailLine label="Present" val={data.present} reason={!data.present ? data.notPresentReason : null} />
-                {type === 'fe' && data.present && <>
-                  <DetailLine label="Gauge green" val={data.gaugeGreen} reason={!data.gaugeGreen ? data.gaugeReason : null} />
-                  <DetailLine label="Pin intact" val={data.pinIntact} reason={!data.pinIntact ? data.pinReason : null} />
-                </>}
-                {type === 'det' && data.present && <>
-                  <DetailLine label="Beeped" val={data.beeped} />
-                  {data.beeped === false && <DetailLine label="After battery" val={data.beepedAfterBattery} />}
-                </>}
-                {data.photo && (
-                  <img src={data.photo} alt="" onClick={() => window.open(data.photo)}
-                    className="mt-2 h-20 w-full object-cover rounded cursor-pointer hover:opacity-90" />
-                )}
-              </>
-            )}
-            <div className="pt-2">
-              <p className="text-xs text-gray-400 mb-1">Admin comment</p>
-              <textarea
-                rows={2}
-                placeholder="Add a note…"
-                value={comments[key]}
-                onChange={e => setComments(c => ({ ...c, [key]: e.target.value }))}
-                className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-emerald-400"
-              />
-            </div>
+    <div className="space-y-1">
+      <div className="flex items-start justify-between text-xs gap-2">
+        <span className="text-gray-500 shrink-0">{label}</span>
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          {override?.value !== undefined && (
+            <span className="text-amber-500 italic text-xs">overridden</span>
+          )}
+          <button onClick={startEdit}
+            className={`font-medium hover:opacity-70 transition-opacity ${effectiveVal ? 'text-emerald-600' : 'text-red-500'}`}>
+            {effectiveVal ? '✅ Yes' : '❌ No'}
+          </button>
+        </div>
+      </div>
+      {!editing && reason && override?.value === undefined && (
+        <p className="text-xs text-red-400 text-right leading-tight">{reason}</p>
+      )}
+      {!editing && override?.comment && (
+        <p className="text-xs text-amber-600 italic text-right leading-tight">"{override.comment}"</p>
+      )}
+      {editing && (
+        <div className="mt-1.5 p-2.5 bg-white border border-amber-200 rounded-lg space-y-2">
+          <div className="flex gap-2">
+            <button onClick={() => setNewVal(true)}
+              className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${newVal ? 'bg-emerald-500 text-white' : 'border border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+              ✅ Yes
+            </button>
+            <button onClick={() => setNewVal(false)}
+              className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${!newVal ? 'bg-red-500 text-white' : 'border border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+              ❌ No
+            </button>
           </div>
-        ))}
-      </div>
-      <div className="flex justify-end">
-        <button onClick={saveComments} disabled={saving}
-          className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-60">
-          {saving ? 'Saving…' : '💾 Save Comments'}
-        </button>
-      </div>
+          <textarea
+            rows={2}
+            autoFocus
+            placeholder="Comment required — explain why you're changing this…"
+            value={comment}
+            onChange={e => setComment(e.target.value)}
+            className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-amber-400"
+          />
+          <div className="flex gap-2 items-center">
+            <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-600 px-1">Cancel</button>
+            {override?.value !== undefined && (
+              <button onClick={clear} disabled={saving} className="text-xs text-red-400 hover:text-red-600 border border-red-100 px-2 py-0.5 rounded-lg">
+                Clear override
+              </button>
+            )}
+            <button onClick={save} disabled={!comment.trim() || saving}
+              className="ml-auto text-xs bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-lg font-medium disabled:opacity-50 transition-colors">
+              {saving ? '…' : 'Save'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function DetailLine({ label, val, reason }) {
+function FullDetail({ response: initialResponse, inspectionId, tenantId, onResponseUpdated }) {
+  const [response, setResponse] = useState(initialResponse);
+
+  useEffect(() => { setResponse(initialResponse); }, [initialResponse]);
+
+  const saveOverride = async (section, field, value, comment) => {
+    const res = await api.patch(`/inspections/${inspectionId}/responses/${tenantId}/field-override`, { section, field, value, comment });
+    setResponse(res.data);
+    if (onResponseUpdated) onResponseUpdated(tenantId, res.data);
+    toast.success('Override saved');
+  };
+
+  const clearOverride = async (section, field) => {
+    const res = await api.patch(`/inspections/${inspectionId}/responses/${tenantId}/field-override`, { section, field, clear: true });
+    setResponse(res.data);
+    if (onResponseUpdated) onResponseUpdated(tenantId, res.data);
+    toast.success('Override cleared');
+  };
+
+  const ov = response.adminOverrides || {};
+  const fe = response.fireExtinguisher;
+  const sd = response.smokeDetector;
+  const sv = response.stoveSensor;
+
+  const line = (section, field, label, tenantVal, reason) => (
+    <OverridableLine
+      key={`${section}.${field}`}
+      label={label}
+      tenantVal={tenantVal}
+      override={ov[section]?.[field]}
+      reason={reason}
+      onSave={(val, cmt) => saveOverride(section, field, val, cmt)}
+      onClear={() => clearOverride(section, field)}
+    />
+  );
+
   return (
-    <div className="flex items-start justify-between text-xs gap-2">
-      <span className="text-gray-500 shrink-0">{label}</span>
-      <span className={`text-right ${val ? 'text-emerald-600' : 'text-red-500'}`}>
-        {val ? '✅ Yes' : '❌ No'}{reason ? ` — ${reason}` : ''}
-      </span>
+    <div className="pt-3">
+      <div className="grid md:grid-cols-3 gap-4">
+        {/* Fire Extinguisher */}
+        <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+          <p className="text-xs font-semibold text-gray-700">🧯 Fire Extinguisher</p>
+          {!fe ? <p className="text-xs text-gray-400">No data</p> : (
+            <>
+              {line('fireExtinguisher', 'present', 'Present', fe.present, fe.notPresentReason)}
+              {(applyOv(fe, ov.fireExtinguisher)?.present ?? fe.present) && <>
+                {line('fireExtinguisher', 'gaugeGreen', 'Gauge green', fe.gaugeGreen, fe.gaugeReason ? `Gauge — ${fe.gaugeReason}` : null)}
+                {line('fireExtinguisher', 'pinIntact', 'Pin intact', fe.pinIntact, fe.pinReason ? `Pin — ${fe.pinReason}` : null)}
+              </>}
+              {fe.photo && (
+                <img src={fe.photo} alt="" onClick={() => window.open(fe.photo)}
+                  className="mt-2 h-20 w-full object-cover rounded cursor-pointer hover:opacity-90" />
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Smoke Detector */}
+        <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+          <p className="text-xs font-semibold text-gray-700">🔔 Smoke Detector</p>
+          {!sd ? <p className="text-xs text-gray-400">No data</p> : (
+            <>
+              {line('smokeDetector', 'present', 'Present', sd.present, sd.notPresentReason)}
+              {(applyOv(sd, ov.smokeDetector)?.present ?? sd.present) && <>
+                {line('smokeDetector', 'beeped', 'Beeped', sd.beeped, null)}
+                {sd.beeped === false && (
+                  <div className="flex items-start justify-between text-xs gap-2">
+                    <span className="text-gray-500">After battery</span>
+                    <span className={sd.beepedAfterBattery ? 'text-emerald-600' : 'text-red-500'}>
+                      {sd.beepedAfterBattery ? '✅ Yes' : '❌ No'}
+                    </span>
+                  </div>
+                )}
+              </>}
+              {sd.photo && (
+                <img src={sd.photo} alt="" onClick={() => window.open(sd.photo)}
+                  className="mt-2 h-20 w-full object-cover rounded cursor-pointer hover:opacity-90" />
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Stove Sensor */}
+        <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+          <p className="text-xs font-semibold text-gray-700">🍳 Stove Heat Sensor</p>
+          {!sv ? <p className="text-xs text-gray-400">No data</p> : (
+            <>
+              {line('stoveSensor', 'present', 'Present', sv.present, sv.notPresentReason)}
+              {(applyOv(sv, ov.stoveSensor)?.present ?? sv.present) && <>
+                {line('stoveSensor', 'beeped', 'Beeped', sv.beeped, null)}
+                {sv.beeped === false && (
+                  <div className="flex items-start justify-between text-xs gap-2">
+                    <span className="text-gray-500">After battery</span>
+                    <span className={sv.beepedAfterBattery ? 'text-emerald-600' : 'text-red-500'}>
+                      {sv.beepedAfterBattery ? '✅ Yes' : '❌ No'}
+                    </span>
+                  </div>
+                )}
+              </>}
+              {sv.photo && (
+                <img src={sv.photo} alt="" onClick={() => window.open(sv.photo)}
+                  className="mt-2 h-20 w-full object-cover rounded cursor-pointer hover:opacity-90" />
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -971,13 +1097,13 @@ export default function AdminInspections() {
               <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-xl border border-gray-200 animate-pulse" />)}</div>
             ) : tab === 'Overview' ? (
               <OverviewTab rows={rows} inspectionId={selected._id} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget}
-                onCommentSaved={(tenantId, comments) => setRows(prev => prev.map(r => r.tenant._id === tenantId ? { ...r, response: { ...r.response, adminComments: comments } } : r))} />
+                onResponseUpdated={(tenantId, updatedResponse) => setRows(prev => prev.map(r => r.tenant._id === tenantId ? { ...r, response: updatedResponse } : r))} />
             ) : tab === 'Needs Inspection' ? (
               <NeedsInspectionTab rows={rows} inspectionId={selected._id} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget}
-                onCommentSaved={(tenantId, comments) => setRows(prev => prev.map(r => r.tenant._id === tenantId ? { ...r, response: { ...r.response, adminComments: comments } } : r))} />
+                onResponseUpdated={(tenantId, updatedResponse) => setRows(prev => prev.map(r => r.tenant._id === tenantId ? { ...r, response: updatedResponse } : r))} />
             ) : tab === 'Passed' ? (
               <PassedTab rows={rows} inspectionId={selected._id} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget}
-                onCommentSaved={(tenantId, comments) => setRows(prev => prev.map(r => r.tenant._id === tenantId ? { ...r, response: { ...r.response, adminComments: comments } } : r))} />
+                onResponseUpdated={(tenantId, updatedResponse) => setRows(prev => prev.map(r => r.tenant._id === tenantId ? { ...r, response: updatedResponse } : r))} />
             ) : tab === 'Archive' ? (
               <ArchiveTab inspections={inspections} onDelete={handleDeleteInspection} />
             ) : (

@@ -244,10 +244,10 @@ function OverviewTab({ rows, inspectionId, onDeleteResponse, onRequestRedo, onCo
             <SortTh col="address">{t('inspection.overviewAddress')}</SortTh>
             <th className="text-left px-4 py-3">{t('inspection.overviewUnit')}</th>
             <SortTh col="name">{t('inspection.overviewName')}</SortTh>
-            <SortTh col="date" center>📅 Date</SortTh>
             <SortTh col="fire" center>🧯 Fire</SortTh>
             <SortTh col="smoke" center>🔔 Smoke</SortTh>
             <SortTh col="stove" center>🍳 Stove</SortTh>
+            <SortTh col="date" center>📅 Date</SortTh>
             <th className="px-2 py-3"></th>
           </tr>
         </thead>
@@ -271,14 +271,14 @@ function OverviewTab({ rows, inspectionId, onDeleteResponse, onRequestRedo, onCo
                       {isVacant ? '— Vacant —' : row.tenant.name}
                     </span>
                   </td>
+                  <td className="px-4 py-2.5 text-center"><OverviewCell status={s?.fe} /></td>
+                  <td className="px-4 py-2.5 text-center"><OverviewCell status={s?.sd} /></td>
+                  <td className="px-4 py-2.5 text-center"><OverviewCell status={s?.sv} /></td>
                   <td className="px-4 py-2.5 text-center text-xs text-gray-400 whitespace-nowrap">
                     {row.response?.completedAt
                       ? new Date(row.response.completedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
                       : '—'}
                   </td>
-                  <td className="px-4 py-2.5 text-center"><OverviewCell status={s?.fe} /></td>
-                  <td className="px-4 py-2.5 text-center"><OverviewCell status={s?.sd} /></td>
-                  <td className="px-4 py-2.5 text-center"><OverviewCell status={s?.sv} /></td>
                   <td className="px-2 py-2.5">
                     {row.response && !isVacant && (
                       <div className="flex items-center gap-1">

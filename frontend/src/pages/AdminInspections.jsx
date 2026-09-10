@@ -323,7 +323,8 @@ function OverviewCell({ status }) {
 
 // ── Needs Inspection tab ──────────────────────────────────────────────────────
 
-function NeedsInspectionTab({ rows, onDeleteResponse, onRequestRedo }) {
+function NeedsInspectionTab({ rows, inspectionId, onDeleteResponse, onRequestRedo, onCommentSaved }) {
+  const [expandedTenant, setExpandedTenant] = useState(null);
   const problemRows = rows.filter(r => overallCategory(r.response) === 'issues');
   if (!problemRows.length) return (
     <div className="bg-white rounded-xl border border-dashed border-gray-300 p-16 text-center">
@@ -353,32 +354,40 @@ function NeedsInspectionTab({ rows, onDeleteResponse, onRequestRedo }) {
           <div className="divide-y divide-gray-100">
             {groups[building].map(row => {
               const s = getItemStatuses(row.response);
+              const isOpen = expandedTenant === row.tenant._id;
               return (
-                <div key={row.tenant._id} className="px-5 py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-800">
-                        {row.tenant.name}
-                        {row.tenant.building && <span className="text-gray-400 font-normal ml-1.5">Unit {row.tenant.building}</span>}
-                      </p>
-                      {/* All 3 items shown clearly — pass or fail with reason */}
-                      <div className="mt-2.5 space-y-1.5">
-                        <IssueItemRow label="🧯 Fire Extinguisher" status={s.fe} />
-                        <IssueItemRow label="🔔 Smoke Detector" status={s.sd} />
-                        <IssueItemRow label="🍳 Stove Heat Sensor" status={s.sv} />
+                <div key={row.tenant._id}>
+                  <div className="px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setExpandedTenant(isOpen ? null : row.tenant._id)}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-800">
+                          {row.tenant.name}
+                          {row.tenant.building && <span className="text-gray-400 font-normal ml-1.5">Unit {row.tenant.building}</span>}
+                          <span className="text-gray-300 ml-2 text-xs">{isOpen ? '▾' : '▸'}</span>
+                        </p>
+                        <div className="mt-2.5 space-y-1.5">
+                          <IssueItemRow label="🧯 Fire Extinguisher" status={s.fe} />
+                          <IssueItemRow label="🔔 Smoke Detector" status={s.sd} />
+                          <IssueItemRow label="🍳 Stove Heat Sensor" status={s.sv} />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        {onRequestRedo && (
+                          <button onClick={e => { e.stopPropagation(); onRequestRedo(row.tenant); }}
+                            className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 hover:border-amber-400 px-2 py-0.5 rounded-lg transition-colors">↺ Redo</button>
+                        )}
+                        {onDeleteResponse && (
+                          <button onClick={e => { e.stopPropagation(); onDeleteResponse(row.tenant._id); }}
+                            className="text-gray-300 hover:text-red-400 text-xs" title="Reset silently">🗑</button>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      {onRequestRedo && (
-                        <button onClick={() => onRequestRedo(row.tenant)}
-                          className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 hover:border-amber-400 px-2 py-0.5 rounded-lg transition-colors">↺ Redo</button>
-                      )}
-                      {onDeleteResponse && (
-                        <button onClick={() => onDeleteResponse(row.tenant._id)}
-                          className="text-gray-300 hover:text-red-400 text-xs" title="Reset silently">🗑</button>
-                      )}
-                    </div>
                   </div>
+                  {isOpen && row.response && (
+                    <div className="px-5 pb-4 bg-gray-50 border-t border-gray-100">
+                      <FullDetail response={row.response} inspectionId={inspectionId} tenantId={row.tenant._id} onCommentSaved={onCommentSaved} />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -404,8 +413,8 @@ function IssueItemRow({ label, status }) {
 
 // ── Passed tab ────────────────────────────────────────────────────────────────
 
-function PassedTab({ rows, onDeleteResponse, onRequestRedo }) {
-  // Show any tenant who has at least one passing item
+function PassedTab({ rows, inspectionId, onDeleteResponse, onRequestRedo, onCommentSaved }) {
+  const [expandedTenant, setExpandedTenant] = useState(null);
   const passedRows = rows.filter(r => {
     const s = getItemStatuses(r.response);
     return s && (s.fe.pass === true || s.sd.pass === true || s.sv.pass === true);
@@ -423,32 +432,44 @@ function PassedTab({ rows, onDeleteResponse, onRequestRedo }) {
       <div className="divide-y divide-gray-100">
         {passedRows.map(row => {
           const s = getItemStatuses(row.response);
+          const isOpen = expandedTenant === row.tenant._id;
           return (
-          <div key={row.tenant._id} className="px-5 py-3.5 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-800">{row.tenant.name}</p>
-              <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · Unit ${row.tenant.building}` : ''}</p>
-              <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                {ITEMS.filter(i => s[i.key].pass === true).map(i => (
-                  <span key={i.key} className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">{i.label} ✅</span>
-                ))}
+          <div key={row.tenant._id}>
+            <div className="px-5 py-3.5 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+              onClick={() => setExpandedTenant(isOpen ? null : row.tenant._id)}>
+              <div>
+                <p className="text-sm font-medium text-gray-800">
+                  {row.tenant.name}
+                  <span className="text-gray-300 ml-2 text-xs">{isOpen ? '▾' : '▸'}</span>
+                </p>
+                <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · Unit ${row.tenant.building}` : ''}</p>
+                <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                  {ITEMS.filter(i => s[i.key].pass === true).map(i => (
+                    <span key={i.key} className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">{i.label} ✅</span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                {row.response?.completedAt && (
+                  <span className="text-xs text-gray-400">
+                    {new Date(row.response.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                  </span>
+                )}
+                {onRequestRedo && (
+                  <button onClick={e => { e.stopPropagation(); onRequestRedo(row.tenant); }}
+                    className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 hover:border-amber-400 px-2 py-0.5 rounded-lg transition-colors">↺ Redo</button>
+                )}
+                {onDeleteResponse && (
+                  <button onClick={e => { e.stopPropagation(); onDeleteResponse(row.tenant._id); }}
+                    className="text-gray-300 hover:text-red-400 text-xs" title="Reset silently">🗑</button>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
-              {row.response?.completedAt && (
-                <span className="text-xs text-gray-400">
-                  {new Date(row.response.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                </span>
-              )}
-              {onRequestRedo && (
-                <button onClick={() => onRequestRedo(row.tenant)}
-                  className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 hover:border-amber-400 px-2 py-0.5 rounded-lg transition-colors">↺ Redo</button>
-              )}
-              {onDeleteResponse && (
-                <button onClick={() => onDeleteResponse(row.tenant._id)}
-                  className="text-gray-300 hover:text-red-400 text-xs" title="Reset silently">🗑</button>
-              )}
-            </div>
+            {isOpen && row.response && (
+              <div className="px-5 pb-4 bg-gray-50 border-t border-gray-100">
+                <FullDetail response={row.response} inspectionId={inspectionId} tenantId={row.tenant._id} onCommentSaved={onCommentSaved} />
+              </div>
+            )}
           </div>
           );
         })}
@@ -632,6 +653,54 @@ function Empty({ text }) {
   );
 }
 
+// ── Archive rows (expandable) ─────────────────────────────────────────────────
+
+function ArchiveRows({ rows, inspectionId }) {
+  const [expandedTenant, setExpandedTenant] = useState(null);
+  const sorted = [...rows].sort((a, b) => {
+    const ua = (a.tenant?.unit || '').localeCompare(b.tenant?.unit || '');
+    if (ua !== 0) return ua;
+    return (a.tenant?.building || '').localeCompare(b.tenant?.building || '', undefined, { numeric: true });
+  });
+  return (
+    <div className="divide-y divide-gray-100">
+      <div className="grid grid-cols-[1fr_auto_120px] gap-2 px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+        <span>Tenant</span>
+        <span>Result</span>
+        <span>Completed at</span>
+      </div>
+      {sorted.map(row => {
+        const cat = overallCategory(row.response);
+        const completedAt = row.response?.completedAt
+          ? new Date(row.response.completedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : '—';
+        const isOpen = expandedTenant === row.tenant._id;
+        return (
+          <div key={row.tenant._id}>
+            <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+              onClick={() => row.response && setExpandedTenant(isOpen ? null : row.tenant._id)}>
+              <div>
+                <p className="text-sm font-medium text-gray-800">
+                  {row.tenant.name}
+                  {row.response && <span className="text-gray-300 ml-2 text-xs">{isOpen ? '▾' : '▸'}</span>}
+                </p>
+                <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · Unit ${row.tenant.building}` : ''}</p>
+              </div>
+              <OverallBadge cat={cat} />
+              <p className="text-xs text-gray-500">{completedAt}</p>
+            </div>
+            {isOpen && row.response && (
+              <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
+                <FullDetail response={row.response} inspectionId={inspectionId} tenantId={row.tenant._id} />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Archive tab ───────────────────────────────────────────────────────────────
 
 function ArchiveTab({ inspections, onDelete }) {
@@ -690,33 +759,7 @@ function ArchiveTab({ inspections, onDelete }) {
                 ) : rows.length === 0 ? (
                   <div className="p-6 text-center text-gray-400 text-sm">No responses recorded.</div>
                 ) : (
-                  <div className="divide-y divide-gray-100">
-                    <div className="grid grid-cols-[1fr_auto_120px] gap-2 px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                      <span>Tenant</span>
-                      <span>Result</span>
-                      <span>Completed at</span>
-                    </div>
-                    {rows.sort((a, b) => {
-                      const ua = (a.tenant?.unit || '').localeCompare(b.tenant?.unit || '');
-                      if (ua !== 0) return ua;
-                      return (a.tenant?.building || '').localeCompare(b.tenant?.building || '', undefined, { numeric: true });
-                    }).map(row => {
-                      const cat = overallCategory(row.response);
-                      const completedAt = row.response?.completedAt
-                        ? new Date(row.response.completedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                        : '—';
-                      return (
-                        <div key={row.tenant._id} className="grid grid-cols-[1fr_auto_120px] gap-2 items-center px-4 py-3">
-                          <div>
-                            <p className="text-sm font-medium text-gray-800">{row.tenant.name}</p>
-                            <p className="text-xs text-gray-400">{row.tenant.unit}{row.tenant.building ? ` · Unit ${row.tenant.building}` : ''}</p>
-                          </div>
-                          <OverallBadge cat={cat} />
-                          <p className="text-xs text-gray-500">{completedAt}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <ArchiveRows rows={rows} inspectionId={ins._id} />
                 )}
               </div>
             )}
@@ -930,9 +973,11 @@ export default function AdminInspections() {
               <OverviewTab rows={rows} inspectionId={selected._id} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget}
                 onCommentSaved={(tenantId, comments) => setRows(prev => prev.map(r => r.tenant._id === tenantId ? { ...r, response: { ...r.response, adminComments: comments } } : r))} />
             ) : tab === 'Needs Inspection' ? (
-              <NeedsInspectionTab rows={rows} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget} />
+              <NeedsInspectionTab rows={rows} inspectionId={selected._id} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget}
+                onCommentSaved={(tenantId, comments) => setRows(prev => prev.map(r => r.tenant._id === tenantId ? { ...r, response: { ...r.response, adminComments: comments } } : r))} />
             ) : tab === 'Passed' ? (
-              <PassedTab rows={rows} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget} />
+              <PassedTab rows={rows} inspectionId={selected._id} onDeleteResponse={handleDeleteResponse} onRequestRedo={setRedoTarget}
+                onCommentSaved={(tenantId, comments) => setRows(prev => prev.map(r => r.tenant._id === tenantId ? { ...r, response: { ...r.response, adminComments: comments } } : r))} />
             ) : tab === 'Archive' ? (
               <ArchiveTab inspections={inspections} onDelete={handleDeleteInspection} />
             ) : (

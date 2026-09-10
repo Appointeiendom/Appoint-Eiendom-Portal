@@ -966,6 +966,17 @@ export default function AdminInspections() {
     } catch { toast.error('Failed'); } finally { setClosing(false); }
   };
 
+  const handleReopen = async () => {
+    if (!selected || !confirm("Reopen this inspection? Any currently active inspection will be closed.")) return;
+    setClosing(true);
+    try {
+      const res = await api.put(`/inspections/${selected._id}/reopen`);
+      setInspections(prev => prev.map(i => i._id === selected._id ? res.data : { ...i, status: 'closed' }));
+      setSelected(res.data);
+      toast.success('Inspection reopened');
+    } catch { toast.error('Failed'); } finally { setClosing(false); }
+  };
+
   const handleDeleteInspection = async (ins) => {
     if (!confirm('Delete this inspection and all its responses?')) return;
     try {
@@ -1068,10 +1079,15 @@ export default function AdminInspections() {
                 </div>
                 <div className="flex items-center gap-2">
                   <ExportMenu rows={rows} label={inspLabel} />
-                  {selected.status === 'active' && (
+                  {selected.status === 'active' ? (
                     <button onClick={handleClose} disabled={closing}
                       className="text-xs text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
                       {closing ? '…' : 'Close inspection'}
+                    </button>
+                  ) : (
+                    <button onClick={handleReopen} disabled={closing}
+                      className="text-xs text-emerald-600 hover:text-emerald-800 border border-emerald-200 hover:border-emerald-400 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                      {closing ? '…' : '↺ Reopen inspection'}
                     </button>
                   )}
                 </div>

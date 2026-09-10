@@ -310,4 +310,16 @@ router.put('/:id/close', protect, adminOnly, async (req, res) => {
   }
 });
 
+// PUT /api/inspections/:id/reopen — admin reopens a closed inspection
+router.put('/:id/reopen', protect, adminOnly, async (req, res) => {
+  try {
+    await Inspection.updateMany({ status: 'active' }, { status: 'closed' });
+    const inspection = await Inspection.findByIdAndUpdate(req.params.id, { status: 'active' }, { new: true });
+    if (!inspection) return res.status(404).json({ message: 'Not found' });
+    res.json(inspection);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

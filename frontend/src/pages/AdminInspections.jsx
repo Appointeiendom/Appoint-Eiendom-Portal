@@ -204,29 +204,50 @@ function ExportMenu({ rows, label }) {
 function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
   const { t } = useLanguage();
   const [expandedTenant, setExpandedTenant] = useState(null);
+  const [sortCol, setSortCol] = useState('address');
+  const [sortDir, setSortDir] = useState('asc');
 
   if (!rows.length) return <Empty text="No tenants yet." />;
 
-  // Sort: by address → unit (A-1, A-2, B-1…) → vacant last
+  const toggleSort = (col) => {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('asc'); }
+  };
+
+  const passVal = (s, key) => s?.[key]?.pass === true ? 0 : s?.[key]?.pass === false ? 1 : 2;
+
   const sorted = [...rows].sort((a, b) => {
     if (a.tenant?.isVacant && !b.tenant?.isVacant) return 1;
     if (!a.tenant?.isVacant && b.tenant?.isVacant) return -1;
-    const addrCmp = (a.tenant?.unit || '').localeCompare(b.tenant?.unit || '');
-    if (addrCmp !== 0) return addrCmp;
-    return (a.tenant?.building || '').localeCompare(b.tenant?.building || '', undefined, { sensitivity: 'base' });
+    let cmp = 0;
+    if (sortCol === 'name') cmp = (a.tenant?.name || '').localeCompare(b.tenant?.name || '');
+    else if (sortCol === 'date') cmp = (a.response?.completedAt || '').localeCompare(b.response?.completedAt || '');
+    else if (sortCol === 'fire') { const sa = getItemStatuses(a.response); const sb = getItemStatuses(b.response); cmp = passVal(sa,'fe') - passVal(sb,'fe'); }
+    else if (sortCol === 'smoke') { const sa = getItemStatuses(a.response); const sb = getItemStatuses(b.response); cmp = passVal(sa,'sd') - passVal(sb,'sd'); }
+    else if (sortCol === 'stove') { const sa = getItemStatuses(a.response); const sb = getItemStatuses(b.response); cmp = passVal(sa,'sv') - passVal(sb,'sv'); }
+    else { const addrCmp = (a.tenant?.unit || '').localeCompare(b.tenant?.unit || ''); cmp = addrCmp !== 0 ? addrCmp : (a.tenant?.building || '').localeCompare(b.tenant?.building || ''); }
+    return sortDir === 'asc' ? cmp : -cmp;
   });
+
+  const SortTh = ({ col, children, center }) => (
+    <th onClick={() => toggleSort(col)}
+      className={`${center ? 'text-center' : 'text-left'} px-4 py-3 cursor-pointer select-none hover:text-gray-600 transition-colors`}>
+      {children} {sortCol === col ? (sortDir === 'asc' ? '↑' : '↓') : <span className="text-gray-300">↕</span>}
+    </th>
+  );
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-            <th className="text-left px-4 py-3">{t('inspection.overviewAddress')}</th>
+            <SortTh col="address">{t('inspection.overviewAddress')}</SortTh>
             <th className="text-left px-4 py-3">{t('inspection.overviewUnit')}</th>
-            <th className="text-left px-4 py-3">{t('inspection.overviewName')}</th>
-            <th className="text-center px-4 py-3">🧯 Fire</th>
-            <th className="text-center px-4 py-3">🔔 Smoke</th>
-            <th className="text-center px-4 py-3">🍳 Stove</th>
+            <SortTh col="name">{t('inspection.overviewName')}</SortTh>
+            <SortTh col="date" center>📅 Date</SortTh>
+            <SortTh col="fire" center>🧯 Fire</SortTh>
+            <SortTh col="smoke" center>🔔 Smoke</SortTh>
+            <SortTh col="stove" center>🍳 Stove</SortTh>
             <th className="px-2 py-3"></th>
           </tr>
         </thead>
@@ -249,11 +270,11 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
                     <span className={isVacant ? 'text-gray-400 italic' : 'text-gray-800'}>
                       {isVacant ? '— Vacant —' : row.tenant.name}
                     </span>
-                    {row.response?.completedAt && (
-                      <span className="ml-2 text-xs text-gray-400">
-                        {new Date(row.response.completedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-center text-xs text-gray-400 whitespace-nowrap">
+                    {row.response?.completedAt
+                      ? new Date(row.response.completedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                      : '—'}
                   </td>
                   <td className="px-4 py-2.5 text-center"><OverviewCell status={s?.fe} /></td>
                   <td className="px-4 py-2.5 text-center"><OverviewCell status={s?.sd} /></td>
@@ -275,7 +296,7 @@ function OverviewTab({ rows, onDeleteResponse, onRequestRedo }) {
                 </tr>
                 {tenantOpen && row.response && (
                   <tr key={`${row.tenant._id}-detail`}>
-                    <td colSpan={7} className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
+                    <td colSpan={8} className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
                       <FullDetail response={row.response} />
                     </td>
                   </tr>

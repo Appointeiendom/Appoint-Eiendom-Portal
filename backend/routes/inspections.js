@@ -30,14 +30,20 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const { tenantIds } = req.body || {};
     const filter = { role: 'tenant', movedOutAt: null, ...(tenantIds?.length ? { _id: { $in: tenantIds } } : {}) };
     const tenants = await User.find(filter).select('name email');
-    for (const tenant of tenants) {
-      sendInspectionAssignedEmail(tenant).catch(e =>
-        console.error('[INSPECTION EMAIL]', tenant.email, e.message)
-      );
-    }
-    console.log(`[INSPECTION] notified ${tenants.length} tenants`);
+    console.log(`[INSPECTION] found ${tenants.length} tenants to notify:`, tenants.map(t => t.email));
 
+    // Respond immediately, then send emails sequentially in background
     res.status(201).json(inspection);
+
+    for (const tenant of tenants) {
+      try {
+        await sendInspectionAssignedEmail(tenant);
+        await new Promise(r => setTimeout(r, 200));
+      } catch (e) {
+        console.error('[INSPECTION EMAIL] failed for', tenant.email, e.message);
+      }
+    }
+    console.log(`[INSPECTION] done — notified ${tenants.length} tenants`);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

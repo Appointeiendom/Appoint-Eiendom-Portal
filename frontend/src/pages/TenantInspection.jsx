@@ -425,9 +425,27 @@ export default function TenantInspection({ inspection, onComplete }) {
     stepResets[prev]?.();
     setStep(prev);
   };
-  const setPhoto = (key, file) => {
+  const compressPhoto = (file) => new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const maxW = 1200;
+      const scale = Math.min(1, maxW / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => resolve(new File([blob], file.name, { type: 'image/jpeg' })), 'image/jpeg', 0.75);
+    };
+    img.src = url;
+  });
+
+  const setPhoto = async (key, file) => {
     const preview = URL.createObjectURL(file);
     upd(key, { photo: file, preview });
+    const compressed = await compressPhoto(file);
+    upd(key, { photo: compressed });
   };
 
   const submit = async () => {

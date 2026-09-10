@@ -441,17 +441,23 @@ export default function TenantInspection({ inspection, onComplete }) {
     img.src = url;
   });
 
-  const setPhoto = async (key, file) => {
+  const setPhoto = (key, file) => {
     const preview = URL.createObjectURL(file);
     upd(key, { photo: file, preview });
-    const compressed = await compressPhoto(file);
-    upd(key, { photo: compressed });
   };
 
   const submit = async () => {
     setSubmitting(true);
     try {
       const { fireExt, smokeDet, stoveSensor } = answers;
+
+      // Compress photos at submit time so we always use the latest file
+      const [fePhoto, sdPhoto, svPhoto] = await Promise.all([
+        fireExt.photo ? compressPhoto(fireExt.photo) : null,
+        smokeDet.photo ? compressPhoto(smokeDet.photo) : null,
+        stoveSensor.photo ? compressPhoto(stoveSensor.photo) : null,
+      ]);
+
       const fd = new FormData();
       fd.append('fireExtinguisher', JSON.stringify({
         present: fireExt.present,
@@ -475,9 +481,9 @@ export default function TenantInspection({ inspection, onComplete }) {
         beepedAfterBattery: stoveSensor.beepedAfter,
         needsInspection: stoveSensor.needsInspection,
       }));
-      if (fireExt.photo) fd.append('fireExtPhoto', fireExt.photo);
-      if (smokeDet.photo) fd.append('smokeDetPhoto', smokeDet.photo);
-      if (stoveSensor.photo) fd.append('stoveSensorPhoto', stoveSensor.photo);
+      if (fePhoto) fd.append('fireExtPhoto', fePhoto);
+      if (sdPhoto) fd.append('smokeDetPhoto', sdPhoto);
+      if (svPhoto) fd.append('stoveSensorPhoto', svPhoto);
 
       await api.post(`/inspections/${inspection._id}/respond`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' },

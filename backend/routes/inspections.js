@@ -191,17 +191,20 @@ router.patch('/:id/responses/:tenantId/field-override', protect, adminOnly, asyn
     if (!allowed[section]?.includes(field)) return res.status(400).json({ message: 'Invalid section/field' });
     if (!clear && (value === undefined || !comment?.trim())) return res.status(400).json({ message: 'value and comment are required' });
 
-    const update = clear
-      ? { $unset: { [`adminOverrides.${section}.${field}`]: '' } }
-      : { $set: { [`adminOverrides.${section}.${field}`]: { value, comment: comment.trim() } } };
+    const doc = await InspectionResponse.findOne({ inspectionId: req.params.id, tenantId: req.params.tenantId });
+    if (!doc) return res.status(404).json({ message: 'Response not found' });
 
-    const response = await InspectionResponse.findOneAndUpdate(
-      { inspectionId: req.params.id, tenantId: req.params.tenantId },
-      update,
-      { new: true }
-    );
-    if (!response) return res.status(404).json({ message: 'Response not found' });
-    res.json(response);
+    const ov = JSON.parse(JSON.stringify(doc.adminOverrides || {}));
+    if (clear) {
+      if (ov[section]) delete ov[section][field];
+    } else {
+      if (!ov[section]) ov[section] = {};
+      ov[section][field] = { value, comment: comment.trim() };
+    }
+    doc.adminOverrides = ov;
+    doc.markModified('adminOverrides');
+    await doc.save();
+    res.json(doc);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

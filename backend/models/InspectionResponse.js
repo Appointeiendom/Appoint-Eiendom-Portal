@@ -36,21 +36,7 @@ const inspectionResponseSchema = new mongoose.Schema({
     smokeDetector: { type: String, default: '' },
     stoveSensor: { type: String, default: '' },
   },
-  adminOverrides: {
-    fireExtinguisher: {
-      present: { value: Boolean, comment: String },
-      gaugeGreen: { value: Boolean, comment: String },
-      pinIntact: { value: Boolean, comment: String },
-    },
-    smokeDetector: {
-      present: { value: Boolean, comment: String },
-      beeped: { value: Boolean, comment: String },
-    },
-    stoveSensor: {
-      present: { value: Boolean, comment: String },
-      beeped: { value: Boolean, comment: String },
-    },
-  },
+  adminOverrides: { type: mongoose.Schema.Types.Mixed, default: {} },
 }, { timestamps: true });
 
 inspectionResponseSchema.index({ inspectionId: 1, tenantId: 1 }, { unique: true });

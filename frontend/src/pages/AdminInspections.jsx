@@ -683,6 +683,9 @@ export default function AdminInspections() {
   const [tab, setTab] = useState('Overview');
   const [seenCounts, setSeenCounts] = useState({});
   const [redoTarget, setRedoTarget] = useState(null); // { _id, name } of tenant
+  const [showTenantPicker, setShowTenantPicker] = useState(false);
+  const [allTenants, setAllTenants] = useState([]);
+  const [pickedTenants, setPickedTenants] = useState([]);
 
   useEffect(() => {
     api.get('/inspections').then(r => {
@@ -701,14 +704,25 @@ export default function AdminInspections() {
       .finally(() => setLoadingRows(false));
   }, [selected]);
 
-  const handleCreate = async (e) => {
-    e.preventDefault();
+  const openTenantPicker = async () => {
+    if (allTenants.length === 0) {
+      try {
+        const res = await api.get('/users?role=tenant');
+        setAllTenants(res.data.filter(u => !u.movedOutAt));
+      } catch { toast.error('Failed to load tenants'); return; }
+    }
+    setPickedTenants([]);
+    setShowTenantPicker(true);
+  };
+
+  const handleCreate = async (tenantIds) => {
+    setShowTenantPicker(false);
     setCreating(true);
     try {
-      const res = await api.post('/inspections', {});
+      const res = await api.post('/inspections', tenantIds?.length ? { tenantIds } : {});
       setInspections(prev => [res.data, ...prev.map(i => ({ ...i, status: 'closed' }))]);
       setSelected(res.data);
-      toast.success('Inspection started — tenants are now blocked until they respond.');
+      toast.success(tenantIds?.length ? `Inspection started — ${tenantIds.length} tenant(s) notified.` : 'Inspection started — all tenants notified.');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed');
     } finally { setCreating(false); }
@@ -772,12 +786,10 @@ export default function AdminInspections() {
             <h1 className="text-2xl font-bold text-gray-800">🔥 Safety Inspections</h1>
             <p className="text-gray-500 text-sm mt-1">Fire extinguisher · Smoke detector · Stove heat sensor</p>
           </div>
-          <form onSubmit={handleCreate}>
-            <button type="submit" disabled={creating}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60">
-              {creating ? '…' : '+ New Inspection'}
-            </button>
-          </form>
+          <button onClick={openTenantPicker} disabled={creating}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60">
+            {creating ? '…' : '+ New Inspection'}
+          </button>
         </div>
 
         {/* Inspection selector */}
@@ -878,6 +890,32 @@ export default function AdminInspections() {
           </div>
         )}
       </div>
+
+      {showTenantPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-lg font-bold text-gray-800 mb-1">+ New Inspection</h2>
+            <p className="text-sm text-gray-500 mb-4">Select specific tenants to notify, or send to all.</p>
+            <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100 mb-4">
+              {allTenants.map(t => (
+                <label key={t._id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
+                  <input type="checkbox" className="rounded"
+                    checked={pickedTenants.includes(t._id)}
+                    onChange={e => setPickedTenants(prev => e.target.checked ? [...prev, t._id] : prev.filter(id => id !== t._id))} />
+                  <span className="text-sm text-gray-700">{t.name}</span>
+                  <span className="text-xs text-gray-400 ml-auto">{t.unit} {t.building || ''}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowTenantPicker(false)} className="flex-1 border border-gray-200 text-gray-600 hover:bg-gray-50 py-2.5 rounded-xl text-sm transition-colors">Cancel</button>
+              <button onClick={() => handleCreate(pickedTenants)} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">
+                {pickedTenants.length ? `Send to ${pickedTenants.length} tenant(s)` : 'Send to All'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {redoTarget && (
         <RequestRedoModal

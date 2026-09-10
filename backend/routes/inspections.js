@@ -26,8 +26,10 @@ router.post('/', protect, adminOnly, async (req, res) => {
     await Inspection.updateMany({ status: 'active' }, { status: 'closed' });
     const inspection = await Inspection.create({ createdBy: req.user._id });
 
-    // Notify all active tenants
-    const tenants = await User.find({ role: 'tenant', movedOutAt: null }).select('name email');
+    // Notify specific or all active tenants
+    const { tenantIds } = req.body || {};
+    const filter = { role: 'tenant', movedOutAt: null, ...(tenantIds?.length ? { _id: { $in: tenantIds } } : {}) };
+    const tenants = await User.find(filter).select('name email');
     for (const tenant of tenants) {
       sendInspectionAssignedEmail(tenant).catch(e =>
         console.error('[INSPECTION EMAIL]', tenant.email, e.message)
